@@ -116,3 +116,7 @@ The user identified that identity/user lifecycle and visual/interaction design w
 ## Auth/UI direction: Q64–Q69 accepted
 
 Use Better Auth/PostgreSQL, with authorization in the core. Each user initially gets one private workspace; invitation is installation access rather than workspace sharing. Administration handles installation operations without routine private-conversation/credential browsing. Desktop uses navigation/conversation/results; visual style is warm neutral with green accents, light/dark themes and clear fit/evidence. Mobile uses session Chat/Products/Compare, drawer navigation and full-screen details. Account lifecycle/access and actual screen review remain open; needs-info is retained.
+
+## Auth lifecycle: Q70–Q75 accepted
+
+Accepted first-administrator token/atomic bootstrap, SMTP-backed single-use seven-day invitations and thirty-minute resets, browser-session inactivity/absolute limits and revocation, disable/delete effects on private work and spending, scoped ninety-day personal HTTP tokens and OAuth-based remote MCP consent/revocation, and optional authenticator-app two-factor/recovery codes without password-reset bypass. UI mockup review remains pending; needs-info is retained and no auth implementation is claimed.

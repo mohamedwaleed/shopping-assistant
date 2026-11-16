@@ -1,6 +1,6 @@
 # Authentication, users and interface design
 
-Status: direction accepted (Q64–Q69); account lifecycle/access contracts and screen mockups still open. Product scope and agent/search design remain accepted. Overall spec remains needs-info.
+Status: auth/user lifecycle accepted through Q75; interface direction accepted through Q69; screen mockups await visual review. Product scope and agent/search design remain accepted. Overall spec remains needs-info.
 
 ## Accepted decisions
 
@@ -24,17 +24,19 @@ Email/password, administrator invitations and public registration off by default
 
 These references establish library/protocol capabilities, not completed integrations. Concrete versions and APIs require implementation verification.
 
-## Next lifecycle decision frontier — proposals, not accepted
+## Accepted lifecycle decisions
 
-- Q70: First-run administrator creation using an installation-held one-time setup token, atomic claim and setup disablement. Initial setup must not require SMTP.
-- Q71: Single-use, email-bound installation invitations; verification/reset flows and expiry; SMTP-free first-user operation versus later email-dependent onboarding.
-- Q72: Database-backed browser sessions with explicit expiry/revocation controls, reauthentication for sensitive changes and password-reset revocation.
-- Q73: Disable/delete behavior for identity, sessions, integration grants and private background work; preservation of independently reusable public catalogue facts.
-- Q74: Scoped personal HTTP API tokens and standards-based HTTP MCP sign-in/consent, with expiry/revocation and no shared server-wide secret.
-- Q75: Initial scope of second-factor and social-login features, distinguished from future authentication replacement.
+- Q70: One-time installation-held setup token, atomic first-administrator/private-workspace claim and setup disablement. No SMTP dependency or false email-ownership verification for bootstrap.
+- Q71: Single-use email-bound seven-day invitations; SMTP-backed invitation delivery and thirty-minute single-use reset links. Separate documented operator-only administrator recovery. Initial administrator can operate without SMTP, with unavailable email flows visible.
+- Q72: Secure HTTP-only cookie-backed database sessions; seven-day inactivity expiry, thirty-day absolute maximum, device list and current/all-device sign-out. Recent authentication for sensitive changes/credential creation; reset revokes sessions.
+- Q73: Disablement revokes browser/integration access and pauses private jobs/watches/notifications; retained data may be restored but work never resumes silently. Confirmed recent-auth deletion blocks access/spending immediately, then tracks private-data removal while preserving independent public facts and documenting backup retention.
+- Q74: Personal workspace-scoped HTTP tokens with chosen scopes, ninety-day default expiry, one-time display and revocation. Remote MCP uses standards-based browser sign-in and consent, established OAuth implementation, workspace-specific grants and connected-client revocation. OAuth token lifetimes follow the selected implementation and require verification.
+- Q75: Email/password plus optional authenticator-app second factor and recovery codes. Social login/passkeys deferred. Password reset cannot bypass enabled two-factor authentication; separate recovery is documented.
+
+These application policies require implementation and behavioral verification; library defaults are not proof of conformance. No auth code or database schema has been written.
 
 ## Visual review still required
 
-After lifecycle agreement, produce reviewable desktop/mobile screens covering onboarding, research/results, product details, comparisons, watches, settings and account/admin states. Review loading/empty/error/partial states and English/Dutch labels; mockups do not establish working auth, providers or backend functionality.
+Produce reviewable desktop/mobile screens covering onboarding, research/results, product details, comparisons, watches, settings and account/admin states. Review loading/empty/error/partial states and English/Dutch labels; mockups do not establish working auth, providers or backend functionality.
 
 No auth code, schema or application UI implementation has been created. No Specshape workflow applies.
