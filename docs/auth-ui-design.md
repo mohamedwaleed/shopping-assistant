@@ -46,3 +46,7 @@ The preview is not an accepted production UI or part of the application build. A
 Produce reviewable desktop/mobile screens covering onboarding, research/results, product details, comparisons, watches, settings and account/admin states. Review loading/empty/error/partial states and English/Dutch labels; mockups do not establish working auth, providers or backend functionality.
 
 No auth code, schema or application UI implementation has been created. No Specshape workflow applies.
+
+## Visual feedback: modern direction exploration
+
+The user liked the initial preview’s functionality but found the visual design insufficiently modern and distinctive. The original screen styling is not approved. A new in-conversation comparison presents three proposed visual directions: Studio (persistent conversation and shopping canvas), Canvas (spacious conversational discovery and collection), and Editorial (lead product presentation with a research inspector). All remain illustrative; no direction has been selected. Preserve accepted account/shopping flows and needs-info until the user reviews the revised visual design. JavaScript syntax was checked; browser rendering was not inspected.
