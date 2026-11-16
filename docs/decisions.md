@@ -140,3 +140,7 @@ Accepted demand-driven initial population with optional imports and separate dev
 ## Requested subscription-backed AI access
 
 The user asked why pgvector is needed and requested API-key or ChatGPT/Claude subscription configuration. pgvector remains optional, not removed. Record official ChatGPT plan-usage integration as a candidate adapter with local/private-VM and future paid-hosting constraints. Record Claude subscription access as requested but provider-gated: developer docs require approval for product plan-login use, while a support article describes personal Agent SDK/CLI subscription usage. Do not promise a generic subscription adapter, reuse browser credentials, or replace Better Auth login. Provider feasibility and live adapter verification remain open.
+
+## Knex selected; retailer registry candidates proposed
+
+The user explicitly selected Knex for database connections and queries. Record Knex/pg, application migrations, shared storage repositories and Better Auth adapter verification. The user also asked for a Netherlands retailer list and its maintenance model. Propose a PostgreSQL registry with versioned starter reference data, administrator-managed runtime state and distinct acquisition/eligibility/health fields. Research identified 14 starter candidates across categories, not scraping permission or operationally tested adapters. List selection/maintenance details are recommendations pending feedback; do not infer a closed-market allowlist.

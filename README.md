@@ -16,7 +16,7 @@ An open source, self-hosted shopping assistant for the Netherlands, with English
 
 ## Architecture
 
-TypeScript and pnpm monorepo, a framework-independent shopping engine, Next.js web/HTTP application, separate Node.js worker and MCP applications, and PostgreSQL for catalogue and durable state. Development and production Docker Compose configurations are planned.
+TypeScript and pnpm monorepo, a framework-independent shopping engine, Next.js web/HTTP application, separate Node.js worker and MCP applications, and PostgreSQL accessed through Knex for catalogue and durable state. Development and production Docker Compose configurations are planned.
 
 Private shopper data belongs to a workspace. Public product evidence is separate, allowing a future hosted service to reuse sourced catalogue facts across workspaces while isolating private data. Each self-hosted installation maintains its own catalogue.
 

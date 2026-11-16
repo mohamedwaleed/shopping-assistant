@@ -4,7 +4,7 @@ Status: Q76–Q79 accepted. Existing product/variant/offer/evidence and search c
 
 ## Already selected
 
-- PostgreSQL is the system of record. Separate products, exact variants, retailer offers, price observations and source claims; keep private shopper context separate from public facts.
+- PostgreSQL is the system of record; Knex with the pg driver is the user-selected connection/query layer and application migration tool. Separate products, exact variants, retailer offers, price observations and source claims; keep private shopper context separate from public facts.
 - Catalogue retrieval uses exact identifiers and applicable structured filters, English/Dutch full-text search and pg_trgm typo matching. Optional multilingual embeddings with pgvector augment retrieval without making an embedding provider mandatory.
 - Discovery is configurable SearXNG or Tavily Search. Page evidence is independently configured built-in retrieval/extraction or Tavily Extract. No silent paid fallback.
 - Reliable identifiers and configuration must agree before merging. Similar titles or vector similarity are not enough. Retailer SKUs are retailer-local.
@@ -70,3 +70,7 @@ Maintain permission-appropriate extraction fixtures and adapter versions. A layo
 - Merchant Center accepts merchant-supplied files and other product data sources, so Google shopping data is not solely inferred from scraped HTML: https://support.google.com/merchants/answer/11586438 . Such feeds are not thereby available or licensed to our application.
 
 An honest, identifiable low-load crawler and an explicit supported-source coverage report are proposed. Do not impersonate Googlebot or promise that a browser/third-party retrieval service eliminates blocks or grants reuse rights. The proposal does not change the accepted source eligibility, provider configuration or paid-fallback rules.
+
+## Retailer registry follow-up
+
+The user asked how to maintain Netherlands retailers and which to start with, and explicitly selected Knex. The proposed registry maintenance model and researched 14-candidate list are recorded in docs/retailer-registry.md. Retailer list membership, lawful acquisition, technical support and live Netherlands offer eligibility are distinct. No candidate is automatically scrape-enabled or proven reliable. Keep discovery extensible across all categories.
