@@ -120,3 +120,7 @@ Use Better Auth/PostgreSQL, with authorization in the core. Each user initially 
 ## Auth lifecycle: Q70–Q75 accepted
 
 Accepted first-administrator token/atomic bootstrap, SMTP-backed single-use seven-day invitations and thirty-minute resets, browser-session inactivity/absolute limits and revocation, disable/delete effects on private work and spending, scoped ninety-day personal HTTP tokens and OAuth-based remote MCP consent/revocation, and optional authenticator-app two-factor/recovery codes without password-reset bypass. UI mockup review remains pending; needs-info is retained and no auth implementation is claimed.
+
+## UI palette selected
+
+The user selected Electric blue from the modern palette comparison. Replace the earlier green palette with cool neutrals and blue primary actions/selection, retaining light/dark support and semantic status cues. This selects color only; Studio/Canvas/Editorial layout and final screens remain unapproved. Mirrored spec remains needs-info.

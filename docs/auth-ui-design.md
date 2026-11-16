@@ -8,7 +8,7 @@ Status: auth/user lifecycle accepted through Q75; interface direction accepted t
 - Q65: User identity is distinct from workspace ownership. Each initial user gets one private workspace; installation invitations do not grant access to another shopper’s space. Shared workspaces are future scope.
 - Q66: Installation administrator manages users, installation providers, budgets and operational status without a routine private-conversation/credential browsing UI. Can disable users and revoke access. Database operator access is outside this application UI boundary and must be documented honestly.
 - Q67: Desktop navigation/conversation/results layout; results remain associated with the session. Product selection opens details, multi-selection builds comparisons; watches have a dedicated view.
-- Q68: Warm neutral consumer visual style, clear type, restrained green, prominent images, readable fit/price evidence, light/dark themes and explicit stale/uncertain states.
+- Q68 superseded in palette only: user selected Electric blue after the modern visual exploration. Use cool neutral surfaces and electric-blue brand interactions, prominent product presentation, readable evidence and light/dark support; final layout remains open.
 - Q69: Mobile launch support: Chat/Products/Compare within the session, preserved context, full-screen details, horizontally navigable comparison and drawer navigation.
 
 ## Existing contracts retained
@@ -50,3 +50,21 @@ No auth code, schema or application UI implementation has been created. No Specs
 ## Visual feedback: modern direction exploration
 
 The user liked the initial preview’s functionality but found the visual design insufficiently modern and distinctive. The original screen styling is not approved. A new in-conversation comparison presents three proposed visual directions: Studio (persistent conversation and shopping canvas), Canvas (spacious conversational discovery and collection), and Editorial (lead product presentation with a research inspector). All remain illustrative; no direction has been selected. Preserve accepted account/shopping flows and needs-info until the user reviews the revised visual design. JavaScript syntax was checked; browser rendering was not inspected.
+
+## Selected palette: Electric blue
+
+The user explicitly selected Electric blue. This replaces the earlier green direction; it does not select Studio, Canvas or Editorial or approve final screens.
+
+| Token | Light | Dark |
+|---|---|---|
+| Primary action / selected state | #3158DB | #A7BEFF |
+| Content on primary | #FFFFFF | #17264D |
+| Subtle blue surface | #E9EFFF | #263A62 |
+| App background | #F4F6FC | #161B27 |
+| Panel surface | #FFFFFF | #202837 |
+| Soft neutral surface | #EAF0FA | #2C374B |
+| Structural border | #DCE3F1 | #38465D |
+| Primary text | #202A40 | #E9EFFF |
+| Secondary text | #64718A | #AAB8CF |
+
+These are the selected preview palette values; implementation must verify contrast across actual component states. Brand blue does not replace semantic warning/error/success cues. Preserve the accepted auth and shopping behavior; overall spec stays needs-info for final layout/screen review.
