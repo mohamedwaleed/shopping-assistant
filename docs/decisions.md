@@ -100,3 +100,7 @@ The user identified unresolved agent and search implementation decisions and aut
 ## Agent/search technical round one
 
 Q46–Q50 accepted: controlled single-agent workflow, hybrid catalogue retrieval with optional embeddings, configurable discovery/retrieval, code-enforced evidence sufficiency, and category attribute registry. Q48 amendment adds configurable SearXNG alongside Tavily Search/Extract. Q51 clarifies that developer-added skills and MCP integrations belong to the built-in agent; exact extension contracts remain open. The specification remains needs-info pending the rest of this design round.
+
+## Agent/search technical round two
+
+Q52–Q56 and Q58 accepted: optional/external SearXNG, independent configurable discovery and retrieval with explicit paid fallback; built-in page retrieval/extraction without Tavily; typed phase-scoped shopping tools; authoritative persisted research state with invalidation; separate retrieval/recommendation ranking; one default model with optional extraction/embedding overrides. Q57 correction: adding skills and external MCP integrations to the built-in agent is withdrawn. Do not build its extension loader, registry or configuration. The outward-facing shopping MCP server remains in scope. The latest spec supersedes earlier extension statements.
