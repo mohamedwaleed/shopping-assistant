@@ -96,3 +96,7 @@ Concrete provider/library choices need primary-source review. Numeric budgets, l
 ## Technical design follow-up
 
 The user identified unresolved agent and search implementation decisions and authorized a focused technical design round. Product requirements remain agreed; the local and GitHub spec are needs-info until agent orchestration and search contracts are settled. No Specshape workflow is used. Recommendations in the follow-up are proposals until explicitly accepted.
+
+## Agent/search technical round one
+
+Q46–Q50 accepted: controlled single-agent workflow, hybrid catalogue retrieval with optional embeddings, configurable discovery/retrieval, code-enforced evidence sufficiency, and category attribute registry. Q48 amendment adds configurable SearXNG alongside Tavily Search/Extract. Q51 clarifies that developer-added skills and MCP integrations belong to the built-in agent; exact extension contracts remain open. The specification remains needs-info pending the rest of this design round.

@@ -1,6 +1,6 @@
 # Agent and search technical design
 
-Status: under discussion; proposals are not accepted decisions.
+Status: partially decided; Q46–Q50 accepted with the Q48 amendment. Q51 clarified as developer extensibility. Further contracts remain open.
 
 Product requirements remain settled. This document records the focused technical design follow-up requested after publication of the product specification. No implementation is underway and no Specshape workflow applies.
 
@@ -34,13 +34,28 @@ The live documentation identifies itself as v7. No package is installed in this 
 
 These are documentation findings, not live provider integration results. No retailer coverage, extraction accuracy, pricing or production readiness is claimed.
 
-## First technical decision frontier — proposed, awaiting answers
+## Accepted first technical round
 
-- Q46: Single bounded shopping agent with application-enforced phases versus a free tool loop or multiple specialist agents. Recommend one agent with enforced phases and persisted state.
-- Q47: Lexical-only catalogue retrieval versus hybrid retrieval. Recommend structured filters and exact identifiers, lexical/trigram retrieval, and optional multilingual vector retrieval, with lexical operation preserved without embeddings.
-- Q48: External discovery/retrieval architecture and launch provider. Recommend separate discovery and page-evidence interfaces; Tavily Search/Extract as first adapter candidate, with site/variant/freshness validation and optional later specialized retrieval adapters. Acceptance depends on live Netherlands coverage checks.
-- Q49: Model-only evidence sufficiency versus application-enforced evidence conditions. Recommend application-enforced eligibility, identity, evidence and freshness checks, with model assistance for subjective suitability and missing research questions.
-- Q50: Arbitrary extracted attribute names versus a curated category attribute registry. Recommend common fields and extensible category definitions, preserving unrecognized source claims without silently activating model-created schemas or filters.
-- Q51: User-supplied executable extensions versus curated skills/tools and administrator-approved MCP integrations. Recommend trusted versioned instruction skills and explicitly approved tool bindings, with no permissions supplied by skill prose or retailer content.
+- Q46: One bounded shopping agent with application-enforced research phases and persisted progress. The model assists within permission, spending and evidence constraints enforced by code.
+- Q47: Exact identifiers and structured filters, lexical/trigram retrieval, plus optional multilingual semantic retrieval. Lexical operation remains available without embeddings; similarity never establishes identity or must-have verification.
+- Q48: Separate discovery and page-evidence interfaces. User amendment: support configurable SearXNG alongside Tavily Search and Tavily Extract. SearXNG refers to the upstream project commonly spelled SearXNG; deployment/fallback and extraction-without-Tavily choices are still open.
+- Q49: Application-enforced identity, eligibility, evidence and freshness checks, with model assistance for subjective suitability and missing research questions.
+- Q50: Extensible category attribute registry with validated names/types/units/synonyms. Preserve unfamiliar source claims without silently activating invented schemas or filters.
+- Q51 clarification: the developer can add skills and MCP integrations to the built-in agent. This does not request a shopper extension-upload UI. Skills configure instructions and MCP integrations add tools; exact loading/binding contracts remain open.
 
-Dependent topics for subsequent rounds: exact tool contracts, model roles, context/checkpoint layout, ranking/sufficiency defaults, ingestion confidence rules, retrieval escalation and research evaluation gates. Do not treat these proposals as accepted decisions.
+## SearXNG and MCP facts
+
+- SearXNG supports GET/POST search via HTTP; JSON must be enabled in the instance search formats. Public instances may disable JSON, returning HTTP 403: https://docs.searxng.org/dev/search_api.html and https://docs.searxng.org/admin/settings/settings_search.html .
+- SearXNG search responses are not a substitute for retrieving and verifying an offer page. A configured instance and upstream engines need operational validation; no paid discovery API requirement does not imply zero hosting or inference cost.
+- AI SDK can connect to MCP servers and consume tools, resources and prompts: https://ai-sdk.dev/docs/ai-sdk-core/mcp-tools . Concrete transport and client lifecycle APIs must be checked against the pinned version.
+- The attempted AI SDK agents/skills documentation URL was unavailable; do not claim native support for a particular filesystem skill-loading convention without further verification. An application-owned instruction loader is a possible project design.
+
+## Remaining design branches
+
+- Concrete tool contracts and phase access; curated skills, developer loading and MCP lifecycle.
+- Model roles and routing; bounded prompt assembly, authoritative state, checkpoints and invalidated research on changed requirements.
+- Search query planning, deterministic ranking and sufficiency outcomes; exact filters versus unverified candidates.
+- SearXNG deployment and provider routing; extraction without paid dependencies; escalation for blocked or dynamic pages.
+- Variant identity/admission and freshness thresholds; evaluation gates and default research limits.
+
+The accepted subset is incorporated in the mirrored product spec; keep needs-info until the remaining architecture contracts are agreed.
