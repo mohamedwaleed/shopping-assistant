@@ -132,3 +132,7 @@ The user selected Studio after separate Electric blue previews. Studio and Elect
 ## UI approved; catalogue discussion opened
 
 The user explicitly approved the unified Studio/Electric blue screens, then requested discussion of catalogue construction and search. Record UI/auth as accepted. Preserve the existing Postgres full-text/trigram plus optional vector search and configurable SearXNG/Tavily decisions. Refine initial population, source onboarding, admission and background enrichment next; proposed choices are not yet accepted. Keep needs-info for that scoped catalogue work without implying UI remains unapproved.
+
+## Catalogue Q76–Q79 accepted; explanation requested
+
+Accepted demand-driven initial population with optional imports and separate development fixtures; bounded on-demand page discovery plus administrator-configured feeds/APIs where usable sources exist; automatic validated admission with focused review for conflicts/merges; active-watch/on-demand refresh priority plus optional budgeted enrichment. The user requested clarification of bounded discovery/imports and whether research quality comes from phrases. The explanation distinguishes discovery queries from evidence-based requirement assessment and runtime sufficiency from benchmarked system quality; it does not claim code validation proves real-world truth.
