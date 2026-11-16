@@ -63,3 +63,11 @@ A shopper-approved preference reusable across sessions, with visible application
 
 **Advertised discount**:
 A retailer’s claim of a reduction, distinguished from a reduction supported by the catalogue’s observed price history.
+
+**User**:
+An identified person with access to the installation and ownership of a private workspace. An invitation to the installation does not share another shopper’s workspace.
+_Avoid_: Workspace
+
+**Installation administrator**:
+A user authorized to manage installation access, shared provider configuration, budgets and operational status. This role does not provide routine application access to shoppers’ private conversations or personal provider credentials.
+_Avoid_: Workspace owner

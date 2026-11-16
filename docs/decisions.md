@@ -112,3 +112,7 @@ Q59–Q63 accepted: reliable-identifier/configuration agreement before automatic
 ## Whole-product readiness correction: auth and UI
 
 The user identified that identity/user lifecycle and visual/interaction design were not discussed sufficiently. Agent/search remains accepted, but overall ready-for-agent was premature. Reopen the mirrored spec as needs-info and record auth/UI design separately before implementation readiness is claimed. No prior auth-library, membership-role or visual-style decision is inferred.
+
+## Auth/UI direction: Q64–Q69 accepted
+
+Use Better Auth/PostgreSQL, with authorization in the core. Each user initially gets one private workspace; invitation is installation access rather than workspace sharing. Administration handles installation operations without routine private-conversation/credential browsing. Desktop uses navigation/conversation/results; visual style is warm neutral with green accents, light/dark themes and clear fit/evidence. Mobile uses session Chat/Products/Compare, drawer navigation and full-screen details. Account lifecycle/access and actual screen review remain open; needs-info is retained.
