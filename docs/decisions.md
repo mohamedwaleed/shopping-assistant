@@ -92,3 +92,7 @@ All recommendations for Q40–Q45 were accepted and shared understanding was con
 ## Implementation validation still required
 
 Concrete provider/library choices need primary-source review. Numeric budgets, limits, freshness, retention, and performance defaults need calibration and documented rationale. This is implementation investigation, not an unfinished product interview.
+
+## Technical design follow-up
+
+The user identified unresolved agent and search implementation decisions and authorized a focused technical design round. Product requirements remain agreed; the local and GitHub spec are needs-info until agent orchestration and search contracts are settled. No Specshape workflow is used. Recommendations in the follow-up are proposals until explicitly accepted.

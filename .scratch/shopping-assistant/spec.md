@@ -1,6 +1,6 @@
 # Shopping Assistant — Product Specification
 
-Status: ready-for-agent
+Status: needs-info
 
 ## Problem Statement
 
@@ -165,8 +165,10 @@ Users can monitor an exact retailer offer or established product variant, receiv
 
 ## Further Notes
 
-- The product interview is complete: the user accepted the final stack, delivery-location, baseline, scheduling, provider-selection, and handoff recommendations. This spec synthesizes those decisions without requiring a new product interview or a Specshape workflow.
+- **Technical design reopened:** Product requirements are agreed, but agent orchestration and search design need a focused design round. Do not treat this specification as implementation-ready until those contracts are agreed and incorporated. The needs-info status reflects this design gap, not missing product intent.
+
+- The product-requirements interview is complete: the user accepted the final stack, delivery-location, baseline, scheduling, provider-selection, and handoff recommendations. This spec synthesizes those decisions without requiring a new product interview or a Specshape workflow.
 - Provider/library versions and concrete integration choices require current primary-source verification during implementation. Numeric budgets, limits, freshness/retention settings, and performance defaults require calibration and documentation. No actual monthly budget, initial user count, or performance target was supplied.
 - This is a new product: no existing application behavior, implemented provider support, automated test results, or deployment readiness is claimed.
 - The chosen licence policy was checked against GNU AGPLv3 section 13 during the interview. Its source is the GNU Project’s licence text: https://www.gnu.org/licenses/agpl-3.0.html#section13 . The licence and applicable notices must be supplied with implementation.
-- Local and GitHub publication represent the same specification. Record the GitHub issue URL locally after publication and preserve ready-for-agent status in both locations. Publication does not mean the application has been built.
+- Local and GitHub publication represent the same specification. Record the GitHub issue URL locally after publication and keep triage status synchronized in both locations. Publication does not mean the application has been built.
