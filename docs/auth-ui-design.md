@@ -1,6 +1,6 @@
 # Authentication, users and interface design
 
-Status: auth/user lifecycle accepted through Q75; Studio layout and Electric blue palette explicitly selected. Full-flow screen mockups await final visual review. Product scope and agent/search design remain accepted. Overall spec remains needs-info.
+Status: approved. Auth/user lifecycle through Q75 and the unified Studio/Electric blue full-flow screen review were explicitly accepted by the user. Overall spec remains needs-info for the separate catalogue ingestion discussion, not auth/UI.
 
 ## Accepted decisions
 
@@ -8,7 +8,7 @@ Status: auth/user lifecycle accepted through Q75; Studio layout and Electric blu
 - Q65: User identity is distinct from workspace ownership. Each initial user gets one private workspace; installation invitations do not grant access to another shopper’s space. Shared workspaces are future scope.
 - Q66: Installation administrator manages users, installation providers, budgets and operational status without a routine private-conversation/credential browsing UI. Can disable users and revoke access. Database operator access is outside this application UI boundary and must be documented honestly.
 - Q67: Desktop navigation/conversation/results layout; results remain associated with the session. Product selection opens details, multi-selection builds comparisons; watches have a dedicated view.
-- Q68 superseded in palette only: user selected Electric blue after the modern visual exploration. Use cool neutral surfaces and electric-blue brand interactions, prominent product presentation, readable evidence and light/dark support; Studio was subsequently selected; detailed full-flow screens remain under review.
+- Q68 superseded in palette only: user selected Electric blue after the modern visual exploration. Use cool neutral surfaces and electric-blue brand interactions, prominent product presentation, readable evidence and light/dark support; Studio was subsequently selected; the unified full-flow screen review was subsequently approved.
 - Q69: Mobile launch support: Chat/Products/Compare within the session, preserved context, full-screen details, horizontally navigable comparison and drawer navigation.
 
 ## Existing contracts retained
@@ -41,7 +41,7 @@ An interactive design preview is available in the conversation, with screen sele
 
 The preview is not an accepted production UI or part of the application build. Await the user's visual feedback before treating screen design as agreed. It is held locally for iteration; do not infer that its buttons establish verified backend behavior. JavaScript syntax was checked, but no browser rendering inspection was available in this environment.
 
-## Visual review still required
+## Visual review scope — subsequently approved
 
 Produce reviewable desktop/mobile screens covering onboarding, research/results, product details, comparisons, watches, settings and account/admin states. Review loading/empty/error/partial states and English/Dutch labels; mockups do not establish working auth, providers or backend functionality.
 
@@ -75,4 +75,8 @@ The user explicitly chose Studio from the three separately visible previews. Use
 
 A unified Studio/Electric blue screen review now covers all earlier account/shopping screens plus complete, researching, partial, empty and provider-unavailable research states. It retains mobile, light/dark and English/Dutch controls. These are fictional-data, in-memory examples, not application implementation. JavaScript syntax was checked; browser rendering has not been inspected. The review source remains local until finalized.
 
-Only visual review of the unified screens remains in this design branch; do not reopen the selected layout or palette unless requested. Do not infer approval of unseen screen details or working backend behavior from the layout selection.
+The user approved the unified screen review after selecting Studio and Electric blue. Do not reopen the chosen layout/palette or already reviewed flows unless requested. Design approval does not establish working authentication, providers or backend behavior.
+
+## Final screen approval
+
+The user explicitly approved the unified Studio/Electric blue screen review before opening the catalogue discussion. This supersedes historical pending-review notes above. Shopping, account, desktop/mobile and illustrated research states are the implementation design reference. The preview remains illustrative, not production code or live integration evidence.

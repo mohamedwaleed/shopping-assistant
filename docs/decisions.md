@@ -128,3 +128,7 @@ The user selected Electric blue from the modern palette comparison. Replace the 
 ## UI layout selected: Studio
 
 The user selected Studio after separate Electric blue previews. Studio and Electric blue are settled visual choices; Canvas/Editorial are not application modes. Apply Studio to the full account/shopping review, preserving accepted mobile behavior and lifecycle. Unified screen details remain under visual review, so needs-info is retained. No production UI or backend implementation is claimed.
+
+## UI approved; catalogue discussion opened
+
+The user explicitly approved the unified Studio/Electric blue screens, then requested discussion of catalogue construction and search. Record UI/auth as accepted. Preserve the existing Postgres full-text/trigram plus optional vector search and configurable SearXNG/Tavily decisions. Refine initial population, source onboarding, admission and background enrichment next; proposed choices are not yet accepted. Keep needs-info for that scoped catalogue work without implying UI remains unapproved.

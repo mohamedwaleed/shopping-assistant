@@ -13,3 +13,5 @@ The local spec and GitHub issue body are mirrors. No implementation tickets or a
 Technical design follow-up is complete: Q46–Q63 accepted with the SearXNG amendment and Q57 extension withdrawal. The local/GitHub spec incorporates the selected agent/search contracts and initial defaults. The design is ready for implementation task breakdown; no implementation is claimed.
 
 Readiness correction: accepted agent/search design is one completed area. Auth/user lifecycle and UI/interaction design remain open. The overall specification is needs-info until those areas are agreed.
+
+Current scope: auth lifecycle and the unified Studio/Electric blue screens are approved. Needs-info now reflects the catalogue population/source-ingestion design discussion requested by the user, not a pending UI review.
