@@ -1,6 +1,6 @@
 # Shopping Assistant — Product Specification
 
-Status: needs-info
+Status: ready-for-agent
 
 ## Problem Statement
 
@@ -108,7 +108,12 @@ Users can monitor an exact retailer offer or established product variant, receiv
 
 ## Implementation Decisions
 
-- **Accepted agent/search design, second technical round:** Q52–Q56 and Q58 are accepted; Q57 extension functionality is withdrawn. The remaining technical round covers identity/admission, sufficiency, freshness, limits, and evaluation defaults.
+- **Variant identity/admission:** Automatically merge listings only when reliable identifiers and configuration attributes agree. Retailer SKUs are retailer-specific. Conflicting identifiers or configuration prevent merging; retain uncertain candidates separately. Models can propose identity matches, but code validates before merging or attaching exact-variant watches.
+- **Task-specific sufficiency:** Exact-product research requires established identity, requested specifications and fresh eligible offers. Comparison requires established variants and evidence for relevant attributes. Broad discovery evaluates requirement coverage and candidate diversity; weak or unknown catalogue coverage triggers bounded external research even if a few catalogue candidates match. Record completion reason: sufficient evidence, clarification needed, exhausted limits or unavailable sources. Describe recommendations within examined candidates, not as an exhaustive market result.
+- **Freshness defaults:** Interactive offer observations may be reused for up to six hours with visible timestamps. Explicit current-offer requests attempt a fresh check. Each scheduled monitoring check obtains a new observation rather than reusing the previous one. Recheck specifications after thirty days or sooner when conflicting evidence appears. Preserve provider/cache timestamps where available. Failed refreshes leave old observations marked stale and cannot generate alerts. All intervals are configurable.
+- **Initial research caps:** Per run, default to three minutes, eight discovery requests, twenty page retrievals, thirty evaluated candidates and twelve agent steps, plus separately configured token/spending caps. Count retries against the relevant caps. Stop at the first exhausted allowance and return useful partial results. Explicit continuation grants an additional allowance subject to installation/workspace ceilings. These are configurable starting settings to calibrate, not promised response times or mandatory API spending.
+
+- **Technical design complete:** Q46–Q63 are resolved, including configurable SearXNG/Tavily, the Q57 extension withdrawal, and accepted identity, sufficiency, freshness, limit, and evaluation defaults. Implementation can be broken into behavior-focused tasks without repeating the product interview.
 - **Search deployment and routing:** Provide an optional SearXNG Compose profile and external-instance URL configuration, with JSON capability checks. Discovery, extraction and fallback order are separately configurable. Never switch to paid Tavily without enabled fallback and available budget.
 - **Built-in retrieval:** Fetch pages and parse structured product data, then relevant readable content; use schema-constrained model extraction when needed, keeping evidence excerpts. Tavily Extract is independently configurable. Report blocked/unsupported pages; browser automation is not an initial dependency. Fetching must not expose installation secrets or provide general internal-network access to research URLs.
 - **Tool contracts:** Expose typed requirement/clarification, catalogue search, discovery, evidence retrieval, evaluation/comparison, and watch operations. Return structured results, references, gaps and failures. Enforce phase-level tool availability; catalogue writes pass validation and identity resolution. No general SQL tool is exposed to the agent.
@@ -153,6 +158,9 @@ Users can monitor an exact retailer offer or established product variant, receiv
 
 ## Testing Decisions
 
+- **Research quality gate:** Maintain a bilingual evaluation set spanning heterogeneous categories, exact models, vague needs, conflicts and missing evidence. Measure candidate relevance and Dutch/English matching separately from correctness. Check exact variants, evidence-backed must-haves, honest uncertainty, price basis/freshness, appropriate clarification/stopping and bounded usage. All curated safety/correctness scenarios must pass. Establish numerical retrieval-relevance targets from the initial benchmark and document failures rather than inventing quality guarantees.
+- **Technical design regression scenarios:** Exercise same-model/different-configuration listings, retailer-specific SKUs, conflicting identifiers, exact/compare/broad completion rules, weak catalogue coverage, six-hour offer expiry, thirty-day specification rechecks, explicit refresh failure, provider cache metadata, fresh-only scheduled observations and each independent research cap including retries/continuation. Verify keyword-only operation without embeddings, SearXNG without Tavily credentials, independently configured Tavily extraction, and no paid fallback unless enabled.
+
 - **Confirmed primary seam:** Test the authenticated shopping engine through its public operations, with real PostgreSQL behavior where persistence, isolation, job recovery, or concurrency matter. This is the shared business-behavior boundary for agent, HTTP, and MCP access.
 - **Small additional seams:** Use thin HTTP/MCP contract checks to prove transport schemas, authentication, scope enforcement, and error mapping. Use browser checks only for observable interactive workflows, session navigation, localization, and structured results. Avoid duplicating every shopping rule at every layer.
 - **Good tests:** Assert externally visible outcomes, not private method calls, internal prompt wording, table layouts, or component implementation. A meaningful change includes the checks for its new behavior; release checks consolidate rather than postpone verification.
@@ -183,10 +191,10 @@ Users can monitor an exact retailer offer or established product variant, receiv
 
 ## Further Notes
 
-- **Technical design reopened:** Product requirements are agreed, but agent orchestration and search design need a focused design round. Do not treat this specification as implementation-ready until those contracts are agreed and incorporated. The needs-info status reflects this design gap, not missing product intent.
+- **Technical design accepted:** The user accepted the focused agent/search design through Q63. This specification includes the agreed contracts and defaults and is ready-for-agent for implementation task breakdown. No application implementation or live provider validation has occurred.
 
 - The product-requirements interview is complete: the user accepted the final stack, delivery-location, baseline, scheduling, provider-selection, and handoff recommendations. This spec synthesizes those decisions without requiring a new product interview or a Specshape workflow.
-- Provider/library versions and concrete integration choices require current primary-source verification during implementation. Numeric budgets, limits, freshness/retention settings, and performance defaults require calibration and documentation. No actual monthly budget, initial user count, or performance target was supplied.
+- Provider/library versions and concrete library choices require current primary-source verification during implementation. Search adapters and initial research/freshness defaults are selected above; monetary/token ceilings, retention settings, model choices and performance tuning require configuration or calibration with documented rationale. No actual monthly budget, initial user count, or performance target was supplied.
 - This is a new product: no existing application behavior, implemented provider support, automated test results, or deployment readiness is claimed.
 - The chosen licence policy was checked against GNU AGPLv3 section 13 during the interview. Its source is the GNU Project’s licence text: https://www.gnu.org/licenses/agpl-3.0.html#section13 . The licence and applicable notices must be supplied with implementation.
 - Local and GitHub publication represent the same specification. Record the GitHub issue URL locally after publication and keep triage status synchronized in both locations. Publication does not mean the application has been built.

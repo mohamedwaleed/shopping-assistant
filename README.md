@@ -20,6 +20,12 @@ TypeScript and pnpm monorepo, a framework-independent shopping engine, Next.js w
 
 Private shopper data belongs to a workspace. Public product evidence is separate, allowing a future hosted service to reuse sourced catalogue facts across workspaces while isolating private data. Each self-hosted installation maintains its own catalogue.
 
+## Search and agent design
+
+The agent follows application-controlled research phases with persisted requirements and evidence. Catalogue retrieval combines exact identifiers and lexical search with optional multilingual semantic search. External discovery supports configurable SearXNG or Tavily Search; page extraction independently supports the built-in retrieval pipeline or Tavily Extract. Paid fallback is explicit.
+
+Read the [accepted agent/search design](docs/agent-search-design.md) for tool boundaries, context/state, evidence admission, ranking, research caps, freshness defaults, and evaluation requirements. Developer-added skills and external MCP integrations for the built-in agent are out of scope; the application’s shopping MCP server remains planned.
+
 ## Specification
 
 Read the [product specification](.scratch/shopping-assistant/spec.md), [domain glossary](CONTEXT.md), and [architectural decisions](docs/adr/). The specification defines the complete initial release; setup commands will be added with the implementation.

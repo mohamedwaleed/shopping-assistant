@@ -8,4 +8,4 @@
 | ready-for-human | ready-for-human |
 | wontfix | wontfix |
 
-Current specification status: needs-info while agent orchestration and search design are resolved. Apply ready-for-agent after the agreed technical design is incorporated; no additional product triage is required.
+Current specification status: ready-for-agent. Product requirements and the focused agent/search technical design are accepted and incorporated. Implementation and live provider validation remain to be performed.
