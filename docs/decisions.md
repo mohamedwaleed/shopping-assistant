@@ -136,3 +136,7 @@ The user explicitly approved the unified Studio/Electric blue screens, then requ
 ## Catalogue Q76–Q79 accepted; explanation requested
 
 Accepted demand-driven initial population with optional imports and separate development fixtures; bounded on-demand page discovery plus administrator-configured feeds/APIs where usable sources exist; automatic validated admission with focused review for conflicts/merges; active-watch/on-demand refresh priority plus optional budgeted enrichment. The user requested clarification of bounded discovery/imports and whether research quality comes from phrases. The explanation distinguishes discovery queries from evidence-based requirement assessment and runtime sufficiency from benchmarked system quality; it does not claim code validation proves real-world truth.
+
+## Requested subscription-backed AI access
+
+The user asked why pgvector is needed and requested API-key or ChatGPT/Claude subscription configuration. pgvector remains optional, not removed. Record official ChatGPT plan-usage integration as a candidate adapter with local/private-VM and future paid-hosting constraints. Record Claude subscription access as requested but provider-gated: developer docs require approval for product plan-login use, while a support article describes personal Agent SDK/CLI subscription usage. Do not promise a generic subscription adapter, reuse browser credentials, or replace Better Auth login. Provider feasibility and live adapter verification remain open.
