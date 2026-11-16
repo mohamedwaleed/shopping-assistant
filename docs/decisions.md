@@ -124,3 +124,7 @@ Accepted first-administrator token/atomic bootstrap, SMTP-backed single-use seve
 ## UI palette selected
 
 The user selected Electric blue from the modern palette comparison. Replace the earlier green palette with cool neutrals and blue primary actions/selection, retaining light/dark support and semantic status cues. This selects color only; Studio/Canvas/Editorial layout and final screens remain unapproved. Mirrored spec remains needs-info.
+
+## UI layout selected: Studio
+
+The user selected Studio after separate Electric blue previews. Studio and Electric blue are settled visual choices; Canvas/Editorial are not application modes. Apply Studio to the full account/shopping review, preserving accepted mobile behavior and lifecycle. Unified screen details remain under visual review, so needs-info is retained. No production UI or backend implementation is claimed.

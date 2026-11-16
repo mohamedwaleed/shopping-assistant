@@ -26,6 +26,10 @@ The agent follows application-controlled research phases with persisted requirem
 
 Read the [accepted agent/search design](docs/agent-search-design.md) for tool boundaries, context/state, evidence admission, ranking, research caps, freshness defaults, and evaluation requirements. Developer-added skills and external MCP integrations for the built-in agent are out of scope; the application’s shopping MCP server remains planned.
 
+## Interface direction
+
+The selected interface is **Studio in Electric blue**: desktop navigation, conversation and a dedicated shopping-results canvas, with responsive mobile Chat/Products/Compare views. Account and shopping screen details are under visual review; no production UI is implemented yet.
+
 ## Specification
 
 Read the [product specification](.scratch/shopping-assistant/spec.md), [domain glossary](CONTEXT.md), and [architectural decisions](docs/adr/). The specification defines the complete initial release; setup commands will be added with the implementation.
