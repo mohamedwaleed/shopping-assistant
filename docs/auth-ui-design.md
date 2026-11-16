@@ -35,6 +35,12 @@ These references establish library/protocol capabilities, not completed integrat
 
 These application policies require implementation and behavioral verification; library defaults are not proof of conformance. No auth code or database schema has been written.
 
+## Screen review draft
+
+An interactive design preview is available in the conversation, with screen selection for research/results, product details, comparisons, watches, provider settings, security/devices, API/MCP access, user administration, bootstrap, sign-in/two-factor, invitation and recovery. It supports desktop/mobile, light/dark and English/Dutch controls. Fictional products/prices and in-memory actions demonstrate the proposed interface; no auth, provider, storage or notification implementation is implied.
+
+The preview is not an accepted production UI or part of the application build. Await the user's visual feedback before treating screen design as agreed. It is held locally for iteration; do not infer that its buttons establish verified backend behavior. JavaScript syntax was checked, but no browser rendering inspection was available in this environment.
+
 ## Visual review still required
 
 Produce reviewable desktop/mobile screens covering onboarding, research/results, product details, comparisons, watches, settings and account/admin states. Review loading/empty/error/partial states and English/Dutch labels; mockups do not establish working auth, providers or backend functionality.
