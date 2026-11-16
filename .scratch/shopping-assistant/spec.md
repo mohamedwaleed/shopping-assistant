@@ -1,6 +1,6 @@
 # Shopping Assistant — Product Specification
 
-Status: ready-for-agent
+Status: needs-info
 
 ## Problem Statement
 
@@ -113,7 +113,7 @@ Users can monitor an exact retailer offer or established product variant, receiv
 - **Freshness defaults:** Interactive offer observations may be reused for up to six hours with visible timestamps. Explicit current-offer requests attempt a fresh check. Each scheduled monitoring check obtains a new observation rather than reusing the previous one. Recheck specifications after thirty days or sooner when conflicting evidence appears. Preserve provider/cache timestamps where available. Failed refreshes leave old observations marked stale and cannot generate alerts. All intervals are configurable.
 - **Initial research caps:** Per run, default to three minutes, eight discovery requests, twenty page retrievals, thirty evaluated candidates and twelve agent steps, plus separately configured token/spending caps. Count retries against the relevant caps. Stop at the first exhausted allowance and return useful partial results. Explicit continuation grants an additional allowance subject to installation/workspace ceilings. These are configurable starting settings to calibrate, not promised response times or mandatory API spending.
 
-- **Technical design complete:** Q46–Q63 are resolved, including configurable SearXNG/Tavily, the Q57 extension withdrawal, and accepted identity, sufficiency, freshness, limit, and evaluation defaults. Implementation can be broken into behavior-focused tasks without repeating the product interview.
+- **Technical design complete:** Q46–Q63 are resolved, including configurable SearXNG/Tavily, the Q57 extension withdrawal, and accepted identity, sufficiency, freshness, limit, and evaluation defaults. Auth/user lifecycle and UI/interaction design still require agreement before the whole specification is implementation-ready.
 - **Search deployment and routing:** Provide an optional SearXNG Compose profile and external-instance URL configuration, with JSON capability checks. Discovery, extraction and fallback order are separately configurable. Never switch to paid Tavily without enabled fallback and available budget.
 - **Built-in retrieval:** Fetch pages and parse structured product data, then relevant readable content; use schema-constrained model extraction when needed, keeping evidence excerpts. Tavily Extract is independently configurable. Report blocked/unsupported pages; browser automation is not an initial dependency. Fetching must not expose installation secrets or provide general internal-network access to research URLs.
 - **Tool contracts:** Expose typed requirement/clarification, catalogue search, discovery, evidence retrieval, evaluation/comparison, and watch operations. Return structured results, references, gaps and failures. Enforce phase-level tool availability; catalogue writes pass validation and identity resolution. No general SQL tool is exposed to the agent.
@@ -191,7 +191,7 @@ Users can monitor an exact retailer offer or established product variant, receiv
 
 ## Further Notes
 
-- **Technical design accepted:** The user accepted the focused agent/search design through Q63. This specification includes the agreed contracts and defaults and is ready-for-agent for implementation task breakdown. No application implementation or live provider validation has occurred.
+- **Readiness correction:** Agent/search design through Q63 is accepted. The specification as a whole remains needs-info until auth/user lifecycle and UI/interaction design are agreed. Existing product and agent/search decisions remain valid. No application implementation or live provider validation has occurred.
 
 - The product-requirements interview is complete: the user accepted the final stack, delivery-location, baseline, scheduling, provider-selection, and handoff recommendations. This spec synthesizes those decisions without requiring a new product interview or a Specshape workflow.
 - Provider/library versions and concrete library choices require current primary-source verification during implementation. Search adapters and initial research/freshness defaults are selected above; monetary/token ceilings, retention settings, model choices and performance tuning require configuration or calibration with documented rationale. No actual monthly budget, initial user count, or performance target was supplied.

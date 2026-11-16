@@ -8,4 +8,4 @@
 | ready-for-human | ready-for-human |
 | wontfix | wontfix |
 
-Current specification status: ready-for-agent. Product requirements and the focused agent/search technical design are accepted and incorporated. Implementation and live provider validation remain to be performed.
+Current specification status: needs-info. Product scope and agent/search design are accepted; auth/user lifecycle and UI/interaction design remain open. Do not mark the entire specification ready solely because one design area is complete.

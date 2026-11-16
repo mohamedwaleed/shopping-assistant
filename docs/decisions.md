@@ -108,3 +108,7 @@ Q52–Q56 and Q58 accepted: optional/external SearXNG, independent configurable 
 ## Agent/search technical round three — complete
 
 Q59–Q63 accepted: reliable-identifier/configuration agreement before automatic merging; retailer-local SKUs; task-specific sufficiency and explicit stopping reasons; six-hour interactive offer reuse, fresh explicit/current and scheduled checks, thirty-day specification refresh with conflict invalidation; three-minute/eight-discovery/twenty-page/thirty-candidate/twelve-agent-step default research allowances with separate token/spending caps; bilingual heterogeneous quality evaluation with all curated safety/correctness scenarios required to pass and baseline-derived relevance targets. Initial defaults remain configurable. The focused technical interview is complete and the accepted design is incorporated into the local/GitHub spec, now ready-for-agent. No build is started; routine library selection, benchmarking and live integration checks remain implementation work. Q57 extensions stay withdrawn.
+
+## Whole-product readiness correction: auth and UI
+
+The user identified that identity/user lifecycle and visual/interaction design were not discussed sufficiently. Agent/search remains accepted, but overall ready-for-agent was premature. Reopen the mirrored spec as needs-info and record auth/UI design separately before implementation readiness is claimed. No prior auth-library, membership-role or visual-style decision is inferred.
