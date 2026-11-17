@@ -1,0 +1,232 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+:root {
+  --primary: #3158db;
+  --on-primary: #ffffff;
+  --blue-surface: #e9efff;
+  --bg: #f4f6fc;
+  --panel: #ffffff;
+  --soft: #eaf0fa;
+  --border: #dce3f1;
+  --text: #202a40;
+  --text-secondary: #64718a;
+  --success: #1f8a4c;
+  --warning: #b25e09;
+  --error: #c0392b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #a7beff;
+    --on-primary: #17264d;
+    --blue-surface: #263a62;
+    --bg: #161b27;
+    --panel: #202837;
+    --soft: #2c374b;
+    --border: #38465d;
+    --text: #e9efff;
+    --text-secondary: #aab8cf;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+.rail {
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 15px;
+  padding: 6px 10px 18px;
+}
+
+.nav-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.nav-item.active {
+  background: var(--blue-surface);
+  color: var(--primary);
+}
+
+.nav-badge {
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  color: var(--text-secondary);
+}
+
+.content {
+  padding: 28px 32px;
+  max-width: 1080px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 20px;
+}
+
+.topbar h1 {
+  font-size: 22px;
+  margin: 0;
+}
+
+.lang-switch {
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: var(--panel);
+}
+
+.badge-fixture {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--blue-surface);
+  color: var(--primary);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 18px;
+}
+
+.panel h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.muted {
+  color: var(--text-secondary);
+}
+
+.attr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.attr {
+  background: var(--soft);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.attr .k {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.attr .v {
+  font-weight: 600;
+}
+
+.offer-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.price-main {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.price-sub {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-weight: 600;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.error-panel {
+  border: 1px solid var(--error);
+  border-radius: 12px;
+  padding: 18px;
+  color: var(--error);
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .rail {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 10px;
+    align-items: center;
+  }
+
+  .brand {
+    padding: 6px 10px;
+    white-space: nowrap;
+  }
+
+  .content {
+    padding: 18px 16px;
+  }
+}

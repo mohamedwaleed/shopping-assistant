@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+import knex, { type Knex } from "knex";
+import * as initialCatalogue from "./migrations/20261116000000_initial_catalogue";
+
+interface MigrationModule {
+  up: (db: Knex) => Promise<void>;
+  down: (db: Knex) => Promise<void>;
+}
+
+// Order is schema ordering: migrations apply in the array sequence.
+const ORDERED_MIGRATIONS: ReadonlyArray<[string, MigrationModule]> = [
+  ["20261116000000_initial_catalogue", initialCatalogue],
+];
+
+/** One Knex instance per process; callers own pool lifecycle via destroy(). */
+export function createDb(connection: string): Knex {
+  return knex({
+    client: "pg",
+    connection,
+    migrations: {
+      migrationSource: {
+        getMigrations: () =>
+          Promise.resolve(ORDERED_MIGRATIONS.map(([name]) => name)),
+        getMigrationName: (name: string) => name,
+        getMigration: (name: unknown) => {
+          const entry = ORDERED_MIGRATIONS.find(([n]) => n === name);
+          if (!entry) throw new Error(`unknown migration ${String(name)}`);
+          return Promise.resolve(entry[1]);
+        },
+      },
+    },
+  });
+}

@@ -2,7 +2,7 @@
 
 An open source, self-hosted shopping assistant for the Netherlands, with English and Dutch support and a future paid hosted service.
 
-**Status: specification complete; application not implemented yet.**
+**Status: walking skeleton implemented** ([issue #2](https://github.com/mohamedwaleed/shopping-assistant/issues/2)). One development-fixture product flows PostgreSQL → core → HTTP → Studio UI; authentication, providers, research and monitoring arrive with later tickets.
 
 ## Planned capabilities
 
@@ -14,9 +14,40 @@ An open source, self-hosted shopping assistant for the Netherlands, with English
 - Bring supported AI credentials or a compatible local-model endpoint, with independently configured search/data and email providers.
 - Access shopping operations through HTTP and an authenticated MCP server.
 
+## Getting started
+
+Requirements: Node.js ≥ 20.9, pnpm 10, Docker.
+
+```sh
+# One-command development stack: PostgreSQL + migrations/fixtures + Next.js.
+docker compose -f compose.dev.yaml up
+# → http://localhost:3000 (labelled example product, ?lang=nl for Dutch)
+```
+
+The first boot installs workspace dependencies inside shared named volumes;
+later starts are fast. Development Postgres publishes host port **54329** —
+change the mapping in `compose.dev.yaml` if that port is taken locally.
+
+Local verification (requires the dev Postgres from the stack above):
+
+```sh
+pnpm install
+pnpm -r typecheck   # TypeScript across the workspace
+pnpm -r test        # integration tests against real PostgreSQL
+pnpm db:migrate     # apply Knex migrations to DATABASE_URL
+pnpm db:fixtures    # load the labelled development fixture
+```
+
+Tests run against `shopping_assistant_test` (created by the Compose database
+init) so they never touch development data.
+
 ## Architecture
 
-TypeScript and pnpm monorepo, a framework-independent shopping engine, Next.js web/HTTP application, separate Node.js worker and MCP applications, and PostgreSQL accessed through Knex for catalogue and durable state. Development and production Docker Compose configurations are planned.
+TypeScript and pnpm monorepo: a framework-independent core (`packages/core`,
+shopping operations and authorization over a trusted principal), Knex/pg
+storage and migrations (`packages/db`), and a Next.js web/HTTP application
+(`apps/web`). Separate Node.js worker and MCP applications, and production
+Docker Compose, arrive with later tickets.
 
 Private shopper data belongs to a workspace. Public product evidence is separate, allowing a future hosted service to reuse sourced catalogue facts across workspaces while isolating private data. Each self-hosted installation maintains its own catalogue.
 
@@ -28,18 +59,18 @@ Read the [accepted agent/search design](docs/agent-search-design.md) for tool bo
 
 ## Interface direction
 
-The selected interface is **Studio in Electric blue**: desktop navigation, conversation and a dedicated shopping-results canvas, with responsive mobile Chat/Products/Compare views. Account and shopping screen details are under visual review; no production UI is implemented yet.
+The selected interface is **Studio in Electric blue**: desktop navigation, conversation and a dedicated shopping-results canvas, with responsive mobile Chat/Products/Compare views. The skeleton product view applies the approved palette and Studio composition.
 
 ## Specification
 
-Read the [product specification](.scratch/shopping-assistant/spec.md), [domain glossary](CONTEXT.md), and [architectural decisions](docs/adr/). The specification defines the complete initial release; setup commands will be added with the implementation.
+Read the [product specification](.scratch/shopping-assistant/spec.md), [domain glossary](CONTEXT.md), [architectural decisions](docs/adr/), and [agent working notes](AGENTS.md). The specification defines the complete initial release.
 
 Work is tracked locally and in GitHub Issues. See [tracker configuration](docs/agents/issue-tracker.md).
 
 ## Open source and future hosting
 
-The selected application licence is **AGPL-3.0-or-later**. Implementation must include its licence text and applicable notices. Shopping capabilities remain available to self-hosters; future paid offerings cover hosting, managed monitoring, and optional included usage. Affiliate links must be disclosed and cannot influence recommendation ranking.
+The application licence is **AGPL-3.0-or-later** — see [LICENSE](LICENSE); source files carry SPDX notices. Shopping capabilities remain available to self-hosters; future paid offerings cover hosting, managed monitoring, and optional included usage. Affiliate links must be disclosed and cannot influence recommendation ranking.
 
 ## Implementation tickets
 
-The approved implementation breakdown is published as [GitHub issues #2–#35](https://github.com/mohamedwaleed/shopping-assistant/issues?q=is%3Aissue+label%3Aready-for-agent), with [individual local tickets and dependency index](.scratch/shopping-assistant/tickets.md). Each ticket includes acceptance criteria and blockers; 57 native GitHub blocking relationships are recorded. Start with [the catalogue-to-screen walking skeleton (#2)](https://github.com/mohamedwaleed/shopping-assistant/issues/2). Application implementation has not started.
+The approved implementation breakdown is published as [GitHub issues #2–#35](https://github.com/mohamedwaleed/shopping-assistant/issues?q=is%3Aissue+label%3Aready-for-agent), with [individual local tickets and dependency index](.scratch/shopping-assistant/tickets.md). Each ticket includes acceptance criteria and blockers; 57 native GitHub blocking relationships are recorded. The walking skeleton (#2) is implemented; the next frontier is [#3 — create the first administrator and private workspace](https://github.com/mohamedwaleed/shopping-assistant/issues/3).
