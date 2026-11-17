@@ -2,6 +2,20 @@
 
 Status: needs-info
 
+## Implementation status
+
+Implementation has started against the approved ticket breakdown. Ticket #2 (catalogue-to-screen walking skeleton) is implemented, confirming these design details in code:
+
+- **Monorepo shape:** `apps/web` (Next.js 16 app router, UI + HTTP), `packages/core` (framework-independent engine: trusted `Principal` authorization seam, typed `Result` errors), `packages/db` (Knex/pg client, application migrations, fixtures). `worker` and `mcp` applications arrive with their tickets; pnpm 10 workspaces, TypeScript 5.9, Vitest 5.
+- **Migrations:** Knex migrations ordered by an explicit in-code `migrationSource` list (no filesystem scanning), repeatable and the single schema authority. No application ORM.
+- **Catalogue tables:** `products`, `variants` (jsonb attributes), `retailers`, `offers` (condition check), `price_observations` (latest-observation read); money is `numeric(12,2)` + `char(3)` currency; delivered totals are exact integer-cent arithmetic, not floats.
+- **Fixture separation:** development fixtures are fixed-UUID rows flagged `is_development_fixture`, inserted only by an explicit command (`pnpm db:fixtures` / `LOAD_DEV_FIXTURES`), never by migrations, and labelled in the UI.
+- **Thin HTTP adapter:** `GET /api/catalogue/variants/:id` maps core errors to 400/403/404; `GET /api/health` runs a real `select 1`. The product page fetches through HTTP and applies the approved Studio/Electric blue design in English and Dutch (`?lang=nl`).
+- **Operations:** `docker compose -f compose.dev.yaml up` starts db + ordered migrate + web with health checks in one command. Development Postgres publishes host port 54329 by default to avoid colliding with pre-existing local Postgres on 5432/5433.
+- **Testing seams:** integration tests run against real PostgreSQL at the core-engine and HTTP-contract boundaries; the suite self-creates `shopping_assistant_test`. Typecheck runs workspace-wide via `pnpm -r typecheck`.
+
+Later tickets will revise this section rather than implying the full spec is implemented.
+
 ## Problem Statement
 
 Shoppers in the Netherlands must translate vague needs into product specifications, compare inconsistent retailer information, identify the right configurations, and repeatedly check prices themselves. Prices and advertised discounts can omit delivery costs or depend on conditions. Research quickly becomes stale, and a cheaper listing may describe a different variant.
@@ -192,7 +206,7 @@ Users can monitor an exact retailer offer or established product variant, receiv
 - **Confirmed primary seam:** Test the authenticated shopping engine through its public operations, with real PostgreSQL behavior where persistence, isolation, job recovery, or concurrency matter. This is the shared business-behavior boundary for agent, HTTP, and MCP access.
 - **Small additional seams:** Use thin HTTP/MCP contract checks to prove transport schemas, authentication, scope enforcement, and error mapping. Use browser checks only for observable interactive workflows, session navigation, localization, and structured results. Avoid duplicating every shopping rule at every layer.
 - **Good tests:** Assert externally visible outcomes, not private method calls, internal prompt wording, table layouts, or component implementation. A meaningful change includes the checks for its new behavior; release checks consolidate rather than postpone verification.
-- **Prior art:** The repository has domain and decision documents but no application code or test suite. There are no existing testing seams or comparable tests to extend. All proposed checks must be implemented and their actual results reported later.
+- **Prior art:** A walking-skeleton codebase and test suite now exist (see Implementation status): the core-engine and HTTP-contract seams are established patterns to extend, alongside the domain and decision documents. Remaining proposed checks are still implemented with their tickets and their actual results reported later.
 - **Research fixtures:** Use recorded provider fixtures for English/Dutch requirements, material clarification, visible assumptions, verified and uncertain matches, insufficient evidence, conflicts, stale prices, heterogeneous categories, cancellation, continuation, and exhausted budgets. Do not assert one exact model-generated paragraph as correctness.
 - **Catalogue fixtures:** Include different configurations of the same model, ambiguous identities, repeat ingestion, cross-category comparisons, missing/inapplicable attributes, VAT/shipping/conditional discounts, refurbished filtering, Netherlands delivery/postcodes, and source disagreement. Verify exact-variant recommendations and watches never silently use a cheaper different configuration.
 - **Monitoring fixtures:** Control time and provider observations to prove initial target satisfaction, threshold crossings, first baseline, minimum decreases, last-notified comparisons, duplicate-price suppression, seller constraints, daily Amsterdam schedules, quiet hours, delayed-email relevance, pause/resume, missed-check gaps, and failed fresh checks producing no alert.
@@ -225,6 +239,6 @@ Users can monitor an exact retailer offer or established product variant, receiv
 
 - The product-requirements interview is complete: the user accepted the final stack, delivery-location, baseline, scheduling, provider-selection, and handoff recommendations. This spec synthesizes those decisions without requiring a new product interview or a Specshape workflow.
 - Provider/library versions and concrete library choices require current primary-source verification during implementation. Search adapters and initial research/freshness defaults are selected above; monetary/token ceilings, retention settings, model choices and performance tuning require configuration or calibration with documented rationale. No actual monthly budget, initial user count, or performance target was supplied.
-- This is a new product: no existing application behavior, implemented provider support, automated test results, or deployment readiness is claimed.
+- The product is early: beyond the walking skeleton, no shopping behavior, provider support, or deployment readiness is claimed.
 - The chosen licence policy was checked against GNU AGPLv3 section 13 during the interview. Its source is the GNU Project’s licence text: https://www.gnu.org/licenses/agpl-3.0.html#section13 . The licence and applicable notices must be supplied with implementation.
-- Local and GitHub publication represent the same specification. Record the GitHub issue URL locally after publication and keep triage status synchronized in both locations. Publication does not mean the application has been built.
+- Local and GitHub publication represent the same specification. Record the GitHub issue URL locally after publication and keep triage status synchronized in both locations. Publication predates the implementation now tracked under Implementation status.
