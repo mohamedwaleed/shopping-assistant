@@ -39,3 +39,7 @@ Work is tracked locally and in GitHub Issues. See [tracker configuration](docs/a
 ## Open source and future hosting
 
 The selected application licence is **AGPL-3.0-or-later**. Implementation must include its licence text and applicable notices. Shopping capabilities remain available to self-hosters; future paid offerings cover hosting, managed monitoring, and optional included usage. Affiliate links must be disclosed and cannot influence recommendation ranking.
+
+## Implementation tickets
+
+The approved implementation breakdown is published as [GitHub issues #2–#35](https://github.com/mohamedwaleed/shopping-assistant/issues?q=is%3Aissue+label%3Aready-for-agent), with [individual local tickets and dependency index](.scratch/shopping-assistant/tickets.md). Each ticket includes acceptance criteria and blockers; 57 native GitHub blocking relationships are recorded. Start with [the catalogue-to-screen walking skeleton (#2)](https://github.com/mohamedwaleed/shopping-assistant/issues/2). Application implementation has not started.

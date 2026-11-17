@@ -144,3 +144,7 @@ The user asked why pgvector is needed and requested API-key or ChatGPT/Claude su
 ## Knex selected; retailer registry candidates proposed
 
 The user explicitly selected Knex for database connections and queries. Record Knex/pg, application migrations, shared storage repositories and Better Auth adapter verification. The user also asked for a Netherlands retailer list and its maintenance model. Propose a PostgreSQL registry with versioned starter reference data, administrator-managed runtime state and distinct acquisition/eligibility/health fields. Research identified 14 starter candidates across categories, not scraping permission or operationally tested adapters. List selection/maintenance details are recommendations pending feedback; do not infer a closed-market allowlist.
+
+## Approved ticket breakdown published
+
+The user approved the 34-ticket breakdown after making Vercel AI SDK chat, ToolLoopAgent execution, durable checkpoints and external-research tools explicit in tickets 8 and 16–19. Created GitHub issues #2–#35 and separate local tickets; verified ready-for-agent labels, exact approved issue bodies and all 57 native blocking relationships. Parent specification #1 was not modified. First actionable ticket is #2. Claude entitlement and live source permissions remain explicit gates, not assumed support. No implementation was started.

@@ -8,4 +8,4 @@
 | ready-for-human | ready-for-human |
 | wontfix | wontfix |
 
-Current specification status: needs-info for the focused catalogue population/source-ingestion discussion. Product scope, agent/search design, auth lifecycle and Studio/Electric blue screens are approved. No implementation or live validation is claimed.
+Parent specification #1 retains its existing needs-info label unchanged. The approved 34 implementation issues (#2–#35) carry ready-for-agent, with 57 native blocking relationships. Work is actionable only after its blockers are complete. Provider entitlement and source-access gates remain explicit acceptance conditions; labels do not establish a working integration.

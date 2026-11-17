@@ -1,0 +1,558 @@
+{
+  "status": "approved",
+  "parent": "https://github.com/mohamedwaleed/shopping-assistant/issues/1",
+  "parent_body_sha256": "66f73075b5427995015be799ca964abde2b0e40dd99f22a0cd19c2b69d22dc3f",
+  "tickets": [
+    {
+      "number": 1,
+      "title": "Run a catalogue-to-screen walking skeleton",
+      "blocked_by": [],
+      "delivers": "Start development Compose and view a labelled example product loaded from PostgreSQL through the core and HTTP into Studio.",
+      "acceptance": [
+        "TypeScript/pnpm, Next.js and real PostgreSQL work with Knex/pg and repeatable Knex migrations; no additional application ORM.",
+        "An example exact variant/offer renders through core \u2192 HTTP \u2192 UI; development fixtures are separate from live data.",
+        "One-command startup, health checks, schema ordering, AGPL notices and focused integration/type checks are demonstrated."
+      ],
+      "draft": "01-run-a-catalogue-to-screen-walking-skeleton.md"
+    },
+    {
+      "number": 2,
+      "title": "Create the first administrator and private workspace",
+      "blocked_by": [
+        1
+      ],
+      "delivers": "Claim setup once and sign in to an isolated private workspace.",
+      "acceptance": [
+        "Verify a Knex-backed Better Auth adapter and the required atomic/transaction behavior; reconcile schema requirements with Knex migrations.",
+        "An installation-held one-time token atomically creates the first administrator and workspace, disables setup and works without SMTP.",
+        "Email/password sign-in/out and invitation-only admission enforce trusted workspace authorization in core and HTTP, including direct-call and two-workspace tests.",
+        "Deliver responsive English/Dutch Studio setup/sign-in screens without asserting email verification from operator provisioning."
+      ],
+      "draft": "02-create-the-first-administrator-and-private-workspace.md"
+    },
+    {
+      "number": 3,
+      "title": "Manage devices, sessions and password changes",
+      "blocked_by": [
+        2
+      ],
+      "delivers": "Inspect devices, revoke sessions and change the account password after recent authentication.",
+      "acceptance": [
+        "Enforce secure HTTP-only database-backed sessions, seven-day inactivity expiry and thirty-day absolute maximum with time-controlled tests.",
+        "List devices and sign out current/all devices with server-verified revocation.",
+        "Require recent authentication for password changes and sensitive credential-creation authorization; email-address changes are delivered with the SMTP-backed account flows.",
+        "Test invalid input, stale/revoked identities, account isolation and supported CSRF/origin protections."
+      ],
+      "draft": "03-manage-devices-sessions-and-sensitive-account-changes.md"
+    },
+    {
+      "number": 4,
+      "title": "Configure SMTP and test transactional delivery",
+      "blocked_by": [
+        2
+      ],
+      "delivers": "Configure protected email settings and deliberately send a diagnostic message.",
+      "acceptance": [
+        "Administration stores masked/protected SMTP settings and exposes connection/delivery failure states.",
+        "Use a local test inbox for repeatable verification; real recipients/credentials are explicitly configured, not inferred.",
+        "Provide a reusable mailer outcome contract and English/Dutch UI; secrets never reach logs, model context or browser output."
+      ],
+      "draft": "04-configure-smtp-and-test-transactional-delivery.md"
+    },
+    {
+      "number": 5,
+      "title": "Invite shoppers, change email and recover passwords",
+      "blocked_by": [
+        3,
+        4
+      ],
+      "delivers": "Invite a shopper into their own private workspace and recover access using expiring email links.",
+      "acceptance": [
+        "Seven-day invitations are single-use/email-bound, create a private workspace and do not share another shopper's data.",
+        "Thirty-minute reset links are atomically single-use and revoke existing browser sessions; responses do not enumerate accounts.",
+        "Normal delivery requires configured SMTP; verify unavailable/delivery-failure, expiry, replay and concurrent-consumption behavior.",
+        "Document and exercise a separate operator-only administrator recovery route, not a public password override.",
+        "Email-address changes require recent authentication and confirmation of the new address before switching account identity; unavailable email cannot report a completed change."
+      ],
+      "draft": "05-invite-shoppers-and-recover-passwords.md"
+    },
+    {
+      "number": 6,
+      "title": "Add optional authenticator two-factor authentication",
+      "blocked_by": [
+        3,
+        5
+      ],
+      "delivers": "Enroll a second factor and recover through one-time backup codes.",
+      "acceptance": [
+        "Enrollment requires recent authentication and a verified authenticator code; provide protected recovery codes.",
+        "Enabled second-factor requirements apply to sign-in and sensitive changes; backup codes are atomically single-use.",
+        "Password reset alone cannot bypass the second factor; document separate recovery and test incorrect/replayed codes across responsive account screens."
+      ],
+      "draft": "06-add-optional-authenticator-two-factor-authentication.md"
+    },
+    {
+      "number": 7,
+      "title": "Manage the Netherlands retailer registry",
+      "blocked_by": [
+        2
+      ],
+      "delivers": "Inspect, add and pause sources with separate eligibility, permission and extraction-health states.",
+      "acceptance": [
+        "Idempotently seed the researched fourteen entries as candidates while retaining administrator edits; no scraping permission or working adapter is assumed.",
+        "Separate platform domains, actual sellers, categories, Netherlands delivery evidence and source acquisition policy/adapter health.",
+        "Newly discovered sources remain candidates; support administrator control without closing discovery to the seed list or influencing rank by popularity/affiliate revenue.",
+        "Test source-state changes, duplicates, unauthorized edits, last-failure visibility and seed updates."
+      ],
+      "draft": "07-manage-the-netherlands-retailer-registry.md"
+    },
+    {
+      "number": 8,
+      "title": "Connect models through Vercel AI SDK provider adapters",
+      "blocked_by": [
+        2
+      ],
+      "delivers": "Configure API-key or compatible/local AI models and exercise a bounded SDK capability-test request from settings.",
+      "acceptance": [
+        "Verify OpenAI/Anthropic API-key adapters and a configurable compatible/local endpoint, with pinned/documented capability support.",
+        "Protect installation defaults and workspace overrides; expose model/usage-source choices and optional extraction overrides without leaking secrets.",
+        "Diagnostic requests have explicit call/token bounds and test typed tools/streaming/structured output; no hidden fallback or unattended personal-key use.",
+        "Use deterministic provider fixtures, isolation/redaction checks and separately configured live smoke checks.",
+        "Use verified Vercel AI SDK provider adapters behind the shared model registry; compatible endpoints need tested tool/structured-output/streaming support rather than an assumed compatibility label. Preserve BYOK/local operation without requiring a gateway."
+      ],
+      "draft": "08-connect-models-through-vercel-ai-sdk-provider-adapters.md"
+    },
+    {
+      "number": 9,
+      "title": "Enforce research and monitoring budgets",
+      "blocked_by": [
+        8
+      ],
+      "delivers": "Set allowances and see provider work pause when a budget is exhausted.",
+      "acceptance": [
+        "Installation ceilings cannot be bypassed by workspace overrides; interactive and background allowances are separate.",
+        "Coordinate concurrent reservations, usage and bounded retries; disclose conservative cost estimates where exact pre-call pricing is unavailable.",
+        "Require personal-key background consent and explicit paid/provider fallback; expose usage and pause reasons in settings/test execution.",
+        "Prove limits on simultaneous work, cancellation/retries and absence of silent paid-key fallback."
+      ],
+      "draft": "09-enforce-research-and-monitoring-budgets.md"
+    },
+    {
+      "number": 10,
+      "title": "Ingest a product page with inspectable evidence",
+      "blocked_by": [
+        7
+      ],
+      "delivers": "Submit a permitted product URL and inspect its persisted product, variant, offer and claims.",
+      "acceptance": [
+        "Bound fetching, validate source policy/network destinations and classify redirects/challenges/errors, including HTTP 200 challenge pages.",
+        "Parse structured product/offer data, preserving identifiers, actual seller, evidence excerpts and source/observation times with Knex.",
+        "Only merge agreeing identities/configurations; retailer SKUs are retailer-local and ambiguity remains explicit.",
+        "Details/core/HTTP checks prove idempotence, unsafe-URL rejection, variant conflicts and failed extraction never overwriting valid observations."
+      ],
+      "draft": "10-ingest-a-product-page-with-inspectable-evidence.md"
+    },
+    {
+      "number": 11,
+      "title": "Normalize attributes and review conflicting claims",
+      "blocked_by": [
+        10
+      ],
+      "delivers": "Inspect canonical attributes and resolve validated mappings or merge conflicts without losing evidence.",
+      "acceptance": [
+        "Support extensible category attributes/types/units/synonyms and common fields without excluding unknown categories.",
+        "Preserve source claims; parser/model proposals cannot silently activate invented filters or resolve conflicts.",
+        "Administrator correction/review focuses on unresolved mappings/merges and invalidates affected assessments; supported routine ingestion remains automatic.",
+        "Test mixed categories, units, contradictory variants and unauthorized/non-destructive correction through details and administration."
+      ],
+      "draft": "11-normalize-attributes-and-review-conflicting-claims.md"
+    },
+    {
+      "number": 12,
+      "title": "Search catalogue identifiers, filters and bilingual text",
+      "blocked_by": [
+        11
+      ],
+      "delivers": "Find products by exact model, structured criteria or English/Dutch wording.",
+      "acceptance": [
+        "Combine parameterized Knex identifier/filter queries with PostgreSQL full-text and pg_trgm retrieval; preserve model identifiers.",
+        "Test bilingual synonyms/query expansion and typo/mixed-language cases; stemming alone is not cross-language proof.",
+        "Unknown attributes do not become verified matches; cards/details expose sources, uncertainty and timestamps.",
+        "Responsive search/empty/error states work without model/embedding services; check behavior and representative PostgreSQL query performance."
+      ],
+      "draft": "12-search-catalogue-identifiers-filters-and-bilingual-text.md"
+    },
+    {
+      "number": 13,
+      "title": "Discover external candidates using SearXNG",
+      "blocked_by": [
+        12
+      ],
+      "delivers": "Search beyond the catalogue and inspect source-linked candidates.",
+      "acceptance": [
+        "Configure an external instance or optional Compose profile and verify JSON/language support and missing-provider states.",
+        "Bound calls, retain query/provider/URL provenance and apply source policy; new domains do not gain unrestricted ingestion privileges.",
+        "Search snippets and locale hints are discovery signals, not product/price/delivery verification.",
+        "Candidate UI can send supported URLs through ingestion; fixture and opt-in live checks cover bad JSON, duplicates and no-Tavily operation."
+      ],
+      "draft": "13-discover-external-candidates-using-searxng.md"
+    },
+    {
+      "number": 14,
+      "title": "Configure Tavily Search and Extract independently",
+      "blocked_by": [
+        9,
+        13
+      ],
+      "delivers": "Mix search/extraction providers and control any paid fallback.",
+      "acceptance": [
+        "Support independent Tavily Search/Extract choices including SearXNG discovery with Tavily extraction.",
+        "Route returned evidence through existing identity, permission and catalogue validation rather than treating raw content as verified.",
+        "Paid calls and fallback are enabled explicitly and bounded by shared budgets; configuration and exhaustion are visible.",
+        "Verify combinations, source failures, redaction and usage accounting with fixtures and separately configured live checks."
+      ],
+      "draft": "14-configure-tavily-search-and-extract-independently.md"
+    },
+    {
+      "number": 15,
+      "title": "Make extraction resilient and expose source coverage",
+      "blocked_by": [
+        9,
+        11
+      ],
+      "delivers": "Extract supported non-structured pages and inspect source-specific reliability.",
+      "acceptance": [
+        "Add readable-content and evidence-linked structured model extraction plus maintained source-specific adapters where needed; never guess missing required fields.",
+        "Coordinate per-host concurrency, public-request deduplication, cache-context isolation and bounded Retry-After/backoff; record access blocks instead of evasion.",
+        "Retain fetch/source cache times, adapter versions, required-field coverage and last success/failure; layout changes cannot erase good observations.",
+        "Use reviewed fixtures and a small permitted cross-category live pilot. No universal retailer support or mandatory browser-automation service is implied."
+      ],
+      "draft": "15-make-extraction-resilient-and-expose-source-coverage.md"
+    },
+    {
+      "number": 16,
+      "title": "Stream persistent bilingual chat with Vercel AI SDK",
+      "blocked_by": [
+        9
+      ],
+      "delivers": "Describe a need in a real SDK-backed streaming chat, answer clarification questions and revisit persisted structured requirements.",
+      "acceptance": [
+        "Vercel AI SDK typed tools produce visible must-haves/preferences/assumptions in English/Dutch under core authorization.",
+        "Persist session messages and authoritative structured requirements/questions separately; summaries cannot override them.",
+        "Ask material questions, preserve must-haves and record revisions; implement session navigation in the responsive Studio shell.",
+        "Verify reload/isolation, bounded secret-free context, invalid model output and provider/budget failure states.",
+        "Use the pinned Vercel AI SDK server streaming/typed message APIs and its React useChat integration with an authenticated transport; render text, typed tool states and structured-result references rather than flattening everything to prose.",
+        "Provide bounded requirements/clarification tools calling the authorized core. Persist model/UI messages and structured state; reload/context assembly keeps workspace data isolated and excludes credentials.",
+        "Verify a real request through the SDK runtime using deterministic model/provider fixtures, including streaming tool results, malformed output, cancellation/error display and persistence; a static mocked chat transcript is not completion."
+      ],
+      "draft": "16-stream-persistent-bilingual-chat-with-vercel-ai-sdk.md"
+    },
+    {
+      "number": 17,
+      "title": "Run the controlled Vercel AI SDK shopping agent loop",
+      "blocked_by": [
+        12,
+        16
+      ],
+      "delivers": "A shopper request causes a bounded multi-step agent to search catalogue evidence, evaluate fit and present structured recommendations or material clarification.",
+      "acceptance": [
+        "Implement controlled requirements \u2192 catalogue search \u2192 gap assessment \u2192 evaluation \u2192 presentation with phase-scoped shopping tools.",
+        "Code checks identity, business seller, Netherlands eligibility, condition, EUR/VAT/shipping and must-have evidence; models explain subjective trade-offs.",
+        "Separate verified/uncertain candidates and incomplete/conditional prices; affiliate revenue cannot change ranking.",
+        "Persist result references and historical/fresh distinctions; test heterogeneous categories, false variants, postcode context, six-hour offer and thirty-day spec policy.",
+        "Implement the selected ToolLoopAgent abstraction using the pinned AI SDK version. The SDK owns model \u2192 tool call \u2192 tool result \u2192 next model step; do not hand-roll a second competing tool-calling protocol loop.",
+        "The application owns explicit requirements/catalogue/gap/evaluation/presentation phases and permitted transitions. Use documented per-step controls (such as prepareStep) to assemble bounded messages and select tools; every core operation separately enforces access and permitted actions.",
+        "Register typed shopping tools for requirement updates, catalogue search, evidence inspection, candidate evaluation, clarification and result presentation, backed by actual core operations. Do not expose raw database/network credentials or a generic SQL tool.",
+        "At each step, assemble context from authoritative requirements, recent messages, candidate/evidence references and current gaps. Tool results carry structured identifiers/evidence/gaps/errors, not unbounded raw pages.",
+        "Configure explicit documented loop stopping controls (such as stopWhen) and application guards for step/token/cost/time allowances. A model finishing its answer is not by itself proof of sufficient research: verify deterministic evidence conditions or return clarification/partial/unavailable.",
+        "Record inspectable phase/tool/progress outcomes without secrets. Verify multiple SDK steps, a clarification stop, denied out-of-phase tools, missing/conflicting evidence and a premature model finish through public research results and trace events."
+      ],
+      "draft": "17-run-the-controlled-vercel-ai-sdk-shopping-agent-loop.md"
+    },
+    {
+      "number": 18,
+      "title": "Checkpoint and recover the SDK agent loop in durable workers",
+      "blocked_by": [
+        17
+      ],
+      "delivers": "Start an SDK agent run, observe persisted progress, cancel or continue it, and resume from a worker checkpoint after restart.",
+      "acceptance": [
+        "Persist phases, revisions, candidates, evidence, gaps and usage in PostgreSQL-backed worker execution; document its Knex/pool integration.",
+        "Enforce three-minute/eight-discovery/twenty-page/thirty-candidate/twelve-step caps plus token/spending limits, including retries.",
+        "Continuation adds explicit bounded allowance; cancellation/exhaustion retains supported partial results.",
+        "Verify restart/lease recovery, concurrent workers, duplicate work and owner revocation before more execution/spending.",
+        "Wrap the same agent execution in the durable worker rather than replacing its orchestration with an unrelated agent framework. Persist phase, requirement revision, safe messages/tool-result references, pending work, evidence and consumed usage at recoverable boundaries.",
+        "Keep per-run/allowance step and spending counters cumulative across phase calls and restarts. A fresh SDK invocation or worker retry must not reset the accepted ceilings; explicit continuation is the only way to add allowance within installation/workspace limits.",
+        "Clarification records a waiting-for-user state and resumes against the new requirement revision; reconnecting the browser reloads stored progress rather than initiating duplicate work.",
+        "SDK in-memory state is not durable storage. Test provider-response/checkpoint failure boundaries, idempotent tool effects, changed requirements and owner revocation without promising exactly-once external model calls."
+      ],
+      "draft": "18-checkpoint-and-recover-the-sdk-agent-loop-in-durable-workers.md"
+    },
+    {
+      "number": 19,
+      "title": "Extend the same agent loop with external discovery and ingestion",
+      "blocked_by": [
+        13,
+        15,
+        18
+      ],
+      "delivers": "When the catalogue cannot support the request, the existing SDK agent researches targeted external gaps, admits validated evidence and re-evaluates the shortlist.",
+      "acceptance": [
+        "Apply task-specific sufficiency and candidate diversity, not a result-count-only completion rule.",
+        "Plan focused Dutch/English/exact-model queries and ingest only validated permitted public evidence.",
+        "Preserve identity uncertainty/conflicts and exclude private requirements/postcodes from shared catalogue facts.",
+        "Test source injection, failed refresh/cache behavior and provider/cap limits; show coverage and honest completion/partial reasons with an opt-in live smoke flow.",
+        "Expose configured SearXNG/Tavily discovery and permitted built-in/Tavily evidence retrieval as typed tools only in allowed research phases. Return normalized candidate/evidence references rather than granting arbitrary database writes.",
+        "Loop from gap assessment to targeted discovery/retrieval, validated admission and evaluation; reuse the same SDK execution controls, bounded context, durable state and cumulative usage accounting.",
+        "Prove a public end-to-end SDK trace that searches the catalogue first, identifies a real evidence gap, calls an external adapter, validates the discovered variant/offer and either presents supported results or explicitly remains incomplete.",
+        "Retrieved pages cannot instruct the agent to change phases, relax must-haves or access secrets. Test malicious source instructions and repeated no-progress work under existing caps."
+      ],
+      "draft": "19-extend-the-same-agent-loop-with-external-discovery-and-ingestion.md"
+    },
+    {
+      "number": 20,
+      "title": "Save preferences and invalidate revised research",
+      "blocked_by": [
+        17
+      ],
+      "delivers": "Explicitly reuse preferences and revise requirements without retaining invalid recommendations.",
+      "acceptance": [
+        "Create/list/edit/delete saved preferences, showing when they apply; ordinary session assumptions do not become durable preferences.",
+        "Requirement changes invalidate affected assessments while preserving valid unrelated evidence and offering an explicit rerun.",
+        "Private session deletion preserves independent watch ownership/public facts; navigation and settings retain useful provider-outage behavior.",
+        "Test cross-session opt-in, two-workspace isolation, summary boundaries and historical result revisions through UI/core/HTTP."
+      ],
+      "draft": "20-save-preferences-and-invalidate-revised-research.md"
+    },
+    {
+      "number": 21,
+      "title": "Compare exact variants in persisted interactive tables",
+      "blocked_by": [
+        17
+      ],
+      "delivers": "Select products and revisit requirement-driven side-by-side comparisons.",
+      "acceptance": [
+        "Persist private selections/results and allow cross-category alternatives serving the same use.",
+        "Build columns from normalized requirements/evidence; distinguish unknown, disputed and inapplicable values.",
+        "Show exact variant, delivered-price completeness, freshness and source links in responsive English/Dutch tables.",
+        "Verify selection/persistence, invalid variants, keyboard/mobile operation, isolation and no-provider saved comparison access."
+      ],
+      "draft": "21-compare-exact-variants-in-persisted-interactive-tables.md"
+    },
+    {
+      "number": 22,
+      "title": "Watch an exact offer and receive target alerts",
+      "blocked_by": [
+        15,
+        18
+      ],
+      "delivers": "Create a daily exact-offer watch and receive qualifying in-app notifications.",
+      "acceptance": [
+        "Explicit create/edit requests produce independent identity/condition/delivery/threshold settings; clarify ambiguity and confirm destructive bulk actions.",
+        "Daily Europe/Amsterdam jobs obtain fresh valid observations, expose last success/failure and disclose downtime gaps.",
+        "Implement threshold crossings and one initial qualifying alert with application-level deduplication across retries/workers.",
+        "Personal-key work needs consent/budget and current owner access. Test pause/resume, failure/staleness rejection and session independence through UI and worker execution."
+      ],
+      "draft": "22-watch-an-exact-offer-and-receive-target-alerts.md"
+    },
+    {
+      "number": 23,
+      "title": "Watch variants across sellers and meaningful price drops",
+      "blocked_by": [
+        13,
+        22
+      ],
+      "delivers": "Monitor an established variant while retaining seller eligibility and suppressing repetitive drops.",
+      "acceptance": [
+        "Alternate offers preserve exact configuration, condition and Netherlands delivery constraints.",
+        "Establish the first successful baseline and compare later drops to the last notified price using configurable absolute/percentage minimum decrease.",
+        "Specify/replay threshold rearming, repeated prices and seller/mandatory-shipping changes without duplicate noise.",
+        "Expose observed history/gaps and distinguish advertised discount claims; test conflicts, missing prices and watch edits through the check-to-alert flow."
+      ],
+      "draft": "23-watch-variants-across-sellers-and-meaningful-price-drops.md"
+    },
+    {
+      "number": 24,
+      "title": "Deliver email alerts with schedules and quiet hours",
+      "blocked_by": [
+        4,
+        22
+      ],
+      "delivers": "Receive email alerts at suitable times and inspect failures while retaining in-app alerts.",
+      "acceptance": [
+        "Persist delivery intent and application-level deduplication across workers/restarts; SMTP failures do not erase in-app alerts.",
+        "Support daily timing/quiet hours in Europe/Amsterdam with controlled DST tests.",
+        "Recheck delayed-alert relevance and owner/watch state before delivery; failed freshness validation cannot produce a current-deal claim.",
+        "Expose bounded retries and ambiguous SMTP acceptance outcomes; test stale deals, pause/disable/delete and restart behavior via captured email/UI."
+      ],
+      "draft": "24-deliver-email-alerts-with-schedules-and-quiet-hours.md"
+    },
+    {
+      "number": 25,
+      "title": "Expose shopping operations through personal HTTP tokens",
+      "blocked_by": [
+        3,
+        19,
+        21,
+        23
+      ],
+      "delivers": "Create scoped credentials and use research, comparisons and watches through HTTP.",
+      "acceptance": [
+        "Recent-auth settings create workspace-scoped tokens with chosen permissions, ninety-day default expiry, one-time display and revocation.",
+        "Expose typed core search/research lifecycle/compare/watch operations with consistent validation and documented errors.",
+        "Enforce private/background consent and bulk-write rules; no administrator/provider-secret shopping endpoints.",
+        "Test scopes, expiry/revocation, invalid input, workspace tampering and an external research-to-watch flow."
+      ],
+      "draft": "25-expose-shopping-operations-through-personal-http-tokens.md"
+    },
+    {
+      "number": 26,
+      "title": "Connect external assistants through authenticated MCP",
+      "blocked_by": [
+        25
+      ],
+      "delivers": "Authorize a client in the browser and use shopping tools through the application MCP server.",
+      "acceptance": [
+        "Use a verified current transport/protocol and maintained OAuth flow for workspace-specific sign-in/consent.",
+        "Map core shopping operations/progress/results to scoped MCP tools with consistent validation and failures.",
+        "Provide connected-client display/revocation and documented supported token lifetimes, audience and consent handling.",
+        "Exercise an actual compatible client and rejected/revoked access. Do not build the withdrawn inbound extension/skill-loader feature."
+      ],
+      "draft": "26-connect-external-assistants-through-authenticated-mcp.md"
+    },
+    {
+      "number": 27,
+      "title": "Disable and restore users without resuming private work",
+      "blocked_by": [
+        5,
+        24,
+        26
+      ],
+      "delivers": "Revoke access and pause private jobs/notifications while retaining restorable data.",
+      "acceptance": [
+        "Administrator controls expose users/operations, not private conversations or personal credential browsing.",
+        "Disable browser/API/MCP access and prevent queued/running private work from performing further authorized actions or spending.",
+        "Pause watches/research/notifications with visible reasons; re-enabling access does not implicitly resume them.",
+        "Test authorization, job checkpoints, delayed email and sessions/tokens/grants across processes."
+      ],
+      "draft": "27-disable-and-restore-users-without-resuming-private-work.md"
+    },
+    {
+      "number": 28,
+      "title": "Delete private data and enforce retention",
+      "blocked_by": [
+        20,
+        27
+      ],
+      "delivers": "Track private cleanup while stopping spending and preserving reusable public facts.",
+      "acceptance": [
+        "Confirmed recent-auth account deletion blocks access/spending immediately and tracks idempotent removal of credentials, grants and derived private data.",
+        "Provide configurable retention/cleanup status and minimize retained excerpts; document backup-retention implications.",
+        "Deleting sessions preserves independently created watches; public facts do not inherit private deletion ownership.",
+        "Test retry/resume, racing jobs, private-cache cleanup and two-workspace isolation with real storage and UI/API checks."
+      ],
+      "draft": "28-delete-private-data-and-enforce-retention.md"
+    },
+    {
+      "number": 29,
+      "title": "Import evidence from an approved structured source",
+      "blocked_by": [
+        11,
+        18
+      ],
+      "delivers": "Configure a bounded structured import and inspect normalized results, progress and failures.",
+      "acceptance": [
+        "Support mapped CSV/JSON imports and one configured source-adapter contract without requiring an unavailable retailer partnership.",
+        "Apply the same provenance, identity, unit, offer and uncertainty validation as page ingestion.",
+        "Provide checkpointed/idempotent progress and partial failure visibility, retaining good facts when a source omits or withdraws fields.",
+        "Verify permitted fixtures and a real source only when available; document supported format/adapter limits rather than claiming universal API import."
+      ],
+      "draft": "29-import-evidence-from-an-approved-structured-source.md"
+    },
+    {
+      "number": 30,
+      "title": "Add optional multilingual semantic catalogue retrieval",
+      "blocked_by": [
+        9,
+        12
+      ],
+      "delivers": "Configure embeddings and measure descriptive retrieval against the lexical baseline.",
+      "acceptance": [
+        "Optional pgvector augments exact/full-text/trigram candidates and filters; ordinary catalogue search needs no embedding credentials.",
+        "Protect provider configuration, account usage and embedding-model/version metadata; rebuild changed public representations resumably.",
+        "Show enabled/disabled/unavailable states without silent paid fallback or private-data embedding leakage.",
+        "Benchmark bilingual/descriptive/filter cases and failure modes; similarity never establishes exact identity or verified must-haves."
+      ],
+      "draft": "30-add-optional-multilingual-semantic-catalogue-retrieval.md"
+    },
+    {
+      "number": 31,
+      "title": "Connect eligible ChatGPT plan usage to shopping chat",
+      "blocked_by": [
+        16
+      ],
+      "delivers": "Authorize a permitted ChatGPT plan connection and exercise a shopping tool step.",
+      "acceptance": [
+        "Separate provider OAuth from application sign-in/invitations; protect consent, refresh/disconnect and account-specific model selection.",
+        "Verify the AI SDK route against current official streaming/Responses/tool requirements and prove more than a text-only ping.",
+        "Show eligibility/expiry/quota/usage-source states without browser-cookie reuse or silent API-key billing.",
+        "Document supported local/private-VM deployment, paid-hosting access limits and dependency licensing; use fixtures plus a configured eligible-account live test or retain a concrete unresolved entitlement gate."
+      ],
+      "draft": "31-connect-eligible-chatgpt-plan-usage-to-shopping-chat.md"
+    },
+    {
+      "number": 32,
+      "title": "Expose truthful Claude-plan availability in settings",
+      "blocked_by": [
+        8
+      ],
+      "delivers": "See whether plan access is permitted for this deployment without losing working Claude API-key access.",
+      "acceptance": [
+        "Resolve current official product versus personal-SDK guidance and document a permitted route or exact approval dependency.",
+        "Show supported/unavailable/approval-required states distinct from API-key mode; do not advertise an unverified subscription integration.",
+        "If expressly permitted, verify one bounded authenticated request; otherwise retain the unmet requirement and concrete follow-up condition.",
+        "Test capability/error states; no impersonation, credential scraping, forced replacement of the Vercel agent, invitation bypass or silent billing change."
+      ],
+      "draft": "32-expose-truthful-claude-plan-availability-in-settings.md"
+    },
+    {
+      "number": 33,
+      "title": "Operate and restore the full self-hosted stack",
+      "blocked_by": [
+        28
+      ],
+      "delivers": "Run development/production Compose and recover the system from a backup.",
+      "acceptance": [
+        "Run web/API, worker, outward-facing MCP and PostgreSQL with ordered migrations and optional SearXNG; expose actual missing-capability states.",
+        "Document HTTPS/network exposure, protected secrets/encryption keys, health, upgrades, backups and operator recovery.",
+        "Demonstrate restore of representative private/public/job state without lost isolation, exceeded budgets, fabricated history or duplicate alerts.",
+        "Verify fresh-install/upgrade/degraded operation and AGPL licence/source notices; no hosted billing infrastructure is required."
+      ],
+      "draft": "33-operate-and-restore-the-full-self-hosted-stack.md"
+    },
+    {
+      "number": 34,
+      "title": "Verify complete flows and measured release coverage",
+      "blocked_by": [
+        6,
+        14,
+        29,
+        30,
+        31,
+        32,
+        33
+      ],
+      "delivers": "Demonstrate the complete release with an honest source/model capability and quality report.",
+      "acceptance": [
+        "Consolidate checks delivered alongside every slice: English/Dutch shortlist, comparison and offer-to-watch-to-in-app/email, desktop/mobile/theme/accessibility and an MCP client.",
+        "All curated correctness/security cases pass; establish relevance targets from the reviewed cross-category benchmark and document examined coverage.",
+        "Demonstrate isolation, conflicts, budgets, freshness, lifecycle controls, restart/cancellation, quiet hours and deduplication.",
+        "Run bounded separately configured live provider/source/SMTP smoke checks and full Compose/restore evidence. Missing permissions/accounts remain explicit release gates, not fabricated success or silent removal of requested subscription support."
+      ],
+      "draft": "34-verify-complete-flows-and-measured-release-coverage.md"
+    }
+  ],
+  "revision": 2,
+  "changes": "Make SDK provider integration, streaming chat, controlled agent loop, durable checkpoints and external-research extension explicit in tickets 8 and 16\u201319. No blocker changes.",
+  "approved": "2026-11-17"
+}

@@ -1,0 +1,677 @@
+{
+  "parent": "https://github.com/mohamedwaleed/shopping-assistant/issues/1",
+  "parent_snapshot": {
+    "body": "# Shopping Assistant \u2014 Product Specification\n\nStatus: needs-info\n\n## Problem Statement\n\nShoppers in the Netherlands must translate vague needs into product specifications, compare inconsistent retailer information, identify the right configurations, and repeatedly check prices themselves. Prices and advertised discounts can omit delivery costs or depend on conditions. Research quickly becomes stale, and a cheaper listing may describe a different variant.\n\nShoppers need an assistant that explains its recommendations, distinguishes verified facts from uncertainty, compares actual alternatives, and monitors relevant offers. Self-hosters need control over credentials, providers, costs, and private data. The project needs a useful open source edition now and architectural boundaries that allow a paid hosted service later.\n\n## Solution\n\nBuild a self-hosted, open source shopping assistant for the Netherlands, across all product categories, with English and Dutch conversations and interface controls. The first public release includes all three workflows: needs-based research and shortlisting, product comparison, and offer discovery with daily price monitoring and notifications.\n\nThe assistant extracts must-have requirements and preferences, asks material questions, searches its PostgreSQL catalogue first, and researches externally when evidence is insufficient. It persists sourced product facts and offers, returns verified recommendations with explanations, and shows uncertain candidates separately. Interactive product lists, details, comparison tables, watch controls, and session navigation complement chat.\n\nUsers can monitor an exact retailer offer or established product variant, receive target-price or price-drop alerts through email and in-app notifications, and inspect freshness and monitoring failures. Purchasing ends at retailer links. All shopping capabilities remain available to self-hosters; future revenue comes from managed hosting, managed monitoring, and optional included usage.\n\n## User Stories\n\n1. As a shopper, I want to describe my needs in English or Dutch, so that I can research in my preferred language.\n2. As a shopper, I want to research any product category available in the Netherlands, so that I am not limited to a narrow category catalogue.\n3. As a shopper, I want my description translated into visible must-have requirements and preferences, so that I can correct misunderstandings.\n4. As a shopper, I want questions when an answer would materially affect recommendations, so that research fits my actual needs.\n5. As a shopper, I want research to proceed with visible assumptions when clarification is unnecessary, so that I can get useful results promptly.\n6. As a shopper, I want must-have requirements preserved unless I explicitly change them, so that unsuitable products are not silently substituted.\n7. As a shopper, I want existing catalogue knowledge reused when sufficiently sourced, so that repeated research is efficient.\n8. As a shopper, I want external research when catalogue evidence is insufficient, so that missing products and facts can be discovered.\n9. As a shopper, I want current offers refreshed, so that old prices are not represented as current.\n10. As a shopper, I want research progress, so that I understand what the assistant is doing.\n11. As a shopper, I want to cancel or explicitly continue research, so that I control its duration and cost.\n12. As a shopper, I want useful partial results when research reaches a limit, so that completed work is not lost.\n13. As a shopper, I want fully recommended products to have verified must-have matches, so that recommendations are supported by evidence.\n14. As a shopper, I want uncertain candidates displayed separately with missing evidence, so that I understand their limitations.\n15. As a shopper, I want fewer recommendations when only a few qualify, so that the assistant does not pad a shortlist.\n16. As a shopper, I want explanations of fit and trade-offs, so that I can judge recommendations against my priorities.\n17. As a shopper, I want source links and observation times, so that I can inspect the evidence and freshness.\n18. As a shopper, I want disputed specifications visibly marked, so that conflicting claims do not become false certainty.\n19. As a shopper, I want product models distinguished from exact variants, so that different configurations are not mixed.\n20. As a shopper, I want retailer offers distinguished from products, so that seller-specific terms remain clear.\n21. As a shopper, I want interactive product lists and detail views, so that I can explore recommendations beyond prose.\n22. As a shopper, I want to select products for comparison, so that I can evaluate alternatives side by side.\n23. As a shopper, I want comparison columns based on my requirements, so that the table emphasizes relevant differences.\n24. As a shopper, I want unknown values distinguished from inapplicable ones, so that missing evidence is clear.\n25. As a shopper, I want to compare products across categories when they serve the same use, so that different solutions can be considered.\n26. As a shopper, I want offers from business retailers delivering to the Netherlands, so that results are relevant to where I shop.\n27. As a shopper, I want new products by default and an explicit refurbished preference, so that condition is intentional.\n28. As a shopper, I want EUR totals including VAT and known mandatory delivery charges, so that prices are meaningfully comparable.\n29. As a shopper, I want unknown shipping costs marked, so that incomplete totals are not called the cheapest delivered option.\n30. As a shopper, I want to optionally provide a postcode when delivery depends on it, so that availability and costs can be more accurate.\n31. As a shopper, I want conditional discounts separated from ordinary prices, so that membership, coupon, financing, or trade-in requirements are visible.\n32. As a shopper, I want conditional discounts excluded from default ranking and alerts unless I qualify, so that inaccessible prices do not mislead me.\n33. As a shopper, I want advertised discounts distinguished from observed reductions, so that a retailer claim is not mistaken for verified price history.\n34. As a shopper, I want recorded price history with gaps disclosed, so that I can judge observed changes without invented history.\n35. As a shopper, I want retailer links, so that I can complete a purchase myself.\n36. As a shopper, I want affiliate links disclosed and excluded from ranking influence, so that recommendations remain based on fit.\n37. As a shopper, I want a watch for an exact offer or identified variant, so that alerts track the item I intend to buy.\n38. As a shopper, I want target-price alerts, so that I know when a fresh observed price meets my threshold.\n39. As a shopper, I want one initial notification when my target is already met, so that I do not miss an existing qualifying offer.\n40. As a shopper, I want price-drop alerts with a configurable minimum decrease, so that insignificant changes do not create noise.\n41. As a shopper, I want a clear first-observation baseline for a price-drop watch, so that subsequent changes have a meaningful reference.\n42. As a shopper, I want subsequent drops compared with the last notified price, so that repeated rises and falls do not repeatedly announce the same price.\n43. As a shopper, I want variant watches to retain condition and delivery constraints when sellers change, so that a cheaper unsuitable offer does not trigger an alert.\n44. As a shopper, I want explicit watch requests executed with the resulting configuration displayed, so that I can verify what was scheduled.\n45. As a shopper, I want clarification for ambiguous watch targets or thresholds, so that the wrong item is not monitored.\n46. As a shopper, I want confirmation before bulk deletion or changes affecting multiple watches, so that large changes are deliberate.\n47. As a shopper, I want daily monitoring and the last successful check displayed, so that I know how current monitoring is.\n48. As a shopper, I want email and in-app alerts, so that I can learn about changes both inside and outside the application.\n49. As a shopper, I want configurable schedules and quiet hours, so that email arrives at suitable times.\n50. As a shopper, I want delayed email checked for continued relevance, so that an expired deal is not sent as current.\n51. As a shopper, I want to pause and resume watches, so that monitoring follows my needs.\n52. As a shopper, I want monitoring to recover after downtime without inventing missed prices, so that gaps are honest and work resumes.\n53. As a shopper, I want duplicate alert suppression and visible delivery failures, so that I can trust notifications.\n54. As a shopper, I want in-app alerts retained when email fails, so that notification information is still available.\n55. As a shopper, I want to navigate and revisit shopping sessions, so that I can continue prior research.\n56. As a shopper, I want historical recommendations distinguished from fresh offers, so that old results are not mistaken for current evidence.\n57. As a shopper, I want requirements scoped to a session by default, so that unrelated shopping tasks do not inherit assumptions.\n58. As a shopper, I want explicit saved preferences I can inspect, edit, and delete, so that reusable personalization stays under my control.\n59. As a shopper, I want applied saved preferences displayed, so that their effect on research is visible.\n60. As a shopper, I want watches to retain independent settings, so that changing or deleting a session does not silently alter monitoring.\n61. As a shopper, I want to delete sessions, saved preferences, and watches, so that I control private retained information.\n62. As a shopper, I want access to saved content, catalogue browsing, comparisons, and watch management during provider outages, so that external failures do not make everything unusable.\n63. As a shopper, I want private data isolated within my workspace, so that other workspaces cannot access my conversations or credentials.\n64. As a shopper, I want to supply supported AI credentials or a compatible local-model endpoint, so that I can choose how model inference is provided.\n65. As a shopper, I want explicit consent before background monitoring uses my personal provider keys, so that unattended usage is intentional.\n66. As an administrator, I want a first-run setup flow and provider connection checks, so that I can configure a usable installation.\n67. As an administrator, I want administrator credentials with optional workspace overrides, so that shared defaults and personal configurations can coexist.\n68. As an administrator, I want separate AI, search/data, and notification configuration, so that changing one integration does not require changing every provider.\n69. As an administrator, I want encrypted stored keys that never appear in model context or browser responses, so that configuration does not expose secrets.\n70. As an administrator, I want hard usage limits and separate interactive and monitoring budgets, so that costs stay bounded.\n71. As an administrator, I want exhausted budgets to pause affected work visibly, so that the assistant cannot silently keep spending.\n72. As an administrator, I want fallback providers explicitly configured, so that changes in cost or data destination are intentional.\n73. As an administrator, I want email/password access with invitations and public registration disabled, so that participation is controlled.\n74. As an administrator, I want documented account recovery, so that I can regain access to a self-hosted installation.\n75. As an administrator, I want configurable retention and backup/recovery documentation, so that storage and continuity are manageable.\n76. As a self-hoster, I want Docker Compose to run the full application in development and production configurations, so that deployment does not require assembling services manually.\n77. As a self-hoster, I want missing provider capabilities displayed, so that I know which workflows require further setup.\n78. As a self-hoster, I want an independent catalogue and all shopping capabilities, so that the open source edition is useful without paid hosting.\n79. As an external-agent user, I want scoped MCP tools for search, research, comparison, and watches, so that I can use my preferred assistant.\n80. As an API consumer, I want HTTP access to the same shopping operations and permissions, so that integrations behave consistently.\n81. As an external-agent user, I want provider secrets and administrator configuration excluded from shopping tools, so that an assistant has only relevant authority.\n82. As a maintainer, I want replaceable providers with documented, verified capabilities, so that vendor changes do not require rewriting shopping logic.\n83. As a maintainer, I want public product facts reusable across future hosted workspaces while private data stays isolated, so that shared research does not compromise privacy.\n84. As a maintainer, I want deterministic behavioral checks and separately configured live smoke tests, so that correctness and actual integration readiness can both be assessed.\n85. As a maintainer, I want an AGPL-licensed project and an architecture suitable for paid hosting, so that hosted modifications remain subject to the chosen source-sharing policy while services can earn revenue.\n86. As a self-hoster, I want to configure SearXNG or Tavily Search separately from page extraction, so that paid search is not mandatory and providers can be mixed.\n87. As a developer, I want the built-in agent to call typed shopping operations, so that research behavior stays testable and consistent with HTTP and MCP access.\n\n## Implementation Decisions\n\n- **Database access \u2014 explicit user choice:** Use Knex with the PostgreSQL pg driver for application connection/pool configuration, queries and transactions. Keep database access in shared repository/storage modules, with process-appropriate pools for web, worker and MCP rather than a new pool per request. Use Knex migrations for application schema changes and parameterized raw SQL through Knex for PostgreSQL full-text/trigram/optional vector operations when needed. Do not introduce Prisma, Drizzle or another application ORM.\n- **Auth/storage integration with Knex:** Retain the selected Better Auth architecture and route its database operations through a verified Knex-backed compatible/custom adapter, using the documented adapter extension interface as needed. Verify transaction/atomic credential consumption, sessions, plugins and schema compatibility against the pinned version; do not claim a native Knex adapter exists without validation. Knex migrations remain the application schema authority; generated auth schema requirements must be reconciled with them rather than independently running competing migrations. Third-party durable-job storage requirements must be checked and documented during library selection.\n\n- **Requested model access modes:** The user requests API-key access and ChatGPT/Claude subscription connections. Model access configuration must distinguish provider, authentication method, account-specific available models, capabilities, usage source and connection state. A subscription connection is provider authorization inside settings, not a replacement for the agreed Better Auth application login or an invitation bypass.\n- **ChatGPT plan connection:** Design an adapter for the official Sign in with ChatGPT plan-usage flow for eligible open-source/self-hosted deployments, with workspace-owned protected OAuth credentials, consent, refresh, disconnect and account-specific model discovery. Verify AI SDK tool/streaming integration against the supported Responses route and preview limitations; no generic API-key substitution or reuse of browser cookies. Paid/remotely hosted distribution needs provider-access confirmation; the separately documented self-hosted-VM flow must be considered for private remote installations.\n- **Claude subscription feasibility:** Preserve the requested Claude-plan mode as a provider-gated requirement, not advertised launch support. Current developer documentation requires API-key authentication for products offered to others unless approved; a separate support article describes subscription use through the Agent SDK/CLI. Do not infer from personal SDK use that our product can offer a generic Claude subscription provider. API-key mode is supported in the design; a subscription adapter requires an expressly permitted integration and verification. Record any unresolved provider approval rather than marking the feature complete.\n- **Independent capabilities:** Subscription inference does not establish embeddings, arbitrary API endpoints, unattended usage or hosted resale entitlement. Check these individually, retain separate optional embedding configuration, honor personal-background-usage consent and existing usage caps, and never silently switch a depleted subscription to paid API-key billing.\n\n- **Catalogue population (Q76):** Populate primarily on demand from real shopping research, with optional approved imports for coverage. Development fixtures are separate from real catalogue data. All categories remain eligible; a broad preloaded catalogue is not a launch prerequisite.\n- **Source onboarding (Q77):** Discover and retrieve a bounded selection of pages relevant to the current task, under the accepted research caps. Support administrator-configured feed/API import adapters where actual usable sources exist. Do not require web-wide crawling or an unconfirmed retailer partnership. A structured feed is a source of claims, not automatic proof of correctness.\n- **Admission (Q78):** Automatically admit validated supported facts and established identities; preserve uncertain matches and conflicts separately. Administrator review focuses on unresolved conflicts, corrections and proposed merges, rather than every discovered record.\n- **Refresh priority (Q79):** Prioritize active-watch schedules, stale offers requested during research, and optional separately budgeted background enrichment. A stored catalogue offer is not implicitly current.\n\n- **First administrator (Q70):** Require an installation-held one-time setup token to create the first administrator and private workspace. Claim setup atomically and disable it afterward. No SMTP dependency for initial provisioning; operator provisioning does not assert email ownership.\n- **Invitations/recovery (Q71):** Use single-use email-bound invitations expiring after seven days; acceptance establishes password and a private workspace. Require configured working SMTP for normal invitations and password recovery. Reset links are single-use and expire after thirty minutes. Document operator-only self-hosted administrator recovery and show email workflows unavailable without SMTP.\n- **Browser sessions (Q72):** Use database-backed sessions with secure HTTP-only cookies, seven-day inactivity expiry and thirty-day absolute maximum. Provide device-session listing and current/all-device sign-out. Require recent authentication for password/email changes and integration credential creation. Password reset revokes existing sessions. Implement and verify these application policies against the pinned auth version rather than assuming library defaults satisfy them.\n- **Disable/delete lifecycle (Q73):** Disablement revokes browser/integration access, pauses private research/watches/notification delivery and retains data. Re-enabling does not resume paused work automatically. Deletion requires confirmation and recent authentication, immediately blocks access/spending, then removes private data/credentials through a tracked job. Preserve independently reusable public facts and document backup retention separately.\n- **HTTP/MCP access (Q74):** Provide workspace-scoped personal HTTP tokens with selected permissions, creation-time-only display, expiry and revocation; default lifetime ninety days. Remote MCP uses standards-based browser sign-in and consent for one workspace, via an established OAuth implementation. Show connected clients and grant revocation. Select OAuth token lifetimes with the implementation-supported flow; never use one shared installation secret as shopper authorization.\n- **Additional sign-in methods (Q75):** Email/password plus optional authenticator-app two-factor authentication and recovery codes. Defer social login and passkeys. Password reset alone cannot bypass enabled two-factor authentication; document a separate recovery path.\n\n- **Accepted auth/UI direction (Q64\u2013Q69):** Use Better Auth with PostgreSQL inside the application. Keep shopping authorization in the core engine. Each user initially owns one private workspace, separate from their identity; installation invitations do not share another shopper\u2019s data. Shared workspaces are future scope.\n- **Administrator boundaries:** Installation administrators manage users, shared provider configuration, budgets and operational status; no routine administrator UI exposes private conversations or personal credentials. Administrators may disable users and revoke access. Document that the self-hosted database operator controls underlying stored data.\n- **Desktop layout:** Selected Studio direction: persistent navigation for new research, sessions, watches and settings; conversation in the middle; a dedicated session-associated shopping-results canvas for products/comparison/details/evidence. Selection opens details and multi-selection builds a comparison. Watches also have a dedicated management screen.\n- **Visual direction:** The user selected Electric blue after requesting a more modern, distinctive interface. Use cool neutral surfaces, electric-blue primary actions and selected states, clear typography, refined spacing, prominent product presentation, and readable price/fit evidence. Replace the earlier green palette. Support light/dark themes and explicit uncertain/stale labels; distinguish warning/error/success semantics from brand color. The user selected Studio: persistent left navigation, conversation beside a dedicated shopping-results canvas, refined product cards and visible evidence. Canvas and Editorial are not the selected directions. The user approved the unified Studio/Electric blue desktop/mobile screen review, including shopping, account flows and research states. This is design approval, not proof of implemented backend behavior.\n- **Mobile layout:** Full launch support with Chat/Products/Compare views inside the same session, persistent session context, full-screen product details, navigable horizontally scrollable comparisons and drawer navigation. English/Dutch and accessibility remain required.\n\n- **Variant identity/admission:** Automatically merge listings only when reliable identifiers and configuration attributes agree. Retailer SKUs are retailer-specific. Conflicting identifiers or configuration prevent merging; retain uncertain candidates separately. Models can propose identity matches, but code validates before merging or attaching exact-variant watches.\n- **Task-specific sufficiency:** Exact-product research requires established identity, requested specifications and fresh eligible offers. Comparison requires established variants and evidence for relevant attributes. Broad discovery evaluates requirement coverage and candidate diversity; weak or unknown catalogue coverage triggers bounded external research even if a few catalogue candidates match. Record completion reason: sufficient evidence, clarification needed, exhausted limits or unavailable sources. Describe recommendations within examined candidates, not as an exhaustive market result.\n- **Freshness defaults:** Interactive offer observations may be reused for up to six hours with visible timestamps. Explicit current-offer requests attempt a fresh check. Each scheduled monitoring check obtains a new observation rather than reusing the previous one. Recheck specifications after thirty days or sooner when conflicting evidence appears. Preserve provider/cache timestamps where available. Failed refreshes leave old observations marked stale and cannot generate alerts. All intervals are configurable.\n- **Initial research caps:** Per run, default to three minutes, eight discovery requests, twenty page retrievals, thirty evaluated candidates and twelve agent steps, plus separately configured token/spending caps. Count retries against the relevant caps. Stop at the first exhausted allowance and return useful partial results. Explicit continuation grants an additional allowance subject to installation/workspace ceilings. These are configurable starting settings to calibrate, not promised response times or mandatory API spending.\n\n- **Technical design complete:** Q46\u2013Q63 are resolved, including configurable SearXNG/Tavily, the Q57 extension withdrawal, and accepted identity, sufficiency, freshness, limit, and evaluation defaults. Auth/user lifecycle through Q75 is accepted. Studio/Electric blue full-flow screens and auth lifecycle are approved. Catalogue population/source-onboarding policies through Q79 are accepted; the follow-up is clarifying bounded discovery and evidence-based research quality, without changing approved auth/UI choices.\n- **Search deployment and routing:** Provide an optional SearXNG Compose profile and external-instance URL configuration, with JSON capability checks. Discovery, extraction and fallback order are separately configurable. Never switch to paid Tavily without enabled fallback and available budget.\n- **Built-in retrieval:** Fetch pages and parse structured product data, then relevant readable content; use schema-constrained model extraction when needed, keeping evidence excerpts. Tavily Extract is independently configurable. Report blocked/unsupported pages; browser automation is not an initial dependency. Fetching must not expose installation secrets or provide general internal-network access to research URLs.\n- **Tool contracts:** Expose typed requirement/clarification, catalogue search, discovery, evidence retrieval, evaluation/comparison, and watch operations. Return structured results, references, gaps and failures. Enforce phase-level tool availability; catalogue writes pass validation and identity resolution. No general SQL tool is exposed to the agent.\n- **Research state/context:** Persist authoritative requirements, assumptions, phase, candidates, evidence references, outstanding questions and consumed budget outside the transcript. Assemble bounded model context from these records, recent messages and relevant evidence. Summaries do not override structured requirements. Requirement changes invalidate affected evaluations and reuse unaffected evidence.\n- **Ranking:** Retrieval combines exact, lexical and optional semantic candidates; recommendation checks eligibility and verified must-haves before ranking preferences and trade-offs. Models return evidence-linked assessments; code enforces exclusions and assembles ordering. Low price or similarity never compensates for a failed must-have. Uncertain candidates remain separate.\n- **Model roles:** Default to one conversational/research model, with optional extraction and embedding overrides. Embeddings remain optional. Check capabilities during setup, record provider/model usage, and do not route to another provider silently.\n\n- **Accepted agent/search design, first technical round:** Use one bounded shopping agent within application-enforced research phases: requirements, catalogue search, gap identification, external research, evaluation, and presentation. Persist progress and allow bounded iteration and clarification. Code enforces permissions, budgets, evidence checks, and allowed transitions.\n- **Catalogue retrieval:** Combine exact identifiers and structured filters with full-text/trigram retrieval and optional multilingual semantic retrieval. Merge candidates before evidence-based requirement evaluation. Semantic similarity does not verify exact identity or must-have attributes. Keep lexical search functional without embeddings.\n- **Configurable search/retrieval:** Support SearXNG as a self-hostable search option alongside Tavily Search; configure page evidence retrieval independently, including Tavily Extract. Do not silently require a paid discovery provider. Provider selection, fallback, and extraction choices must be visible and configurable. Search results are discovery evidence, not verified offers. Use an optional SearXNG Compose profile or a configured external instance. The built-in retrieval pipeline works without Tavily; paid fallback is opt-in.\n- **Evidence sufficiency:** Code checks identity, eligibility, must-have evidence, and freshness; the model assists with subjective suitability and research gaps. Candidate count alone is not proof of sufficient research.\n- **Category attributes:** Use an extensible registry of canonical attribute names, types, units, and synonyms. Models may propose mappings; validation controls acceptance. Preserve unfamiliar claims without automatically activating model-created filters. Incomplete structured coverage must not exclude entire categories from discovery.\n- **Extension scope correction:** The user withdrew developer-added skills and inbound MCP integrations in Q57. Do not build a skill loader, extension registry, extension configuration, or external MCP client feature for the built-in agent. Ordinary built-in agent instructions and typed shopping tools remain; the outward-facing shopping MCP server remains in scope.\n\n- **Market and release scope:** Netherlands, all product categories, English and Dutch. All three shopping workflows are required for the first public release. Broad category support means flexible evidence handling, not a promise of universal retailer coverage. No imposed delivery deadline exists.\n- **Stack and packaging:** Use a TypeScript monorepo with pnpm workspaces, Next.js for the web application and HTTP endpoints, and separate Node.js worker and MCP applications. Use PostgreSQL for the catalogue and durable application state; start with PostgreSQL-backed jobs rather than an additional queue service. Select currently supported versions during implementation.\n- **Core engine:** Put shopping operations, input validation, workspace authorization, and provider-independent interfaces in a framework-independent engine. HTTP and MCP are thin adapters. Built-in agent tools call the core directly; external agents use MCP. Direct callers receive the same validation and access enforcement as transport callers.\n- **Agent:** Use Vercel AI SDK with typed shopping tools, built-in instructions, authenticated workspace context, structured results, and bounded context management. Persist requirements and result references so summarization preserves constraints and provenance. Retailer content is evidence, not authority to alter instructions or permissions.\n- **Workspace boundary:** Private conversations, preferences, credentials, comparisons, research context, watches, and notification settings belong to a workspace. Initially a workspace serves one user. The ownership design must allow multiple workspaces in future hosting without requiring a hosted service at launch.\n- **Catalogue boundary:** Hosted workspaces may share public product facts and offers with provenance. Never publish private prompts, preferences, credentials, or watch settings into the shared catalogue. Self-hosted installations maintain independent catalogues.\n- **Identity model:** Distinguish product model, exact variant, retailer offer, and timestamped price observation. Compare and monitor exact variants where identity is established; uncertain matches are labelled. A price for another configuration cannot satisfy a watch.\n- **Evidence model:** Keep source claims separate from resolved attributes. Preserve source, observation time, and conflicting claims. Search snippets identify candidates rather than verify specifications. Prefer manufacturer evidence for specifications and retailer evidence for offers. Disputed must-have attributes remain unverified.\n- **Category model:** Use common fields plus category-specific attributes. Comparison columns follow shopper requirements and distinguish unknown from inapplicable values. Cross-category comparisons are permitted when products address the same intended use.\n- **Research:** Extract must-haves and preferences, ask material clarifying questions, expose correctable assumptions, and never silently relax must-haves. Search the catalogue first; reuse adequately sourced specifications, refresh volatile offers, and research externally for missing evidence or insufficient candidates. Fully recommended candidates have verified must-have matches; uncertain ones are separate. Do not fill an arbitrary result quota.\n- **Bounded execution:** Configure limits for research time, provider calls, candidates, and spending. Allow cancellation, explicit continuation, progress, and evidence-backed partial results. Persist research and monitoring work so restarts do not lose jobs. Retry temporary failures with limits and expose persistent failures.\n- **Offer eligibility:** Business retailers delivering to the Netherlands, EUR prices, new products by default, and refurbished only through explicit preference. Auctions and private sellers are excluded initially.\n- **Price basis:** Prefer totals including VAT and known mandatory delivery. Label missing shipping; do not claim cheapest delivery from incomplete totals. Separate conditional discounts and exclude them from default rankings and alerts unless the shopper qualifies. Advertised discounts remain retailer claims unless supported by observed history. Represent monetary values precisely.\n- **Delivery location:** Default to Netherlands-wide availability. Request an optional saved postcode only when material to costs or eligibility; share it only with relevant delivery/data providers. A postcode is private shopper information.\n- **Watches:** Target an exact offer or established variant, with independent condition and delivery constraints. Execute explicit creation/edit requests and display the result; clarify ambiguity. Require confirmation for bulk deletion or changes affecting multiple watches. Session changes do not silently change watch settings.\n- **Threshold semantics:** Target-price alerts fire on threshold crossings, including one notification if a fresh creation-time price already meets the target. Price-drop watches establish the first successful observation as baseline, then compare with the last notified price after notifications, using a configurable minimum decrease. Suppress repeated notifications for the same qualifying price. Seller changes in variant watches preserve constraints.\n- **Scheduling:** Check daily by default in Europe/Amsterdam, support configurable daily schedules, quiet hours, and pause/resume. Show last successful check. After downtime, obtain a fresh observation and disclose the gap rather than infer missed prices.\n- **Notifications:** Require a fresh successful price observation. Persist an in-app alert immediately; deliver email outside quiet hours and recheck relevance before delayed delivery. Use persistent delivery state and deduplication across retries/restarts. Email failures leave the in-app alert available. Document ambiguous SMTP delivery behavior rather than promising impossible delivery certainty.\n- **Provider support:** Select a small tested launch set after a primary-source review of Netherlands coverage, sources, freshness, costs, and limitations. Verify at least one hosted AI provider, a configurable compatible/local-model endpoint, a useful search/data integration, and SMTP. AI capability checks must distinguish model/tool/structured-output support; endpoint compatibility alone is insufficient. External search/data remain independently configured even with local inference.\n- **Credentials:** Support installation-administrator keys and optional workspace overrides. Encrypt persisted credentials using an installation secret held outside PostgreSQL. Exclude secrets from model context, browser responses, and diagnostic output. First-run setup provides connection checks and unavailable-workflow status.\n- **Spending:** Installation administrators set hard limits; workspace overrides cannot bypass them. Separate interactive research and background monitoring budgets. Pause affected work visibly when limits are reached. Background use of personal keys requires explicit opt-in. Coordinate concurrent work to avoid overspending; document conservative usage estimates where exact pre-call provider costs are unavailable. No silent provider fallback changing cost or data destination.\n- **Authentication and MCP:** Require accounts for persisted conversations and watches. Start with email/password and administrator invitations; public registration is off by default. Keep identity implementation replaceable and document administrator recovery. External MCP clients receive scoped workspace access to shopping operations, not provider secrets or administrator settings; implement usable credential expiry/revocation controls during integration work.\n- **UI:** Provide chat plus dedicated product, comparison, and watch views, session navigation, research progress, and structured persisted results. Distinguish historical results from fresh offers. Save cross-session preferences only explicitly; expose their application and edit/delete controls.\n- **Failure behavior:** Saved conversations, catalogue browsing, comparisons, and watch management remain usable during provider outages. Research clearly reports incompleteness. Failures must not turn missing evidence into invented specifications or prices.\n- **Retention:** Make retention configurable. Allow deletion of private sessions, saved preferences, and watches, including dependent private data as appropriate, without deleting independently reusable public facts or independent watches. Retain only evidence excerpts and metadata needed for claims by default, rather than full copied pages.\n- **Deployment:** Docker Compose starts the complete application with development and production configurations. Document provider prerequisites, setup, migrations, secrets, HTTPS/network exposure, backup/restore, and recovery. Production-oriented self-hosting does not require a particular cloud vendor.\n- **Commercial policy:** Adopt AGPL-3.0-or-later. Keep shopping capabilities available to self-hosters; monetize managed hosting, managed monitoring, and optional included usage. Disclose affiliate links and keep affiliate revenue out of recommendation ranking. Paid hosting and billing implementation are future work.\n\n## Testing Decisions\n\n- **Auth lifecycle acceptance:** Check atomic first-administrator setup and replay denial, missing SMTP states, email-bound invitation acceptance/replay/expiry, thirty-minute reset expiry and session revocation, seven-day inactivity and thirty-day absolute session expiry, current/all-device sign-out, recent-auth requirements, disable/re-enable without implicit work resumption, deletion blocking background spending, HTTP token scope/expiry/revocation and one-time display, MCP consent/revocation, and optional two-factor recovery without password-reset bypass. Tests are proposed, not run.\n\n- **Research quality gate:** Maintain a bilingual evaluation set spanning heterogeneous categories, exact models, vague needs, conflicts and missing evidence. Measure candidate relevance and Dutch/English matching separately from correctness. Check exact variants, evidence-backed must-haves, honest uncertainty, price basis/freshness, appropriate clarification/stopping and bounded usage. All curated safety/correctness scenarios must pass. Establish numerical retrieval-relevance targets from the initial benchmark and document failures rather than inventing quality guarantees.\n- **Technical design regression scenarios:** Exercise same-model/different-configuration listings, retailer-specific SKUs, conflicting identifiers, exact/compare/broad completion rules, weak catalogue coverage, six-hour offer expiry, thirty-day specification rechecks, explicit refresh failure, provider cache metadata, fresh-only scheduled observations and each independent research cap including retries/continuation. Verify keyword-only operation without embeddings, SearXNG without Tavily credentials, independently configured Tavily extraction, and no paid fallback unless enabled.\n\n- **Confirmed primary seam:** Test the authenticated shopping engine through its public operations, with real PostgreSQL behavior where persistence, isolation, job recovery, or concurrency matter. This is the shared business-behavior boundary for agent, HTTP, and MCP access.\n- **Small additional seams:** Use thin HTTP/MCP contract checks to prove transport schemas, authentication, scope enforcement, and error mapping. Use browser checks only for observable interactive workflows, session navigation, localization, and structured results. Avoid duplicating every shopping rule at every layer.\n- **Good tests:** Assert externally visible outcomes, not private method calls, internal prompt wording, table layouts, or component implementation. A meaningful change includes the checks for its new behavior; release checks consolidate rather than postpone verification.\n- **Prior art:** The repository has domain and decision documents but no application code or test suite. There are no existing testing seams or comparable tests to extend. All proposed checks must be implemented and their actual results reported later.\n- **Research fixtures:** Use recorded provider fixtures for English/Dutch requirements, material clarification, visible assumptions, verified and uncertain matches, insufficient evidence, conflicts, stale prices, heterogeneous categories, cancellation, continuation, and exhausted budgets. Do not assert one exact model-generated paragraph as correctness.\n- **Catalogue fixtures:** Include different configurations of the same model, ambiguous identities, repeat ingestion, cross-category comparisons, missing/inapplicable attributes, VAT/shipping/conditional discounts, refurbished filtering, Netherlands delivery/postcodes, and source disagreement. Verify exact-variant recommendations and watches never silently use a cheaper different configuration.\n- **Monitoring fixtures:** Control time and provider observations to prove initial target satisfaction, threshold crossings, first baseline, minimum decreases, last-notified comparisons, duplicate-price suppression, seller constraints, daily Amsterdam schedules, quiet hours, delayed-email relevance, pause/resume, missed-check gaps, and failed fresh checks producing no alert.\n- **Recovery and delivery:** Restart workers during persisted jobs and notification delivery; exercise bounded retries and concurrent processing. Verify durable progress, budget enforcement, application-level deduplication, visible failures, and in-app alerts surviving email failure. Document SMTP uncertainty after ambiguous delivery outcomes.\n- **Access and secrets:** Exercise two workspace identities through core and transports, including tampered identifiers, unauthorized tool calls, scoped clients, expired/revoked access, and direct core calls. Verify secrets do not enter model payloads or browser output, retrieved instructions cannot expand authority, and private context never becomes public catalogue data.\n- **Budget/provider checks:** Verify separate budgets, concurrent usage, explicit personal-key consent, missing capabilities, configured fallback, provider outages, and visible pauses. Use simulated paid-provider responses for repeatability; keep live spending bounded.\n- **End-to-end acceptance:** Demonstrate needs-to-shortlist, side-by-side comparison, and offer-to-watch-to-notification in both languages, with saved sessions and external MCP access. Demonstrate full development/production Compose startup, migration, and backup/restore behavior. A handful of heterogeneous fixtures demonstrates flexible category handling without claiming universal coverage.\n- **Live checks:** Run separately configured smoke tests against the selected hosted AI, compatible/local AI route, search/data integration, and SMTP when credentials/endpoints are supplied. Do not commit secrets or invent successful live results. Document verified coverage, numeric defaults, observed limits, and remaining blockers.\n\n## Out of Scope\n\n- Carts, checkout, payments to retailers, and autonomous purchasing.\n- Markets outside the Netherlands or a worldwide retailer guarantee.\n- A launch restriction to one product category.\n- Auctions, private-seller listings, and refurbished offers without explicit shopper preference.\n- Broad requirement watches such as any suitable dishwasher below a budget.\n- Coupon discovery, automatic coupon redemption, back-in-stock alerts, and broad saved-search monitoring.\n- Unrestricted scraping of every retailer as a launch dependency.\n- Claims that every AI provider/model or compatible endpoint supports every tool and workflow.\n- Fabricated price history, guaranteed detection of changes between daily checks, or inferred prices during downtime.\n- Cloud-hosted deployment, subscriptions, billing, and paid-service infrastructure in this release.\n- Developer-added skill loaders, extension registries, and external MCP connections for the built-in agent, withdrawn in Q57. This does not exclude the application\u2019s outward-facing shopping MCP server.\n- Feature exclusivity that withholds agreed shopping capabilities from self-hosters.\n\n## Further Notes\n\n- **Provider-access follow-up:** The user requested subscription-backed AI configuration. Official provider documentation was checked on 2026-11-17. ChatGPT plan usage has an eligible-app integration with deployment/preview constraints; Claude product subscription access remains provider-gated. The spec stays needs-info for this access-mode feasibility work. No adapter, subscription entitlement or live integration is claimed.\n\n- **Current design status:** Product scope, agent/search through Q63, auth lifecycle through Q75 and Studio/Electric blue full-flow screens are accepted. Catalogue population/source-ingestion policies through Q79 are accepted. The current follow-up clarifies bounded discovery and research-quality assessment; retain needs-info during this clarification rather than asserting that explanations or unvalidated code establish implementation readiness. Do not reopen approved UI/auth choices or imply backend implementation from design approval.\n\n- The product-requirements interview is complete: the user accepted the final stack, delivery-location, baseline, scheduling, provider-selection, and handoff recommendations. This spec synthesizes those decisions without requiring a new product interview or a Specshape workflow.\n- Provider/library versions and concrete library choices require current primary-source verification during implementation. Search adapters and initial research/freshness defaults are selected above; monetary/token ceilings, retention settings, model choices and performance tuning require configuration or calibration with documented rationale. No actual monthly budget, initial user count, or performance target was supplied.\n- This is a new product: no existing application behavior, implemented provider support, automated test results, or deployment readiness is claimed.\n- The chosen licence policy was checked against GNU AGPLv3 section 13 during the interview. Its source is the GNU Project\u2019s licence text: https://www.gnu.org/licenses/agpl-3.0.html#section13 . The licence and applicable notices must be supplied with implementation.\n- Local and GitHub publication represent the same specification. Record the GitHub issue URL locally after publication and keep triage status synchronized in both locations. Publication does not mean the application has been built.\n",
+    "title": "Product specification: Netherlands shopping assistant",
+    "state": "open",
+    "labels": [
+      "needs-info"
+    ],
+    "assignees": [],
+    "milestone": null
+  },
+  "approved_revision": 2,
+  "tickets": {
+    "1": {
+      "local_number": 1,
+      "title": "Run a catalogue-to-screen walking skeleton",
+      "github_number": 2,
+      "github_id": 6434114353,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/2",
+      "blocked_by": [],
+      "local_file": ".scratch/shopping-assistant/issues/01-run-a-catalogue-to-screen-walking-skeleton.md",
+      "body_sha256": "e84cff68992219e5c88eebd08d4a859a6c5715f5d0e4652024925b4b0c63bc39"
+    },
+    "2": {
+      "local_number": 2,
+      "title": "Create the first administrator and private workspace",
+      "github_number": 3,
+      "github_id": 6434114786,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/3",
+      "blocked_by": [
+        1
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/02-create-the-first-administrator-and-private-workspace.md",
+      "body_sha256": "132286fafd40c87d7538b3bdb9eb54932d8d030d80cea376633dfb4c0b796c07"
+    },
+    "3": {
+      "local_number": 3,
+      "title": "Manage devices, sessions and password changes",
+      "github_number": 4,
+      "github_id": 6434115311,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/4",
+      "blocked_by": [
+        2
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/03-manage-devices-sessions-and-password-changes.md",
+      "body_sha256": "5c83a2f73a68674b67cb0fd1659b8a6fdaf9eab93ae850781bbcdb6e8fee8629"
+    },
+    "4": {
+      "local_number": 4,
+      "title": "Configure SMTP and test transactional delivery",
+      "github_number": 5,
+      "github_id": 6434115716,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/5",
+      "blocked_by": [
+        2
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/04-configure-smtp-and-test-transactional-delivery.md",
+      "body_sha256": "603e7dc1e557d04e062ec8093524bcf582eda3921a3488ac50b1ce0daa7cf76c"
+    },
+    "5": {
+      "local_number": 5,
+      "title": "Invite shoppers, change email and recover passwords",
+      "github_number": 6,
+      "github_id": 6434116294,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/6",
+      "blocked_by": [
+        3,
+        4
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/05-invite-shoppers-change-email-and-recover-passwords.md",
+      "body_sha256": "73e21066243bf8543629c847832f42e82323391ee02e98a5945be9dbc541f23b"
+    },
+    "6": {
+      "local_number": 6,
+      "title": "Add optional authenticator two-factor authentication",
+      "github_number": 7,
+      "github_id": 6434116769,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/7",
+      "blocked_by": [
+        3,
+        5
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/06-add-optional-authenticator-two-factor-authentication.md",
+      "body_sha256": "7bcd019eba1b2cabffcac2ebf40161b19f0bca10126a650db311691f66e385c7"
+    },
+    "7": {
+      "local_number": 7,
+      "title": "Manage the Netherlands retailer registry",
+      "github_number": 8,
+      "github_id": 6434117233,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/8",
+      "blocked_by": [
+        2
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/07-manage-the-netherlands-retailer-registry.md",
+      "body_sha256": "73d15ec8084a49998484f0fffe3f317ec303858d16b6d625a151ae06f077bf34"
+    },
+    "8": {
+      "local_number": 8,
+      "title": "Connect models through Vercel AI SDK provider adapters",
+      "github_number": 9,
+      "github_id": 6434117665,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/9",
+      "blocked_by": [
+        2
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/08-connect-models-through-vercel-ai-sdk-provider-adapters.md",
+      "body_sha256": "8fbbe8e9ba162de2f2b62fd63b15c9f9fa46a2eb6dea5acbb0834c76be530691"
+    },
+    "9": {
+      "local_number": 9,
+      "title": "Enforce research and monitoring budgets",
+      "github_number": 10,
+      "github_id": 6434118110,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/10",
+      "blocked_by": [
+        8
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/09-enforce-research-and-monitoring-budgets.md",
+      "body_sha256": "9b297bdb537c19aadd5739ecd63956f8ddc13428d8a18636916af4cee577f2a5"
+    },
+    "10": {
+      "local_number": 10,
+      "title": "Ingest a product page with inspectable evidence",
+      "github_number": 11,
+      "github_id": 6434118561,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/11",
+      "blocked_by": [
+        7
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/10-ingest-a-product-page-with-inspectable-evidence.md",
+      "body_sha256": "45f7ca608180d4dfd25b4bf5bff3c622c11944c3af976fdd66b911674b422c8d"
+    },
+    "11": {
+      "local_number": 11,
+      "title": "Normalize attributes and review conflicting claims",
+      "github_number": 12,
+      "github_id": 6434118994,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/12",
+      "blocked_by": [
+        10
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/11-normalize-attributes-and-review-conflicting-claims.md",
+      "body_sha256": "bcc3212c1ccbf7b153d840e2b2e1b843ef9b1ba37f7ee530aae416e48fb97e11"
+    },
+    "12": {
+      "local_number": 12,
+      "title": "Search catalogue identifiers, filters and bilingual text",
+      "github_number": 13,
+      "github_id": 6434119479,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/13",
+      "blocked_by": [
+        11
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/12-search-catalogue-identifiers-filters-and-bilingual-text.md",
+      "body_sha256": "5cce91164d2178188a428c7df8b2f0124512ee94ee0fad204250e16617ffba17"
+    },
+    "13": {
+      "local_number": 13,
+      "title": "Discover external candidates using SearXNG",
+      "github_number": 14,
+      "github_id": 6434119940,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/14",
+      "blocked_by": [
+        12
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/13-discover-external-candidates-using-searxng.md",
+      "body_sha256": "5b61b3cc80f90f10ee6fc893c7edf866097bb13ed3908625f94e3223daee3d86"
+    },
+    "14": {
+      "local_number": 14,
+      "title": "Configure Tavily Search and Extract independently",
+      "github_number": 15,
+      "github_id": 6434120399,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/15",
+      "blocked_by": [
+        9,
+        13
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/14-configure-tavily-search-and-extract-independently.md",
+      "body_sha256": "abf8f0d95e1d2918307c979948e8fd142e027304d002b967a9e0c2b672446806"
+    },
+    "15": {
+      "local_number": 15,
+      "title": "Make extraction resilient and expose source coverage",
+      "github_number": 16,
+      "github_id": 6434120816,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/16",
+      "blocked_by": [
+        9,
+        11
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/15-make-extraction-resilient-and-expose-source-coverage.md",
+      "body_sha256": "0493ded407824eef6d1dd18a8944f59a91a2633182481c4d97d72208ce809c3e"
+    },
+    "16": {
+      "local_number": 16,
+      "title": "Stream persistent bilingual chat with Vercel AI SDK",
+      "github_number": 17,
+      "github_id": 6434121303,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/17",
+      "blocked_by": [
+        9
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/16-stream-persistent-bilingual-chat-with-vercel-ai-sdk.md",
+      "body_sha256": "7b0e4f0f3f65ac3f3a10da4955b2a1966804406f844e0ebf8859aff0fda3cc50"
+    },
+    "17": {
+      "local_number": 17,
+      "title": "Run the controlled Vercel AI SDK shopping agent loop",
+      "github_number": 18,
+      "github_id": 6434121760,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/18",
+      "blocked_by": [
+        12,
+        16
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/17-run-the-controlled-vercel-ai-sdk-shopping-agent-loop.md",
+      "body_sha256": "f5e043f4255a3f287ece860711c4d7d2a59c2749401a1044cdee8f3bdd005d9d"
+    },
+    "18": {
+      "local_number": 18,
+      "title": "Checkpoint and recover the SDK agent loop in durable workers",
+      "github_number": 19,
+      "github_id": 6434122256,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/19",
+      "blocked_by": [
+        17
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/18-checkpoint-and-recover-the-sdk-agent-loop-in-durable-workers.md",
+      "body_sha256": "adbf0a1385a71af2a050cf2247a539058a8d8677f4470eed27e6400de478d67a"
+    },
+    "19": {
+      "local_number": 19,
+      "title": "Extend the same agent loop with external discovery and ingestion",
+      "github_number": 20,
+      "github_id": 6434122657,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/20",
+      "blocked_by": [
+        13,
+        15,
+        18
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/19-extend-the-same-agent-loop-with-external-discovery-and-ingestion.md",
+      "body_sha256": "495a365fcb421b6b5e3e674607d7b891df25eb71ed51d33c622c277ab004dd68"
+    },
+    "20": {
+      "local_number": 20,
+      "title": "Save preferences and invalidate revised research",
+      "github_number": 21,
+      "github_id": 6434123134,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/21",
+      "blocked_by": [
+        17
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/20-save-preferences-and-invalidate-revised-research.md",
+      "body_sha256": "9e76cc58074347e4ee3b687f2390671ea0414ed9dc4856a1e6c98ed361b50373"
+    },
+    "21": {
+      "local_number": 21,
+      "title": "Compare exact variants in persisted interactive tables",
+      "github_number": 22,
+      "github_id": 6434123606,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/22",
+      "blocked_by": [
+        17
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/21-compare-exact-variants-in-persisted-interactive-tables.md",
+      "body_sha256": "901630a29d1a21f63cc40c6dc73d56f9e34e569d5ea1f650f6e1d9cf463b7dc5"
+    },
+    "22": {
+      "local_number": 22,
+      "title": "Watch an exact offer and receive target alerts",
+      "github_number": 23,
+      "github_id": 6434124098,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/23",
+      "blocked_by": [
+        15,
+        18
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/22-watch-an-exact-offer-and-receive-target-alerts.md",
+      "body_sha256": "d70d466001727562a7087fda6b1328ed61ccea3e6278feedbfb25d4783d0d7d2"
+    },
+    "23": {
+      "local_number": 23,
+      "title": "Watch variants across sellers and meaningful price drops",
+      "github_number": 24,
+      "github_id": 6434124563,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/24",
+      "blocked_by": [
+        13,
+        22
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/23-watch-variants-across-sellers-and-meaningful-price-drops.md",
+      "body_sha256": "c080961508b8880339d63dd0453ecb490c7ad243b497a2282fae97876ff8bc41"
+    },
+    "24": {
+      "local_number": 24,
+      "title": "Deliver email alerts with schedules and quiet hours",
+      "github_number": 25,
+      "github_id": 6434124993,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/25",
+      "blocked_by": [
+        4,
+        22
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/24-deliver-email-alerts-with-schedules-and-quiet-hours.md",
+      "body_sha256": "ac849705dc1f5125f3adec6ae955de34283056b3d9b957823aff763afb919896"
+    },
+    "25": {
+      "local_number": 25,
+      "title": "Expose shopping operations through personal HTTP tokens",
+      "github_number": 26,
+      "github_id": 6434125492,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/26",
+      "blocked_by": [
+        3,
+        19,
+        21,
+        23
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/25-expose-shopping-operations-through-personal-http-tokens.md",
+      "body_sha256": "7bb790493f1cf16f8d9a7fa3d4e188bfad5f2b59bb973cbe6f441c3f3472dd4a"
+    },
+    "26": {
+      "local_number": 26,
+      "title": "Connect external assistants through authenticated MCP",
+      "github_number": 27,
+      "github_id": 6434126024,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/27",
+      "blocked_by": [
+        25
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/26-connect-external-assistants-through-authenticated-mcp.md",
+      "body_sha256": "492cc95e393daad2540b8130ad1470f1036144b11cdd7d4bea6bdc9ed07c5870"
+    },
+    "27": {
+      "local_number": 27,
+      "title": "Disable and restore users without resuming private work",
+      "github_number": 28,
+      "github_id": 6434126430,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/28",
+      "blocked_by": [
+        5,
+        24,
+        26
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/27-disable-and-restore-users-without-resuming-private-work.md",
+      "body_sha256": "2aadfd871ab88ac0bb654624ab0259c01133b01bd8645ce54685b92710d60d2d"
+    },
+    "28": {
+      "local_number": 28,
+      "title": "Delete private data and enforce retention",
+      "github_number": 29,
+      "github_id": 6434126831,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/29",
+      "blocked_by": [
+        20,
+        27
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/28-delete-private-data-and-enforce-retention.md",
+      "body_sha256": "d56a149170ec9f7927f8078ead2f4b94100e9392307b4a2cbecd8cce35d522fd"
+    },
+    "29": {
+      "local_number": 29,
+      "title": "Import evidence from an approved structured source",
+      "github_number": 30,
+      "github_id": 6434127364,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/30",
+      "blocked_by": [
+        11,
+        18
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/29-import-evidence-from-an-approved-structured-source.md",
+      "body_sha256": "b2cad2474d56787b8599b8a6f165f3c6a4f03b85ed351863e18702d1d640611c"
+    },
+    "30": {
+      "local_number": 30,
+      "title": "Add optional multilingual semantic catalogue retrieval",
+      "github_number": 31,
+      "github_id": 6434127720,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/31",
+      "blocked_by": [
+        9,
+        12
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/30-add-optional-multilingual-semantic-catalogue-retrieval.md",
+      "body_sha256": "09118df1c13b4cda04b7fc799409b1e5a992321c70522fa85d0b920d7def7dee"
+    },
+    "31": {
+      "local_number": 31,
+      "title": "Connect eligible ChatGPT plan usage to shopping chat",
+      "github_number": 32,
+      "github_id": 6434128230,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/32",
+      "blocked_by": [
+        16
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/31-connect-eligible-chatgpt-plan-usage-to-shopping-chat.md",
+      "body_sha256": "64b7a384daaee1c6bd9f33a6932c1ad3bfec9711bcb1661510af6ff924fba0c0"
+    },
+    "32": {
+      "local_number": 32,
+      "title": "Expose truthful Claude-plan availability in settings",
+      "github_number": 33,
+      "github_id": 6434128670,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/33",
+      "blocked_by": [
+        8
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/32-expose-truthful-claude-plan-availability-in-settings.md",
+      "body_sha256": "52d713ff778946d94b282fd7219367d2f19d7c383ca54ef3152a516892f25fbf"
+    },
+    "33": {
+      "local_number": 33,
+      "title": "Operate and restore the full self-hosted stack",
+      "github_number": 34,
+      "github_id": 6434129056,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/34",
+      "blocked_by": [
+        28
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/33-operate-and-restore-the-full-self-hosted-stack.md",
+      "body_sha256": "1d5697a1e7577689eb025d0dfdb3827e078ba0262f7543d0d4eaa8f12e844cec"
+    },
+    "34": {
+      "local_number": 34,
+      "title": "Verify complete flows and measured release coverage",
+      "github_number": 35,
+      "github_id": 6434129462,
+      "url": "https://github.com/mohamedwaleed/shopping-assistant/issues/35",
+      "blocked_by": [
+        6,
+        14,
+        29,
+        30,
+        31,
+        32,
+        33
+      ],
+      "local_file": ".scratch/shopping-assistant/issues/34-verify-complete-flows-and-measured-release-coverage.md",
+      "body_sha256": "1df9afe231cd068adb7ec4aa4a9e061697a7a8b1ca0bdee97374d669a00e00ba"
+    }
+  },
+  "native_edges": [
+    [
+      2,
+      1
+    ],
+    [
+      3,
+      2
+    ],
+    [
+      4,
+      2
+    ],
+    [
+      5,
+      3
+    ],
+    [
+      5,
+      4
+    ],
+    [
+      6,
+      3
+    ],
+    [
+      6,
+      5
+    ],
+    [
+      7,
+      2
+    ],
+    [
+      8,
+      2
+    ],
+    [
+      9,
+      8
+    ],
+    [
+      10,
+      7
+    ],
+    [
+      11,
+      10
+    ],
+    [
+      12,
+      11
+    ],
+    [
+      13,
+      12
+    ],
+    [
+      14,
+      9
+    ],
+    [
+      14,
+      13
+    ],
+    [
+      15,
+      9
+    ],
+    [
+      15,
+      11
+    ],
+    [
+      16,
+      9
+    ],
+    [
+      17,
+      12
+    ],
+    [
+      17,
+      16
+    ],
+    [
+      18,
+      17
+    ],
+    [
+      19,
+      13
+    ],
+    [
+      19,
+      15
+    ],
+    [
+      19,
+      18
+    ],
+    [
+      20,
+      17
+    ],
+    [
+      21,
+      17
+    ],
+    [
+      22,
+      15
+    ],
+    [
+      22,
+      18
+    ],
+    [
+      23,
+      13
+    ],
+    [
+      23,
+      22
+    ],
+    [
+      24,
+      4
+    ],
+    [
+      24,
+      22
+    ],
+    [
+      25,
+      3
+    ],
+    [
+      25,
+      19
+    ],
+    [
+      25,
+      21
+    ],
+    [
+      25,
+      23
+    ],
+    [
+      26,
+      25
+    ],
+    [
+      27,
+      5
+    ],
+    [
+      27,
+      24
+    ],
+    [
+      27,
+      26
+    ],
+    [
+      28,
+      20
+    ],
+    [
+      28,
+      27
+    ],
+    [
+      29,
+      11
+    ],
+    [
+      29,
+      18
+    ],
+    [
+      30,
+      9
+    ],
+    [
+      30,
+      12
+    ],
+    [
+      31,
+      16
+    ],
+    [
+      32,
+      8
+    ],
+    [
+      33,
+      28
+    ],
+    [
+      34,
+      6
+    ],
+    [
+      34,
+      14
+    ],
+    [
+      34,
+      29
+    ],
+    [
+      34,
+      30
+    ],
+    [
+      34,
+      31
+    ],
+    [
+      34,
+      32
+    ],
+    [
+      34,
+      33
+    ]
+  ],
+  "status": "published-and-verified"
+}
