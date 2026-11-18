@@ -71,3 +71,11 @@ _Avoid_: Workspace
 **Installation administrator**:
 A user authorized to manage installation access, shared provider configuration, budgets and operational status. This role does not provide routine application access to shoppers’ private conversations or personal provider credentials.
 _Avoid_: Workspace owner
+
+**Setup token**:
+A one-time value held by whoever operates the installation rather than stored in the database. Claiming setup with it creates the first installation administrator and their private workspace, then the claim stops working.
+_Avoid_: Invitation, password
+
+**Invitation**:
+An administrator-issued, email-bound, single-use grant that lets one person create an account and their own private workspace without sharing another shopper’s information. Public registration stays closed.
+_Avoid_: Setup token

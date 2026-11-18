@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import knex, { type Knex } from "knex";
 import * as initialCatalogue from "./migrations/20261116000000_initial_catalogue";
+import * as identityAndWorkspaces from "./migrations/20261117000000_identity_and_workspaces";
 
 interface MigrationModule {
   up: (db: Knex) => Promise<void>;
@@ -10,6 +11,7 @@ interface MigrationModule {
 // Order is schema ordering: migrations apply in the array sequence.
 const ORDERED_MIGRATIONS: ReadonlyArray<[string, MigrationModule]> = [
   ["20261116000000_initial_catalogue", initialCatalogue],
+  ["20261117000000_identity_and_workspaces", identityAndWorkspaces],
 ];
 
 /** One Knex instance per process; callers own pool lifecycle via destroy(). */

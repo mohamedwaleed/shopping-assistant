@@ -13,6 +13,7 @@
   "dependencies": {
     "@shopping/core": "workspace:*",
     "@shopping/db": "workspace:*",
+    "better-auth": "1.7.23",
     "knex": "3.3.0",
     "next": "16.4.6",
     "pg": "8.23.1",

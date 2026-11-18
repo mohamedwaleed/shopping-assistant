@@ -9,6 +9,11 @@ x-app: &app
   environment: &app-env
     DATABASE_URL: postgres://postgres:postgres@db:5432/shopping_assistant
     PNPM_HOME: /pnpm-home
+    # One-time setup token for the first administrator; see .env.example.
+    SETUP_TOKEN: ${SETUP_TOKEN:-development-setup-token}
+    # Development-only session secret; set a generated value when exposed.
+    BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-development-secret-change-me-0123456789abcdef}
+    BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
   volumes: &app-volumes
     - .:/app
     - dev_node_modules:/app/node_modules

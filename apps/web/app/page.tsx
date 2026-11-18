@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { DEVELOPMENT_FIXTURE_IDS } from "@shopping/db";
 import type { VariantOfferDetail } from "@shopping/core";
 import { dictionaries, resolveLang, type Lang } from "@/lib/i18n";
 import { formatMoney, formatObservedAt } from "@/lib/format";
+import { requestIdentity } from "@/lib/auth/session";
+import { signOutAction } from "@/app/actions";
+import { SignOutButton } from "@/app/auth-forms";
 
 // Attribute keys rendered with English/Dutch labels; unknown attributes fall
 // back to a readable version of the raw key.
@@ -50,10 +54,20 @@ export default async function Home({
   const lang = resolveLang(params.lang);
   const t = dictionaries[lang];
   const otherLang: Lang = lang === "en" ? "nl" : "en";
+
+  // Persisted conversations and watches require an account; anonymous
+  // visitors sign in before reaching the Studio shell.
+  const identity = await requestIdentity();
+  if (!identity) redirect(`/sign-in?lang=${lang}`);
+
   const requestHeaders = await headers();
   const host = requestHeaders.get("host") ?? "localhost:3000";
   const proto = requestHeaders.get("x-forwarded-proto") ?? "http";
   const detail = await loadDetail(host, proto);
+
+  const isAdministrator = identity.trusted.principal.kind === "administrator";
+  const roleLabel =
+    identity.trusted.user.workspace.role === "owner" ? t.roleOwner : t.roleMember;
 
   return (
     <div className="app-shell" lang={lang}>
@@ -72,6 +86,16 @@ export default async function Home({
           {t.navWatches}
           <span className="nav-badge">{t.navComingSoon}</span>
         </span>
+        <div className="rail-footer">
+          <div className="rail-user">
+            <strong>{identity.trusted.user.name}</strong>
+            {identity.trusted.user.email}
+            <br />
+            {t.workspaceLabel} · {roleLabel}
+            {isAdministrator ? ` · ${t.administratorRole}` : ""}
+          </div>
+          <SignOutButton lang={lang} action={signOutAction} />
+        </div>
       </nav>
 
       <main className="content">
