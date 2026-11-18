@@ -24,10 +24,23 @@ export function createAccountProvisioner(auth: ShoppingAuth, db: Knex): AccountP
 
     async verifyCredentials({ email, password }) {
       try {
+        // The library issues a session as a side effect of checking a
+        // password. The transport signs in separately and keeps only that
+        // session, so the row this check just created is removed again: it is
+        // the newest session of that user, and exactly one row matches.
         const result = await auth.api.signInEmail({
           body: { email, password },
         });
-        return result?.user?.id ? { userId: result.user.id } : null;
+        const userId = result?.user?.id;
+        if (!userId) return null;
+        const created = await db("session")
+          .where({ user_id: userId })
+          .max("created_at as newest")
+          .first();
+        if (created?.newest) {
+          await db("session").where({ user_id: userId, created_at: created.newest }).delete();
+        }
+        return { userId };
       } catch {
         return null;
       }

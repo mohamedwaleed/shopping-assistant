@@ -49,10 +49,9 @@ export async function requestIdentity(
     .first();
   if (!membership) return null;
 
-  const trusted = await resolveTrustedSession(db, getCore().auth, {
+  const trusted = await resolveTrustedSession(getCore().auth, {
     userId: session.user.id,
     workspaceId: membership.workspace_id,
-    sessionExpiresAt: session.session.expiresAt,
     sessionId: session.session.id,
   });
   if (!trusted) return null;

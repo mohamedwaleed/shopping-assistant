@@ -2,14 +2,15 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getCore, getDb } from "@/lib/core";
 import { getAuth, closeAuth, requestIdentity } from "@/lib/auth/session";
 import { createAccountProvisioner } from "@/lib/auth/provisioner";
-import { applySetCookies } from "@/lib/auth/cookies";
-import { authErrorMessage } from "@/lib/auth/messages";
+import { createCredentialChanger } from "@/lib/auth/credentials";
+import { applySetCookies, SESSION_COOKIE_NAMES } from "@/lib/auth/cookies";
+import { accountErrorMessage, authErrorMessage } from "@/lib/auth/messages";
 import { dictionaries, resolveLang } from "@/lib/i18n";
-import type { AuthFormState } from "@/app/auth-forms";
+import type { AccountFormState, AuthFormState } from "@/app/auth-forms";
 
 function text(formData: FormData, field: string): string {
   const value = formData.get(field);
@@ -95,18 +96,71 @@ export async function signInAction(
 export async function signOutAction(): Promise<void> {
   const identity = await requestIdentity();
   if (identity) {
-    await getDb()("session").where({ id: identity.sessionId }).delete();
-    await getCore().auth.signOut({ sessionRevoked: true });
+    await getCore().auth.revokeSession(identity.trusted.principal, {
+      sessionId: identity.sessionId,
+    });
   }
   const store = await cookies();
-  for (const name of [
-    "better-auth.session_token",
-    "__Secure-better-auth.session_token",
-    "better-auth.session_data",
-    "__Secure-better-auth.session_data",
-  ]) {
+  for (const name of SESSION_COOKIE_NAMES) {
     store.delete(name);
   }
   closeAuth();
   redirect("/sign-in");
+}
+
+/** Sign out one listed device; the stored session is deleted, not the cookie. */
+export async function revokeDeviceAction(formData: FormData): Promise<void> {
+  const identity = await requestIdentity();
+  if (identity) {
+    await getCore().auth.revokeSession(identity.trusted.principal, {
+      sessionId: text(formData, "sessionId"),
+    });
+  }
+  redirect(`/account?lang=${resolveLang(text(formData, "lang"))}`);
+}
+
+/** Sign out every device of this account, including this one. */
+export async function revokeAllDevicesAction(formData: FormData): Promise<void> {
+  const identity = await requestIdentity();
+  if (identity) {
+    await getCore().auth.revokeAllSessions(identity.trusted.principal);
+  }
+  const store = await cookies();
+  for (const name of SESSION_COOKIE_NAMES) {
+    store.delete(name);
+  }
+  closeAuth();
+  redirect(`/sign-in?lang=${resolveLang(text(formData, "lang"))}`);
+}
+
+/**
+ * Change the password after recent authentication. Core owns the recent-auth
+ * gate and validation; the identity library verifies the current password.
+ */
+export async function changePasswordAction(
+  _previous: AccountFormState,
+  formData: FormData,
+): Promise<AccountFormState> {
+  const lang = resolveLang(text(formData, "lang"));
+  const t = dictionaries[lang];
+  const identity = await requestIdentity();
+  if (!identity) redirect(`/sign-in?lang=${lang}`);
+
+  const auth = getAuth();
+  const requestHeaders = await headers();
+  // The library re-reads the caller's session cookie before it changes
+  // anything, so a revoked session cannot complete the change.
+  const result = await getCore().auth.changePassword(
+    identity.trusted.principal,
+    {
+      currentPassword: text(formData, "currentPassword"),
+      newPassword: text(formData, "newPassword"),
+    },
+    createCredentialChanger(auth, getDb(), {
+      cookie: requestHeaders.get("cookie"),
+    }),
+  );
+
+  if (!result.ok) return { error: accountErrorMessage(result.error, t) };
+  return { error: null, notice: t.passwordChangedNotice };
 }

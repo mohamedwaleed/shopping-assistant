@@ -286,6 +286,7 @@ describe("trusted workspace authorization", () => {
         kind: "workspace",
         userId: shopper.userId,
         workspaceId: admin.user.workspace.workspaceId,
+        sessionId: shopperCookie.split("=")[1]!.split(".")[0]!,
       }),
     ).toEqual({ ok: false, error: { kind: "forbidden", capability: "workspace.read" } });
     expect(
@@ -293,6 +294,7 @@ describe("trusted workspace authorization", () => {
         kind: "workspace",
         userId: shopper.userId,
         workspaceId: shopper.workspaceId,
+        sessionId: shopperCookie.split("=")[1]!.split(".")[0]!,
       }),
     ).toMatchObject({ ok: true, value: { workspace: { workspaceId: shopper.workspaceId } } });
     expect(await core.auth.administrator(shopper.userId)).toMatchObject({

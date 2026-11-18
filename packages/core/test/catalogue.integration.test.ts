@@ -19,6 +19,7 @@ const shopper: Principal = {
   kind: "workspace",
   userId: "user-fixture",
   workspaceId: "workspace-fixture",
+  sessionId: "session-fixture",
 };
 
 describe("catalogue reads through the core", () => {

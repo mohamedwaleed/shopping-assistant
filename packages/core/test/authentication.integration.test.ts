@@ -289,11 +289,13 @@ describe("installation setup and workspace admission through the core", () => {
         claimed.value.user.id,
         claimed.value.user.workspace,
         true,
+        "session-administrator",
       );
       shopper = principalForUser(
         "user-shopper",
         { workspaceId: shopperWorkspace.id, role: "owner" },
         false,
+        "session-shopper",
       );
     });
 
@@ -311,6 +313,7 @@ describe("installation setup and workspace admission through the core", () => {
         kind: "workspace",
         userId: "user-shopper",
         workspaceId: otherWorkspaceId,
+        sessionId: "session-shopper",
       };
       expect(await auth.admission(tampered)).toEqual({
         ok: false,
@@ -327,10 +330,20 @@ describe("installation setup and workspace admission through the core", () => {
         error: { kind: "forbidden", capability: "workspace.read" },
       });
       expect(
-        await auth.admission({ kind: "workspace", userId: "user-missing", workspaceId: otherWorkspaceId }),
+        await auth.admission({
+          kind: "workspace",
+          userId: "user-missing",
+          workspaceId: otherWorkspaceId,
+          sessionId: "session-missing",
+        }),
       ).toEqual({ ok: false, error: { kind: "not-found", resource: "user", id: "user-missing" } });
       expect(
-        await auth.admission({ kind: "workspace", userId: "user-shopper", workspaceId: "not-a-uuid" }),
+        await auth.admission({
+          kind: "workspace",
+          userId: "user-shopper",
+          workspaceId: "not-a-uuid",
+          sessionId: "session-shopper",
+        }),
       ).toMatchObject({ ok: false, error: { kind: "invalid-input", field: "workspaceId" } });
     });
 
@@ -341,16 +354,14 @@ describe("installation setup and workspace admission through the core", () => {
       });
     });
 
-    it("rejects a stale session that has already expired", async () => {
-      const future = new Date(Date.now() + 60_000).toISOString();
-      expect(await auth.requireSession("user-shopper", future)).toMatchObject({ ok: true });
-
-      const past = new Date(Date.now() - 60_000).toISOString();
-      expect(await auth.requireSession("user-shopper", past)).toEqual({
+    it("rejects a session that storage does not hold", async () => {
+      // Session lifetime itself is covered by sessions.integration.test.ts;
+      // here only the admission boundary is asserted.
+      expect(await auth.requireSession("user-shopper", "session-missing")).toEqual({
         ok: false,
         error: { kind: "invalid-credentials" },
       });
-      expect(await auth.requireSession("user-shopper", null)).toEqual({
+      expect(await auth.requireSession("user-shopper", "")).toEqual({
         ok: false,
         error: { kind: "invalid-credentials" },
       });
