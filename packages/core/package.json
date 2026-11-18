@@ -1,0 +1,24 @@
+{
+  "name": "@shopping/core",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@shopping/db": "workspace:*",
+    "knex": "3.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "22",
+    "@types/pg": "8.15.6",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}

@@ -6,9 +6,9 @@
 
 **Status:** ready-for-agent
 
-- [ ] TypeScript/pnpm, Next.js and real PostgreSQL work with Knex/pg and repeatable Knex migrations; no additional application ORM.
-- [ ] An example exact variant/offer renders through core → HTTP → UI; development fixtures are separate from live data.
-- [ ] One-command startup, health checks, schema ordering, AGPL notices and focused integration/type checks are demonstrated.
+- [x] TypeScript/pnpm, Next.js and real PostgreSQL work with Knex/pg and repeatable Knex migrations; no additional application ORM.
+- [x] An example exact variant/offer renders through core → HTTP → UI; development fixtures are separate from live data.
+- [x] One-command startup, health checks, schema ordering, AGPL notices and focused integration/type checks are demonstrated.
 
 ## Delivery constraints
 

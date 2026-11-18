@@ -1,0 +1,28 @@
+{
+  "name": "shopping-assistant",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Self-hosted shopping assistant for the Netherlands (English/Dutch).",
+  "license": "AGPL-3.0-or-later",
+  "packageManager": "pnpm@10.6.3",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm db:ensure-test-db && pnpm -r test",
+    "db:migrate": "pnpm --filter @shopping/db migrate",
+    "db:fixtures": "pnpm --filter @shopping/db fixtures",
+    "db:ensure-test-db": "pnpm --filter @shopping/db ensure-test-db"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

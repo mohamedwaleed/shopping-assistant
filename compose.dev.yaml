@@ -1,0 +1,106 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Development stack: PostgreSQL + migrations/fixtures + Next.js dev server.
+# One-command startup: docker compose -f compose.dev.yaml up
+# The first boot installs workspace dependencies inside shared named volumes.
+
+x-app: &app
+  image: node:22-alpine
+  working_dir: /app
+  environment: &app-env
+    DATABASE_URL: postgres://postgres:postgres@db:5432/shopping_assistant
+    PNPM_HOME: /pnpm-home
+  volumes: &app-volumes
+    - .:/app
+    - dev_node_modules:/app/node_modules
+    - dev_web_node_modules:/app/apps/web/node_modules
+    - dev_core_node_modules:/app/packages/core/node_modules
+    - dev_db_node_modules:/app/packages/db/node_modules
+    - dev_pnpm_store:/pnpm-store
+    - dev_pnpm_home:/pnpm-home
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shopping_assistant
+    ports:
+      - "54329:5432"
+    volumes:
+      - dev_pgdata:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d shopping_assistant"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    <<: *app
+    command:
+      - sh
+      - -c
+      - |
+        corepack enable pnpm
+        pnpm config set store-dir /pnpm-store
+        pnpm install
+        pnpm --filter @shopping/db migrate
+        if [ "$${LOAD_DEV_FIXTURES:-true}" = "true" ]; then
+          pnpm --filter @shopping/db fixtures
+        fi
+    environment:
+      <<: *app-env
+      LOAD_DEV_FIXTURES: ${LOAD_DEV_FIXTURES:-true}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    command:
+      - sh
+      - -c
+      - |
+        corepack enable pnpm
+        pnpm config set store-dir /pnpm-store
+        pnpm install
+        pnpm --filter web dev
+    environment:
+      <<: *app-env
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - dev_node_modules:/app/node_modules
+      - dev_web_node_modules:/app/apps/web/node_modules
+      - dev_core_node_modules:/app/packages/core/node_modules
+      - dev_db_node_modules:/app/packages/db/node_modules
+      - dev_pnpm_store:/pnpm-store
+      - dev_pnpm_home:/pnpm-home
+      - dev_next_cache:/app/apps/web/.next
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:3000/api/health | grep -q '\"status\":\"ok\"'",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+volumes:
+  dev_pgdata:
+  dev_node_modules:
+  dev_web_node_modules:
+  dev_core_node_modules:
+  dev_db_node_modules:
+  dev_pnpm_store:
+  dev_pnpm_home:
+  dev_next_cache:
