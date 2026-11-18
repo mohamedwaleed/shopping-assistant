@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import type { MailFailureStage } from "./mail/mailer";
+
 export type CoreError =
   | { kind: "forbidden"; capability: string }
   | { kind: "invalid-input"; field: string; message: string }
@@ -19,7 +21,11 @@ export type CoreError =
   /** Email-address changes travel through the SMTP-backed account flows. */
   | { kind: "email-change-unsupported" }
   /** The request named an origin the installation does not trust. */
-  | { kind: "invalid-origin" };
+  | { kind: "invalid-origin" }
+  /** No complete SMTP settings, or no explicit diagnostic recipient. */
+  | { kind: "mail-not-configured"; missing: "smtp" | "recipient" }
+  /** SMTP connection, authentication or delivery failed; see the mailer contract. */
+  | { kind: "mail-delivery-failed"; stage: MailFailureStage; reason: string };
 
 export type Result<T> =
   | { ok: true; value: T }

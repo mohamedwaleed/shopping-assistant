@@ -392,3 +392,79 @@ a {
     display: inline;
   }
 }
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0 16px;
+}
+
+.field-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.field-check input {
+  accent-color: var(--primary);
+}
+
+.email-status {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+}
+
+.email-status-error {
+  border-color: var(--error);
+}
+
+.email-status-success {
+  border-color: var(--success);
+}
+
+.email-status-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.email-status-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.email-status-error .email-status-head strong {
+  color: var(--error);
+}
+
+.email-status-success .email-status-head strong {
+  color: var(--success);
+}
+
+.email-failure {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 14px;
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.email-failure dt {
+  color: var(--text-secondary);
+}
+
+.email-failure dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.email-failure code {
+  font-size: 12.5px;
+}

@@ -2,15 +2,17 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { nodemailerTransport } from "@shopping/core";
 import { cookies, headers } from "next/headers";
 import { getCore, getDb } from "@/lib/core";
 import { getAuth, closeAuth, requestIdentity } from "@/lib/auth/session";
 import { createAccountProvisioner } from "@/lib/auth/provisioner";
 import { createCredentialChanger } from "@/lib/auth/credentials";
 import { applySetCookies, SESSION_COOKIE_NAMES } from "@/lib/auth/cookies";
-import { accountErrorMessage, authErrorMessage } from "@/lib/auth/messages";
+import { accountErrorMessage, authErrorMessage, emailErrorMessage } from "@/lib/auth/messages";
 import { dictionaries, resolveLang } from "@/lib/i18n";
 import type { AccountFormState, AuthFormState } from "@/app/auth-forms";
+import type { EmailSettingsState } from "@/app/administration/email/email-form";
 
 function text(formData: FormData, field: string): string {
   const value = formData.get(field);
@@ -163,4 +165,47 @@ export async function changePasswordAction(
 
   if (!result.ok) return { error: accountErrorMessage(result.error, t) };
   return { error: null, notice: t.passwordChangedNotice };
+}
+
+export async function saveEmailSettingsAction(
+  _previous: EmailSettingsState,
+  formData: FormData,
+): Promise<EmailSettingsState> {
+  const lang = resolveLang(text(formData, "lang"));
+  const t = dictionaries[lang];
+
+  const identity = await requestIdentity();
+  if (!identity) return { tone: "error", message: t.emailAdministratorsOnly };
+
+  const port = Number(text(formData, "port"));
+  const result = await getCore().mail.saveSettings(identity.trusted.principal, {
+    host: text(formData, "host"),
+    port: Number.isFinite(port) ? port : 0,
+    secure: text(formData, "secure") === "on",
+    username: text(formData, "username"),
+    password: text(formData, "password") || undefined,
+    fromAddress: text(formData, "fromAddress"),
+    fromName: text(formData, "fromName"),
+    recipient: text(formData, "recipient"),
+  });
+  if (!result.ok) return { tone: "error", message: emailErrorMessage(result.error, t) };
+  return { tone: "success", message: t.emailSaved };
+}
+
+export async function sendDiagnosticAction(
+  _previous: EmailSettingsState,
+  formData: FormData,
+): Promise<EmailSettingsState> {
+  const lang = resolveLang(text(formData, "lang"));
+  const t = dictionaries[lang];
+
+  const identity = await requestIdentity();
+  if (!identity) return { tone: "error", message: t.emailAdministratorsOnly };
+
+  const result = await getCore().mail.sendDiagnostic(
+    identity.trusted.principal,
+    nodemailerTransport(),
+  );
+  if (!result.ok) return { tone: "error", message: emailErrorMessage(result.error, t) };
+  return { tone: "success", message: t.emailDiagnosticSent };
 }
