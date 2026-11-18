@@ -6,8 +6,6 @@ import { openSecret, sealSecret } from "./sealed-secret";
 
 /** Environment variable carrying the installation secret used for encryption. */
 export const INSTALLATION_SECRET_ENV = "INSTALLATION_SECRET";
-/** Name of the installation administrator's session cookie. */
-export const ADMINISTRATOR_SESSION_COOKIE = "better-auth.session_token";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -126,12 +124,6 @@ export interface MailerDependencies {
   now?: () => Date;
   /** Extra secret values to strip from a reported failure reason. */
   redactions?: ReadonlyArray<string>;
-}
-
-/** Why email-dependent flows are unavailable, for settings screens. */
-export function mailStatus(view: MailSettingsView): "ready" | "unconfigured" | "failing" {
-  if (!view.configured) return "unconfigured";
-  return view.failure ? "failing" : "ready";
 }
 
 interface StoredSettings {
@@ -321,6 +313,8 @@ export function createMailer(deps: MailerDependencies): Mailer {
       return err({
         kind: "mail-delivery-failed",
         stage: "authentication",
+        // Operator-facing and English on purpose: this is an environment
+        // mistake, not a shopper message.
         reason: `${INSTALLATION_SECRET_ENV} is not set, so the stored SMTP password cannot be read`,
       });
     }

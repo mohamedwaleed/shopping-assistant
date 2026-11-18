@@ -7,6 +7,7 @@ import type { MailSettingsView } from "@shopping/core";
 import type { Lang } from "@/lib/i18n";
 import { dictionaries } from "@/lib/i18n";
 import { emailFailureStageLabel } from "@/lib/auth/messages";
+import { formatObservedAt } from "@/lib/format";
 
 export interface EmailSettingsState {
   tone: "success" | "error";
@@ -31,7 +32,6 @@ function StatusPanel({ settings, lang }: { settings: MailSettingsView; lang: Lan
   return (
     <div className={`email-status email-status-${status.tone}`} role="status">
       <div className="email-status-head">
-        <span className="email-status-label">{t.emailStatusLabel}</span>
         <strong>{status.label}</strong>
       </div>
       <p className="muted">{status.body}</p>
@@ -51,7 +51,8 @@ function StatusPanel({ settings, lang }: { settings: MailSettingsView; lang: Lan
           {settings.lastDelivery.outcome === "delivered"
             ? t.emailLastDeliveryDelivered
             : t.emailLastDeliveryFailed}{" "}
-          · {settings.lastDelivery.recipient} · {settings.lastDelivery.attemptedAt}
+          · {settings.lastDelivery.recipient} ·{" "}
+          {formatObservedAt(settings.lastDelivery.attemptedAt, lang)}
         </p>
       )}
     </div>

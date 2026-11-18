@@ -46,9 +46,7 @@ export {
 } from "./auth/types";
 export {
   createMailer,
-  mailStatus,
   failureStageFromCode,
-  ADMINISTRATOR_SESSION_COOKIE,
   INSTALLATION_SECRET_ENV,
   type MailDelivery,
   type MailDeliveryView,

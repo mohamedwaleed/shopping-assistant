@@ -433,13 +433,6 @@ a {
   gap: 10px;
 }
 
-.email-status-label {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-secondary);
-}
-
 .email-status-error .email-status-head strong {
   color: var(--error);
 }

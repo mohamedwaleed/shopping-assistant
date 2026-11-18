@@ -100,7 +100,6 @@ export const dictionaries = {
     emailSettingsTitle: "Email delivery",
     emailSettingsIntro:
       "Transactional email (invitations, password recovery and notifications) is sent through your own SMTP server. Settings are stored encrypted and the password is never shown again.",
-    emailStatusLabel: "Status",
     emailStatusReady: "Ready",
     emailStatusUnconfigured: "Not configured",
     emailStatusFailing: "Last delivery failed",
@@ -149,8 +148,6 @@ export const dictionaries = {
     emailAdministratorsOnly: "Only the installation administrator can change email settings.",
     emailAdminOnlyNote:
       "Email settings are installation-wide and limited to the installation administrator.",
-    emailShowSettings: "Show settings",
-    emailHideSettings: "Hide settings",
   },
   nl: {
     appName: "Shopping Assistant",
@@ -250,7 +247,6 @@ export const dictionaries = {
     emailSettingsTitle: "E-mailbezorging",
     emailSettingsIntro:
       "Transactionele e-mail (uitnodigingen, wachtwoordherstel en meldingen) gaat via je eigen SMTP-server. Instellingen worden versleuteld opgeslagen en het wachtwoord wordt nooit meer getoond.",
-    emailStatusLabel: "Status",
     emailStatusReady: "Gereed",
     emailStatusUnconfigured: "Niet ingesteld",
     emailStatusFailing: "Laatste bezorging mislukt",
