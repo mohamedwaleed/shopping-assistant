@@ -2,7 +2,7 @@
 
 An open source, self-hosted shopping assistant for the Netherlands, with English and Dutch support and a future paid hosted service.
 
-**Status: walking skeleton implemented** ([issue #2](https://github.com/mohamedwaleed/shopping-assistant/issues/2)). One development-fixture product flows PostgreSQL → core → HTTP → Studio UI; authentication, providers, research and monitoring arrive with later tickets.
+**Status: walking skeleton and first-administrator setup implemented** ([issues #2](https://github.com/mohamedwaleed/shopping-assistant/issues/2) and [#3](https://github.com/mohamedwaleed/shopping-assistant/issues/3)). One development-fixture product flows PostgreSQL → core → HTTP → Studio UI behind a private workspace created by a one-time setup claim; invitations, devices/sessions management, providers, research and monitoring arrive with later tickets.
 
 ## Planned capabilities
 
@@ -21,8 +21,18 @@ Requirements: Node.js ≥ 20.9, pnpm 10, Docker.
 ```sh
 # One-command development stack: PostgreSQL + migrations/fixtures + Next.js.
 docker compose -f compose.dev.yaml up
-# → http://localhost:3000 (labelled example product, ?lang=nl for Dutch)
+# → http://localhost:3000/setup (claim the installation once)
 ```
+
+The first visit opens `/setup`. Enter the installation's one-time setup token
+(`SETUP_TOKEN`, `development-setup-token` in the development stack) together
+with the administrator's name, email and password; that claim creates the first
+administrator and their private workspace and then stops working. No SMTP
+server is needed, and the claim does not assert email ownership. Afterwards
+`/sign-in` is the entry point, and `?lang=nl` switches any screen to Dutch.
+Public registration stays closed: further accounts arrive through invitations
+(a later ticket). Set `BETTER_AUTH_SECRET` to a generated value whenever the app
+is reachable beyond your machine.
 
 The first boot installs workspace dependencies inside shared named volumes;
 later starts are fast. Development Postgres publishes host port **54329** —
@@ -39,7 +49,8 @@ pnpm db:fixtures    # load the labelled development fixture
 ```
 
 Tests run against `shopping_assistant_test` (created by the Compose database
-init) so they never touch development data.
+init) so they never touch development data; set `DATABASE_URL_TEST` to use a
+separate database per checkout.
 
 ## Architecture
 
@@ -48,6 +59,12 @@ shopping operations and authorization over a trusted principal), Knex/pg
 storage and migrations (`packages/db`), and a Next.js web/HTTP application
 (`apps/web`). Separate Node.js worker and MCP applications, and production
 Docker Compose, arrive with later tickets.
+
+Identity uses Better Auth with PostgreSQL through a verified custom Knex
+adapter: Knex migrations own the identity schema, credential and session writes
+join the caller's transaction, and single-use values are consumed atomically.
+Workspace membership is read from the database, so a request naming another
+workspace gains nothing. See [ADR 0011](docs/adr/0011-knex-better-auth-adapter-and-setup-claim.md).
 
 Private shopper data belongs to a workspace. Public product evidence is separate, allowing a future hosted service to reuse sourced catalogue facts across workspaces while isolating private data. Each self-hosted installation maintains its own catalogue.
 

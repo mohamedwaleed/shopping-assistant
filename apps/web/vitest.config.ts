@@ -10,5 +10,8 @@ export default defineConfig({
     testTimeout: 30000,
     hookTimeout: 60000,
     environment: "node",
+    // Test files share one PostgreSQL database, and each file resets the
+    // schema; running them one at a time keeps Knex migrations unlocked.
+    fileParallelism: false,
   },
 });
