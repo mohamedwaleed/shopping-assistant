@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { Knex } from "knex";
 import { err, ok, type Result } from "../errors";
+import {
+  INSTALLATION_SECRET_ENV,
+  MINIMUM_INSTALLATION_SECRET_LENGTH,
+} from "../installation-secret";
 import { isAuthorized, type Principal } from "../principal";
 import { openSecret, sealSecret } from "./sealed-secret";
 
-/** Environment variable carrying the installation secret used for encryption. */
-export const INSTALLATION_SECRET_ENV = "INSTALLATION_SECRET";
-
-/** Shortest accepted installation secret; scrypt derives a weak key from anything shorter. */
-export const MIN_INSTALLATION_SECRET_LENGTH = 16;
 
 /** Cooldown between diagnostic sends, so an administrator session cannot spam SMTP. */
 export const DIAGNOSTIC_COOLDOWN_MS = 30_000;
@@ -182,7 +181,7 @@ export function createMailer(deps: MailerDependencies): Mailer {
   function installationSecret(): Result<string> {
     const secret = (deps.installationSecret ?? process.env[INSTALLATION_SECRET_ENV])?.trim();
     if (!secret) return err({ kind: "installation-secret-invalid", reason: "missing" });
-    if (secret.length < MIN_INSTALLATION_SECRET_LENGTH) {
+    if (secret.length < MINIMUM_INSTALLATION_SECRET_LENGTH) {
       return err({ kind: "installation-secret-invalid", reason: "too-short" });
     }
     return ok(secret);

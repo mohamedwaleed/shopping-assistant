@@ -16,6 +16,9 @@ x-app: &app
     # Encrypts stored credentials; development-only, see .env.example.
     INSTALLATION_SECRET: ${INSTALLATION_SECRET:-development-installation-secret-change-me}
     BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+    # Development-only credential encryption key; set a generated value when
+    # exposed (see .env.example).
+    INSTALLATION_SECRET: ${INSTALLATION_SECRET:-development-installation-secret-0123456789}
   volumes: &app-volumes
     - .:/app
     - dev_node_modules:/app/node_modules

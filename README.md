@@ -63,6 +63,15 @@ storage and migrations (`packages/db`), and a Next.js web/HTTP application
 (`apps/web`). Separate Node.js worker and MCP applications, and production
 Docker Compose, arrive with later tickets.
 
+AI models are configured in `/settings`: one installation default plus an
+optional per-workspace override, each an OpenAI or Anthropic API key or a
+compatible/local endpoint. Provider keys are encrypted with
+`INSTALLATION_SECRET` (held outside PostgreSQL) and never returned to the
+browser. The bounded capability check exercises text, typed tools, structured
+output and streaming through pinned Vercel AI SDK adapters, so a compatible
+endpoint is only trusted for what it actually does. See
+[ADR 0012](docs/adr/0012-pinned-ai-sdk-adapters-and-model-registry.md).
+
 Identity uses Better Auth with PostgreSQL through a verified custom Knex
 adapter: Knex migrations own the identity schema, credential and session writes
 join the caller's transaction, and single-use values are consumed atomically.

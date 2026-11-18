@@ -18,6 +18,9 @@ let healthRoute: typeof import("../app/api/health/route");
 
 beforeAll(async () => {
   process.env.DATABASE_URL = TEST_DATABASE_URL;
+  // The core wires the model registry; its credential cipher needs the
+  // installation secret the development stack supplies.
+  process.env.INSTALLATION_SECRET = "api-contract-installation-secret-0123";
   db = createDb(TEST_DATABASE_URL);
   await db.migrate.rollback({}, true);
   await db.migrate.latest();

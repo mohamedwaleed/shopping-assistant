@@ -86,6 +86,9 @@ export default async function Home({
           {t.navWatches}
           <span className="nav-badge">{t.navComingSoon}</span>
         </span>
+        <a className="nav-item" href={`/settings?lang=${lang}`}>
+          {t.navSettings}
+        </a>
         <div className="rail-footer">
           <div className="rail-user">
             <strong>{identity.trusted.user.name}</strong>
@@ -99,7 +102,7 @@ export default async function Home({
           </a>
           {isAdministrator && (
             <a className="btn-quiet" href={`/administration/email?lang=${lang}`}>
-              {t.navSettings}
+              {t.navEmail}
             </a>
           )}
           <SignOutButton lang={lang} action={signOutAction} />

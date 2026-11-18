@@ -74,6 +74,7 @@ beforeAll(async () => {
   process.env.BETTER_AUTH_URL = "http://localhost:3000";
   process.env.BETTER_AUTH_SECRET = "http-contract-test-secret-0123456789abcdef";
   process.env.SETUP_TOKEN = TOKEN;
+  process.env.INSTALLATION_SECRET = "auth-http-installation-secret-0123";
 
   db = createDb(TEST_DATABASE_URL);
   await db.migrate.rollback({}, true);
