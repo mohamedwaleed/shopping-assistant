@@ -3,12 +3,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { SMTPServer } from "smtp-server";
 import type { Knex } from "knex";
 import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import { nodemailerTransport } from "../src/mail/nodemailer-transport";
 import {
   createAuthentication,
   createMailer,
   DIAGNOSTIC_COOLDOWN_MS,
   failureStageFromCode,
-  nodemailerTransport,
   type AccountProvisioner,
   type Authentication,
   type MailTransport,

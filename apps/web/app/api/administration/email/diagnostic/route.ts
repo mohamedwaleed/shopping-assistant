@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { nodemailerTransport } from "@shopping/core";
+import { nodemailerTransport } from "@shopping/core/mail-transport";
 import { getCore } from "@/lib/core";
 import { requestIdentity } from "@/lib/auth/session";
 import { errorResponse } from "@/lib/http";

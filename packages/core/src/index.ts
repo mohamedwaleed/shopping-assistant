@@ -61,7 +61,9 @@ export {
   type SmtpSettingsInput,
   type SmtpSettingsView,
 } from "./mail/mailer";
-export { nodemailerTransport } from "./mail/nodemailer-transport";
+// nodemailerTransport is deliberately NOT exported from the barrel: nodemailer
+// pulls node:net, which breaks any client bundle that imports @shopping/core.
+// Import it from "@shopping/core/mail-transport" (server code only).
 export { openSecret, sealSecret } from "./mail/sealed-secret";
 export {
   type VariantOffer,

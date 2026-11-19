@@ -2,7 +2,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { nodemailerTransport } from "@shopping/core";
+import { nodemailerTransport } from "@shopping/core/mail-transport";
 import { cookies, headers } from "next/headers";
 import { getCore, getDb } from "@/lib/core";
 import { getAuth, closeAuth, requestIdentity } from "@/lib/auth/session";
