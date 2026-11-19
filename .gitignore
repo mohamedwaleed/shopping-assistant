@@ -7,3 +7,6 @@ dist/
 .env*.local
 .DS_Store
 coverage/
+
+# Git worktrees used for parallel ticket work
+.worktrees/
