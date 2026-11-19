@@ -4,26 +4,26 @@ Status: published and verified
 
 Parent: https://github.com/mohamedwaleed/shopping-assistant/issues/1
 
-All tickets are ready-for-agent; start only when their blocking tickets are complete. Numbers in the first column are local ticket numbers. No implementation has started.
+Numbers in the first column are local ticket numbers. Status as of wave 2: tickets 01-06 and 08-11 are merged to `main`; 07 was withdrawn; 32, 35, 36 and 12 onward are ready and unblocked in dependency order. The manifest `.scratch/shopping-assistant/ticket-drafts/manifest.json` carries per-ticket status, PR and commit.
 
 | Local | GitHub | Ticket | Blocked by GitHub issues |
 |---|---|---|---|
-| 01 | [#2](https://github.com/mohamedwaleed/shopping-assistant/issues/2) | Run a catalogue-to-screen walking skeleton | None |
-| 02 | [#3](https://github.com/mohamedwaleed/shopping-assistant/issues/3) | Create the first administrator and private workspace | #2 |
-| 03 | [#4](https://github.com/mohamedwaleed/shopping-assistant/issues/4) | Manage devices, sessions and password changes | #3 |
-| 04 | [#5](https://github.com/mohamedwaleed/shopping-assistant/issues/5) | Configure SMTP and test transactional delivery | #3 |
+| 01 | [#2 CLOSED](https://github.com/mohamedwaleed/shopping-assistant/issues/2) | Run a catalogue-to-screen walking skeleton | None |
+| 02 | [#3 CLOSED](https://github.com/mohamedwaleed/shopping-assistant/issues/3) | Create the first administrator and private workspace | #2 |
+| 03 | [#4 CLOSED](https://github.com/mohamedwaleed/shopping-assistant/issues/4) | Manage devices, sessions and password changes | #3 |
+| 04 | [#5 CLOSED](https://github.com/mohamedwaleed/shopping-assistant/issues/5) | Configure SMTP and test transactional delivery | #3 |
 | 05 | [#6 CLOSED](https://github.com/mohamedwaleed/shopping-assistant/issues/6) | Invite shoppers, change email and recover passwords (screens in 35) | #4, #5 |
-| 06 | [#7](https://github.com/mohamedwaleed/shopping-assistant/issues/7) | Add optional authenticator two-factor authentication | #4, #6 |
-| 07 | [#8](https://github.com/mohamedwaleed/shopping-assistant/issues/8) | Manage the Netherlands retailer registry | #3 |
-| 08 | [#9](https://github.com/mohamedwaleed/shopping-assistant/issues/9) | Connect models through Vercel AI SDK provider adapters | #3 |
+| 06 | [#7 CLOSED](https://github.com/mohamedwaleed/shopping-assistant/issues/7) | Add optional authenticator two-factor authentication | #4, #6 |
+| 07 | [#8 WITHDRAWN](https://github.com/mohamedwaleed/shopping-assistant/issues/8) | Manage the Netherlands retailer registry | #3 |
+| 08 | [#9 CLOSED](https://github.com/mohamedwaleed/shopping-assistant/issues/9) | Connect models through Vercel AI SDK provider adapters | #3 |
 | 09 | [#10 CLOSED](https://github.com/mohamedwaleed/shopping-assistant/issues/10) | Enforce research and monitoring budgets | #9 |
 | 10 | [#11 CLOSED](https://github.com/mohamedwaleed/shopping-assistant/issues/11) | Ingest a product page with inspectable evidence (hardening in 36) | #8 withdrawn |
-| 11 | [#12](https://github.com/mohamedwaleed/shopping-assistant/issues/12) | Normalize attributes and review conflicting claims | #11 |
+| 11 | [#12 CLOSED](https://github.com/mohamedwaleed/shopping-assistant/issues/12) | Normalize attributes and review conflicting claims | #11 |
 | 12 | [#13](https://github.com/mohamedwaleed/shopping-assistant/issues/13) | Search catalogue identifiers, filters and bilingual text | #12 |
 | 13 | [#14](https://github.com/mohamedwaleed/shopping-assistant/issues/14) | Discover external candidates using SearXNG | #13 |
 | 14 | [#15](https://github.com/mohamedwaleed/shopping-assistant/issues/15) | Configure Tavily Search and Extract independently | #10, #14 |
 | 15 | [#16](https://github.com/mohamedwaleed/shopping-assistant/issues/16) | Make extraction resilient and expose source coverage | #10, #12 |
-| 16 | [#17](https://github.com/mohamedwaleed/shopping-assistant/issues/17) | Stream persistent bilingual chat with Vercel AI SDK | #10 |
+| 16 | [#17 CLOSED](https://github.com/mohamedwaleed/shopping-assistant/issues/17) | Stream persistent bilingual chat with Vercel AI SDK | #10 |
 | 17 | [#18](https://github.com/mohamedwaleed/shopping-assistant/issues/18) | Run the controlled Vercel AI SDK shopping agent loop | #13, #17 |
 | 18 | [#19](https://github.com/mohamedwaleed/shopping-assistant/issues/19) | Checkpoint and recover the SDK agent loop in durable workers | #18 |
 | 19 | [#20](https://github.com/mohamedwaleed/shopping-assistant/issues/20) | Extend the same agent loop with external discovery and ingestion | #14, #16, #19 |
