@@ -26,6 +26,8 @@ let fixtures: ProviderFixture;
 let setupRoute: typeof import("../app/api/settings/models/route");
 let testRoute: typeof import("../app/api/settings/models/test/route");
 let workspaceRoute: typeof import("../app/api/settings/models/workspace/route");
+let budgetRoute: typeof import("../app/api/settings/budgets/route");
+let budgetTestRoute: typeof import("../app/api/settings/budgets/test/route");
 let claimRoute: typeof import("../app/api/setup/claim/route");
 let signInRoute: typeof import("../app/api/sign-in/route");
 
@@ -96,6 +98,8 @@ beforeAll(async () => {
   setupRoute = await import("../app/api/settings/models/route");
   testRoute = await import("../app/api/settings/models/test/route");
   workspaceRoute = await import("../app/api/settings/models/workspace/route");
+  budgetRoute = await import("../app/api/settings/budgets/route");
+  budgetTestRoute = await import("../app/api/settings/budgets/test/route");
   claimRoute = await import("../app/api/setup/claim/route");
   signInRoute = await import("../app/api/sign-in/route");
 });
@@ -103,6 +107,9 @@ beforeAll(async () => {
 beforeEach(async () => {
   vi.restoreAllMocks();
   fixtures.reset();
+  await db("provider_budget_reservations").delete();
+  await db("workspace_provider_budget_usage").delete();
+  await db("workspace_provider_budget_settings").delete();
   await db("workspace_model_settings").delete();
   await db("workspace_model_credentials").delete();
   await db("installation_model_settings").update({
@@ -148,6 +155,19 @@ async function claimAdministrator(): Promise<string> {
 }
 
 describe("model settings over HTTP", () => {
+  it("shows saved budget usage and a pause reason through settings and test execution", async () => {
+    const cookie = await claimAdministrator();
+    const saved = await budgetRoute.PUT(jsonRequest("http://localhost/api/settings/budgets", { scope: "installation", interactiveCents: 10, backgroundCents: 5, maxInteractive: 1, maxBackground: 1, retryLimit: 0, paidFallbackEnabled: false }, { cookie }));
+    expect(saved.status).toBe(200);
+    const exhausted = await budgetTestRoute.POST(jsonRequest("http://localhost/api/settings/budgets/test", { kind: "interactive", estimatedCents: 11, usageSource: "installation" }, { cookie }));
+    expect(exhausted.status).toBe(409);
+    expect((await exhausted.json()).error).toMatchObject({ kind: "budget-paused", reason: "allowance" });
+    const owner = await db("workspace_memberships").first();
+    await db("workspace_provider_budget_usage").insert({ workspace_id: owner.workspace_id, kind: "interactive", settled_cents: 10, reserved_cents: 0 });
+    const read = await budgetRoute.GET(new Request("http://localhost/api/settings/budgets", { headers: { cookie } }));
+    expect(read.status).toBe(200);
+    expect((await read.json()).pauseReasons).toMatchObject({ interactive: "allowance" });
+  });
   it("requires a session", async () => {
     const res = await setupRoute.GET(new Request("http://localhost/api/settings/models"));
     expect(res.status).toBe(403);

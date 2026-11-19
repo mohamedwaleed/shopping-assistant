@@ -218,6 +218,8 @@ export const dictionaries = {
     errorModelCredentialProviderMismatch:
       "The stored key belongs to another provider than the configured model. Store a key for this provider.",
     errorProviderUnavailable: "The provider rejected or could not complete the diagnostic request.",
+    budgetsTitle: "Provider budgets", budgetsIntro: "Set separate limits for interactive research and background monitoring. Estimates reserve a conservative amount before a provider call.",
+    interactiveAllowance: "Interactive research allowance (cents)", backgroundAllowance: "Background monitoring allowance (cents)", maximumInteractive: "Maximum simultaneous research tasks", maximumBackground: "Maximum simultaneous monitoring tasks", retryLimit: "Retries per provider task", paidFallback: "Allow an explicitly selected paid provider fallback", backgroundConsent: "I consent to background monitoring using this workspace's personal key", saveBudgets: "Save budget settings", savingBudgets: "Saving budget settings…", budgetsSaved: "Budget settings saved.", budgetUsage: "Usage", budgetReserved: "Reserved", budgetPaused: "Paused", pauseAllowance: "Allowance exhausted", pauseConcurrency: "Maximum simultaneous work reached", pausePersonalKey: "Personal-key background consent is required",
     errorForbiddenAdmin: "Only the installation administrator can change these settings.",
     modelsSectionUnavailable: "Model settings are unavailable until INSTALLATION_SECRET is configured.",
   },
@@ -443,6 +445,8 @@ export const dictionaries = {
       "De opgeslagen sleutel hoort bij een andere provider dan het ingestelde model. Sla een sleutel voor deze provider op.",
     errorProviderUnavailable:
       "De provider weigerde het diagnoseverzoek of kon het niet afronden.",
+    budgetsTitle: "Providerbudgetten", budgetsIntro: "Stel aparte limieten in voor interactief onderzoek en achtergrondmonitoring. Schattingen reserveren vooraf een behoudend bedrag.",
+    interactiveAllowance: "Budget interactief onderzoek (cent)", backgroundAllowance: "Budget achtergrondmonitoring (cent)", maximumInteractive: "Maximum gelijktijdige onderzoekstaken", maximumBackground: "Maximum gelijktijdige monitoringstaken", retryLimit: "Herpogingen per providertaak", paidFallback: "Een expliciet gekozen betaalde providerfallback toestaan", backgroundConsent: "Ik geef toestemming voor achtergrondmonitoring met de persoonlijke sleutel van deze workspace", saveBudgets: "Budgetinstellingen opslaan", savingBudgets: "Budgetinstellingen opslaan…", budgetsSaved: "Budgetinstellingen opgeslagen.", budgetUsage: "Verbruikt", budgetReserved: "Gereserveerd", budgetPaused: "Gepauzeerd", pauseAllowance: "Budget opgebruikt", pauseConcurrency: "Maximum gelijktijdig werk bereikt", pausePersonalKey: "Toestemming voor achtergrondwerk met persoonlijke sleutel is vereist",
     errorForbiddenAdmin:
       "Alleen de installatiebeheerder kan deze instellingen wijzigen.",
     modelsSectionUnavailable:
