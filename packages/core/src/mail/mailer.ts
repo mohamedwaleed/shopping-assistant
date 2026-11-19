@@ -7,6 +7,12 @@ import { openSecret, sealSecret } from "./sealed-secret";
 /** Environment variable carrying the installation secret used for encryption. */
 export const INSTALLATION_SECRET_ENV = "INSTALLATION_SECRET";
 
+/** Shortest accepted installation secret; scrypt derives a weak key from anything shorter. */
+export const MIN_INSTALLATION_SECRET_LENGTH = 16;
+
+/** Cooldown between diagnostic sends, so an administrator session cannot spam SMTP. */
+export const DIAGNOSTIC_COOLDOWN_MS = 30_000;
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
@@ -21,6 +27,10 @@ export type MailFailureStage = "connection" | "authentication" | "delivery";
 export type MailError =
   /** No complete SMTP settings, or no explicit diagnostic recipient. */
   | { kind: "mail-not-configured"; missing: "smtp" | "recipient" }
+  /** The installation secret is absent or too weak to encrypt stored credentials. */
+  | { kind: "installation-secret-invalid"; reason: "missing" | "too-short" }
+  /** A diagnostic send is still cooling down after the previous attempt. */
+  | { kind: "mail-diagnostic-cooldown"; retryAfterSeconds: number }
   | { kind: "mail-delivery-failed"; stage: MailFailureStage; reason: string };
 
 export interface MailMessage {
@@ -146,12 +156,18 @@ const MAX_REASON_LENGTH = 200;
 
 /**
  * Nodemailer reports the SMTP phase that failed; map it onto the contract so a
- * wrong host is distinguishable from a wrong password.
+ * wrong host is distinguishable from a wrong password. A server rejection
+ * carries the reply in `responseCode` (535 rejected the credentials, 550 the
+ * mailbox), while transport failures carry a nodemailer `E*` code.
  */
-export function failureStageFromCode(code: string | undefined): MailFailureStage {
-  if (!code) return "delivery";
-  if (code === "EAUTH" || code === "ELOGIN") return "authentication";
-  if (code.startsWith("E") && !/^E?\d/.test(code)) return "connection";
+export function failureStageFromCode(
+  code: string | undefined,
+  responseCode?: number,
+): MailFailureStage {
+  if (responseCode === 535) return "authentication";
+  if (code === "EAUTH" || code === "ELOGIN" || code === "ENOAUTH") return "authentication";
+  if (code === "EENVELOPE" || code === "EMESSAGE" || code === "EMAXRECIPIENTS") return "delivery";
+  if (code?.startsWith("E") && !/^E?\d/.test(code)) return "connection";
   return "delivery";
 }
 
@@ -159,9 +175,17 @@ export function createMailer(deps: MailerDependencies): Mailer {
   const { db } = deps;
   const now = deps.now ?? (() => new Date());
 
-  function installationSecret(): string | null {
-    const secret = deps.installationSecret ?? process.env[INSTALLATION_SECRET_ENV];
-    return secret && secret.trim() ? secret : null;
+  /**
+   * The installation secret held outside the database. A short value would
+   * derive a guessable key, so it fails closed instead of storing anything.
+   */
+  function installationSecret(): Result<string> {
+    const secret = (deps.installationSecret ?? process.env[INSTALLATION_SECRET_ENV])?.trim();
+    if (!secret) return err({ kind: "installation-secret-invalid", reason: "missing" });
+    if (secret.length < MIN_INSTALLATION_SECRET_LENGTH) {
+      return err({ kind: "installation-secret-invalid", reason: "too-short" });
+    }
+    return ok(secret);
   }
 
   /** Strip known secrets before a reason can reach a log, screen or model. */
@@ -262,14 +286,8 @@ export function createMailer(deps: MailerDependencies): Mailer {
     let passwordCiphertext: string;
     if (password) {
       const secret = installationSecret();
-      if (!secret) {
-        return err({
-          kind: "invalid-input",
-          field: "password",
-          message: `${INSTALLATION_SECRET_ENV} must be set to store an SMTP password`,
-        });
-      }
-      passwordCiphertext = sealSecret(password, secret);
+      if (!secret.ok) return secret;
+      passwordCiphertext = sealSecret(password, secret.value);
     } else if (previous) {
       passwordCiphertext = previous.passwordCiphertext;
     } else {
@@ -309,19 +327,32 @@ export function createMailer(deps: MailerDependencies): Mailer {
     if (!stored) return err({ kind: "mail-not-configured", missing: "smtp" });
     if (!stored.recipient) return err({ kind: "mail-not-configured", missing: "recipient" });
     const secret = installationSecret();
-    if (!secret) {
-      return err({
-        kind: "mail-delivery-failed",
-        stage: "authentication",
-        // Operator-facing and English on purpose: this is an environment
-        // mistake, not a shopper message.
-        reason: `${INSTALLATION_SECRET_ENV} is not set, so the stored SMTP password cannot be read`,
-      });
+    if (!secret.ok) return secret;
+
+    // A diagnostic send is a deliberate, rate-limited action: the last attempt
+    // is persisted, so a second send has to wait for the cooldown to pass.
+    const attemptedAt = now();
+    const previousAttempt = row.mail_delivery
+      ? Date.parse(row.mail_delivery.attemptedAt)
+      : Number.NaN;
+    if (Number.isFinite(previousAttempt)) {
+      // The stored attempt can sit in the future when the clock moved backwards;
+      // waiting out the whole cooldown is the safe reading of that.
+      const remaining = Math.min(
+        previousAttempt + DIAGNOSTIC_COOLDOWN_MS - attemptedAt.getTime(),
+        DIAGNOSTIC_COOLDOWN_MS,
+      );
+      if (remaining > 0) {
+        return err({
+          kind: "mail-diagnostic-cooldown",
+          retryAfterSeconds: Math.ceil(remaining / 1000),
+        });
+      }
     }
 
     let password: string;
     try {
-      password = openSecret(stored.passwordCiphertext, secret);
+      password = openSecret(stored.passwordCiphertext, secret.value);
     } catch {
       return err({
         kind: "mail-delivery-failed",
@@ -330,7 +361,7 @@ export function createMailer(deps: MailerDependencies): Mailer {
       });
     }
 
-    const attemptedAt = now().toISOString();
+    const attemptedIso = attemptedAt.toISOString();
     const recipient = stored.recipient;
     try {
       const delivery = await transport.deliver(
@@ -356,7 +387,7 @@ export function createMailer(deps: MailerDependencies): Mailer {
       const delivered: MailDeliveryView = {
         outcome: "delivered",
         recipient,
-        attemptedAt,
+        attemptedAt: attemptedIso,
         stage: null,
         reason: null,
       };
@@ -364,19 +395,20 @@ export function createMailer(deps: MailerDependencies): Mailer {
         mail_delivery: delivered,
         updated_at: now(),
       });
-      return ok({ ...delivery, recipient, deliveredAt: attemptedAt });
+      return ok({ ...delivery, recipient, deliveredAt: attemptedIso });
     } catch (error) {
-      const failure = error as { code?: string; message?: string };
-      const stage = failureStageFromCode(failure.code);
+      const failure = error as { code?: string; message?: string; responseCode?: number };
+      const stage = failureStageFromCode(failure.code, failure.responseCode);
+      // Servers echo what they were sent, so the username and host are secrets too.
       const reason = redact(
         [failure.message, failure.code].filter(Boolean).join(" | ") || String(error),
-        [password, ...(deps.redactions ?? [])],
+        [password, stored.username, stored.host, ...(deps.redactions ?? [])],
       );
       await db("installation").where({ id: 1 }).update({
         mail_delivery: {
           outcome: "failed",
           recipient,
-          attemptedAt,
+          attemptedAt: attemptedIso,
           stage,
           reason,
         } satisfies MailDeliveryView,

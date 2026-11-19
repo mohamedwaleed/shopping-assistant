@@ -173,7 +173,10 @@ describe("GET /api/administration/email", () => {
   it("refuses an unauthenticated request with 403", async () => {
     const res = await settingsRoute.GET(new Request("http://localhost/api/administration/email"));
     expect(res.status).toBe(403);
-    expect((await res.json()).error.kind).toBe("forbidden");
+    // The refused gate is the one these routes really need, not a workspace read.
+    expect(await res.json()).toEqual({
+      error: { kind: "forbidden", capability: "installation.manage" },
+    });
   });
 
   it("refuses a shopper without installation.manage with 403", async () => {
@@ -284,6 +287,19 @@ describe("POST /api/administration/email/diagnostic", () => {
     expect(JSON.stringify(body)).not.toContain("wrong-smtp-password");
   });
 
+  it("refuses a second diagnostic send within the cooldown with 429", async () => {
+    const cookie = await claimAdministrator();
+    await saveSettings(cookie);
+
+    expect((await sendDiagnostic(cookie)).status).toBe(200);
+    const tooSoon = await sendDiagnostic(cookie);
+    expect(tooSoon.status).toBe(429);
+    expect(await tooSoon.json()).toEqual({
+      error: { kind: "mail-diagnostic-cooldown", retryAfterSeconds: 30 },
+    });
+    expect(inbox.recipients).toEqual(["inbox@example.nl"]);
+  });
+
   it("refuses a diagnostic send before settings exist with 409", async () => {
     const cookie = await claimAdministrator();
     const res = await sendDiagnostic(cookie);
@@ -313,6 +329,11 @@ describe("POST /api/administration/email/diagnostic", () => {
       responses.push(await (await readSettings(cookie)).text());
       responses.push(await (await sendDiagnostic(cookie)).text());
       responses.push(await (await readSettings(cookie)).text());
+      // A second send straight after the first is refused by the cooldown, so
+      // the failing attempt waits for it (the cooldown has its own test).
+      await db("installation")
+        .where({ id: 1 })
+        .update({ mail_delivery: null });
       responses.push(await (await saveSettings(cookie, emailSettings({ port: 1 }))).text());
       responses.push(await (await sendDiagnostic(cookie)).text());
       responses.push(await (await readSettings(cookie)).text());

@@ -32,7 +32,10 @@ server is needed, and the claim does not assert email ownership. Afterwards
 `/sign-in` is the entry point, and `?lang=nl` switches any screen to Dutch.
 Public registration stays closed: further accounts arrive through invitations
 (a later ticket). Set `BETTER_AUTH_SECRET` to a generated value whenever the app
-is reachable beyond your machine.
+is reachable beyond your machine, and set `INSTALLATION_SECRET` (at least 16
+characters) before saving credentials such as the SMTP password: it encrypts
+them at rest and is held outside PostgreSQL, so changing it makes stored
+credentials unreadable. `.env.example` lists both with generation commands.
 
 The first boot installs workspace dependencies inside shared named volumes;
 later starts are fast. Development Postgres publishes host port **54329** —

@@ -145,6 +145,11 @@ export const dictionaries = {
     emailNotConfiguredNoRecipient:
       "Add a diagnostic recipient before sending a diagnostic message.",
     emailInvalidInput: "Check the highlighted fields and try again.",
+    emailSecretMissing:
+      "INSTALLATION_SECRET is not set on this server, so the SMTP password cannot be stored or read.",
+    emailSecretTooShort:
+      "INSTALLATION_SECRET is shorter than 16 characters. Generate one with: openssl rand -base64 32",
+    emailDiagnosticCooldown: "A diagnostic message was just sent. Try again in",
     emailAdministratorsOnly: "Only the installation administrator can change email settings.",
     emailAdminOnlyNote:
       "Email settings are installation-wide and limited to the installation administrator.",
@@ -292,6 +297,11 @@ export const dictionaries = {
     emailNotConfiguredNoRecipient:
       "Voeg een diagnose-ontvanger toe voordat je een diagnostisch bericht verstuurt.",
     emailInvalidInput: "Controleer de gemarkeerde velden en probeer opnieuw.",
+    emailSecretMissing:
+      "INSTALLATION_SECRET is niet ingesteld op deze server, dus het SMTP-wachtwoord kan niet worden opgeslagen of gelezen.",
+    emailSecretTooShort:
+      "INSTALLATION_SECRET is korter dan 16 tekens. Genereer er een met: openssl rand -base64 32",
+    emailDiagnosticCooldown: "Er is net een diagnostisch bericht verstuurd. Probeer opnieuw over",
     emailAdministratorsOnly:
       "Alleen de installatiebeheerder kan de e-mailinstellingen wijzigen.",
     emailAdminOnlyNote:

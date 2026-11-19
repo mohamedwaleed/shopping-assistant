@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: Request): Promise<Response> {
   const identity = await requestIdentity(request);
-  if (!identity) return errorResponse({ kind: "forbidden", capability: "workspace.read" });
+  if (!identity) return errorResponse({ kind: "forbidden", capability: "installation.manage" });
 
   const result = await getCore().mail.sendDiagnostic(
     identity.trusted.principal,

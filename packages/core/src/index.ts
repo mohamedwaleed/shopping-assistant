@@ -46,8 +46,10 @@ export {
 } from "./auth/types";
 export {
   createMailer,
+  DIAGNOSTIC_COOLDOWN_MS,
   failureStageFromCode,
   INSTALLATION_SECRET_ENV,
+  MIN_INSTALLATION_SECRET_LENGTH,
   type MailDelivery,
   type MailDeliveryView,
   type MailError,

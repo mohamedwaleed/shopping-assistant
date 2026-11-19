@@ -6,6 +6,8 @@ import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
 import {
   createAuthentication,
   createMailer,
+  DIAGNOSTIC_COOLDOWN_MS,
+  failureStageFromCode,
   nodemailerTransport,
   type AccountProvisioner,
   type Authentication,
@@ -114,6 +116,7 @@ describe("protected SMTP settings and diagnostic delivery", () => {
       setup_token_hash: null,
       setup_administrator_user_id: null,
       smtp_settings: null,
+      mail_delivery: null,
     });
     inbox.messages.length = 0;
 
@@ -161,6 +164,17 @@ describe("protected SMTP settings and diagnostic delivery", () => {
 
   function mailer(secret = SECRET) {
     return createMailer({ db, installationSecret: secret });
+  }
+
+  /** A clock the test moves by hand, so a cooldown never means sleeping. */
+  function clock(start = new Date("2026-11-19T09:00:00.000Z")) {
+    let current = start;
+    return {
+      now: () => current,
+      advance: (milliseconds: number) => {
+        current = new Date(current.getTime() + milliseconds);
+      },
+    };
   }
 
   function transport(): MailTransport {
@@ -304,17 +318,20 @@ describe("protected SMTP settings and diagnostic delivery", () => {
   });
 
   it("records a successful delivery and clears the previous failure", async () => {
-    await mailer().saveSettings(admin, {
+    const time = clock();
+    const send = createMailer({ db, installationSecret: SECRET, now: time.now });
+    await send.saveSettings(admin, {
       ...smtpSettings(),
       port: 1,
       recipient: "diagnostics@example.nl",
     });
-    await mailer().sendDiagnostic(admin, transport());
-    await mailer().saveSettings(admin, {
+    await send.sendDiagnostic(admin, transport());
+    time.advance(DIAGNOSTIC_COOLDOWN_MS);
+    await send.saveSettings(admin, {
       ...smtpSettings(),
       recipient: "diagnostics@example.nl",
     });
-    await mailer().sendDiagnostic(admin, transport());
+    await send.sendDiagnostic(admin, transport());
 
     const settings = await mailer().settings(admin);
     expect(settings.ok).toBe(true);
@@ -324,6 +341,67 @@ describe("protected SMTP settings and diagnostic delivery", () => {
       outcome: "delivered",
       recipient: "diagnostics@example.nl",
     });
+  });
+
+  it("refuses a diagnostic send again during the cooldown, then allows it once it passes", async () => {
+    const time = clock();
+    const send = createMailer({ db, installationSecret: SECRET, now: time.now });
+    await send.saveSettings(admin, { ...smtpSettings(), recipient: "diagnostics@example.nl" });
+
+    expect(await send.sendDiagnostic(admin, transport())).toMatchObject({ ok: true });
+
+    // The cooldown is persisted, so a fresh mailer cannot bypass it either.
+    const tooSoon = await mailer().sendDiagnostic(admin, transport());
+    expect(tooSoon).toEqual({
+      ok: false,
+      error: { kind: "mail-diagnostic-cooldown", retryAfterSeconds: 30 },
+    });
+    expect(inbox.messages).toHaveLength(1);
+
+    time.advance(DIAGNOSTIC_COOLDOWN_MS);
+    expect(await send.sendDiagnostic(admin, transport())).toMatchObject({ ok: true });
+    expect(inbox.messages).toHaveLength(2);
+  });
+
+  it("refuses to store or read a password under an absent or weak installation secret", async () => {
+    const missing = createMailer({ db, installationSecret: "   " });
+    expect(
+      await missing.saveSettings(admin, { ...smtpSettings(), recipient: "diagnostics@example.nl" }),
+    ).toEqual({
+      ok: false,
+      error: { kind: "installation-secret-invalid", reason: "missing" },
+    });
+
+    // A one-character secret would derive a guessable key; it fails closed.
+    const weak = mailer("s");
+    expect(
+      await weak.saveSettings(admin, { ...smtpSettings(), recipient: "diagnostics@example.nl" }),
+    ).toEqual({
+      ok: false,
+      error: { kind: "installation-secret-invalid", reason: "too-short" },
+    });
+    const stored = await db("installation").where({ id: 1 }).first();
+    expect(stored.smtp_settings).toBeNull();
+
+    await mailer().saveSettings(admin, { ...smtpSettings(), recipient: "diagnostics@example.nl" });
+    expect(await weak.sendDiagnostic(admin, transport())).toEqual({
+      ok: false,
+      error: { kind: "installation-secret-invalid", reason: "too-short" },
+    });
+    expect(inbox.messages).toHaveLength(0);
+  });
+
+  it("classifies SMTP server rejections by reply code as well as by error code", () => {
+    expect(failureStageFromCode("EAUTH")).toBe("authentication");
+    // A 535 reply from the server carries no E* code, only the response code.
+    expect(failureStageFromCode(undefined, 535)).toBe("authentication");
+    expect(failureStageFromCode("EAUTH", 535)).toBe("authentication");
+    expect(failureStageFromCode("ENOAUTH")).toBe("authentication");
+    expect(failureStageFromCode("EENVELOPE", 550)).toBe("delivery");
+    expect(failureStageFromCode(undefined, 550)).toBe("delivery");
+    expect(failureStageFromCode("ECONNECTION")).toBe("connection");
+    expect(failureStageFromCode("EDNS")).toBe("connection");
+    expect(failureStageFromCode(undefined)).toBe("delivery");
   });
 
   it("refuses a diagnostic send when the recipient was never configured", async () => {
@@ -398,17 +476,24 @@ describe("protected SMTP settings and diagnostic delivery", () => {
     const rendered: string[] = [];
     const record = (value: unknown) => rendered.push(JSON.stringify(value));
 
+    // The diagnostic cooldown is covered on its own; this test moves its own
+    // clock past it so every attempt here really reaches the server.
+    const time = clock();
+    const send = (secret = SECRET) =>
+      createMailer({ db, installationSecret: secret, now: time.now });
+
     try {
       record(await mailer().settings(admin));
       record(
-        await mailer().saveSettings(admin, {
+        await send().saveSettings(admin, {
           ...smtpSettings(),
           recipient: "diagnostics@example.nl",
         }),
       );
       record(await mailer().settings(admin));
-      record(await mailer().sendDiagnostic(admin, transport()));
+      record(await send().sendDiagnostic(admin, transport()));
       record(await mailer().settings(admin));
+      time.advance(DIAGNOSTIC_COOLDOWN_MS);
 
       // A server that echoes what it received is how a secret could otherwise
       // reach a reported failure reason, and from there a log or a response.
@@ -423,16 +508,17 @@ describe("protected SMTP settings and diagnostic delivery", () => {
       const address = echoing.server.address();
       if (!address || typeof address === "string") throw new Error("echo inbox has no port");
       try {
-        await mailer().saveSettings(admin, {
+        await send().saveSettings(admin, {
           ...smtpSettings(),
           port: address.port,
           recipient: "diagnostics@example.nl",
         });
-        record(await mailer().sendDiagnostic(admin, transport()));
+        record(await send().sendDiagnostic(admin, transport()));
         record(await mailer().settings(admin));
       } finally {
         await new Promise<void>((resolve) => echoing.close(() => resolve()));
       }
+      time.advance(DIAGNOSTIC_COOLDOWN_MS);
 
       // A wrong installation secret must not surface the ciphertext either.
       const stored = await db("installation")
@@ -440,7 +526,7 @@ describe("protected SMTP settings and diagnostic delivery", () => {
         .select("smtp_settings")
         .first();
       record(
-        await mailer("a-different-installation-secret-0123456789").sendDiagnostic(
+        await send("a-different-installation-secret-0123456789").sendDiagnostic(
           admin,
           transport(),
         ),
@@ -454,7 +540,12 @@ describe("protected SMTP settings and diagnostic delivery", () => {
 
     const captured = [...lines, ...rendered].join("\n");
     expect(captured).not.toContain(SMTP_PASSWORD);
-    expect(captured).toContain("invalid credentials for smtp-user [redacted]");
+    // The username and host are echoed back too, and are redacted like the password.
+    expect(captured).toContain("invalid credentials for [redacted] [redacted]");
+    const failureReasons = rendered.filter((entry) => entry.includes("mail-delivery-failed"));
+    expect(failureReasons).not.toHaveLength(0);
+    expect(failureReasons.join("\n")).not.toContain("smtp-user");
+    expect(failureReasons.join("\n")).not.toContain("127.0.0.1");
     expect(captured).not.toContain(SECRET);
     // The stored row is ciphertext, never the password or the secret itself.
     expect(captured).not.toContain('"passwordCiphertext":"' + SMTP_PASSWORD);

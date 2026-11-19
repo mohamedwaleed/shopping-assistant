@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request): Promise<Response> {
   const identity = await requestIdentity(request);
-  if (!identity) return errorResponse({ kind: "forbidden", capability: "workspace.read" });
+  if (!identity) return errorResponse({ kind: "forbidden", capability: "installation.manage" });
 
   const result = await getCore().mail.settings(identity.trusted.principal);
   if (!result.ok) return errorResponse(result.error);
@@ -21,7 +21,7 @@ export async function GET(request: Request): Promise<Response> {
 
 export async function PUT(request: Request): Promise<Response> {
   const identity = await requestIdentity(request);
-  if (!identity) return errorResponse({ kind: "forbidden", capability: "workspace.read" });
+  if (!identity) return errorResponse({ kind: "forbidden", capability: "installation.manage" });
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) {

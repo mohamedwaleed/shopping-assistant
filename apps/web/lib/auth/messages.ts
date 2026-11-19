@@ -57,6 +57,12 @@ export function emailErrorMessage(error: CoreError, t: Dictionary): string {
       return error.missing === "smtp"
         ? t.emailNotConfiguredNoSmtp
         : t.emailNotConfiguredNoRecipient;
+    case "installation-secret-invalid":
+      return error.reason === "missing"
+        ? t.emailSecretMissing
+        : t.emailSecretTooShort;
+    case "mail-diagnostic-cooldown":
+      return `${t.emailDiagnosticCooldown} ${error.retryAfterSeconds}s`;
     case "mail-delivery-failed":
       return `${emailFailureStageLabel(error.stage, t)} — ${error.reason}`;
     default:

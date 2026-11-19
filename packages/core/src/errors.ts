@@ -24,6 +24,10 @@ export type CoreError =
   | { kind: "invalid-origin" }
   /** No complete SMTP settings, or no explicit diagnostic recipient. */
   | { kind: "mail-not-configured"; missing: "smtp" | "recipient" }
+  /** The installation secret is absent or too weak to encrypt stored credentials. */
+  | { kind: "installation-secret-invalid"; reason: "missing" | "too-short" }
+  /** A diagnostic send is still cooling down after the previous attempt. */
+  | { kind: "mail-diagnostic-cooldown"; retryAfterSeconds: number }
   /** SMTP connection, authentication or delivery failed; see the mailer contract. */
   | { kind: "mail-delivery-failed"; stage: MailFailureStage; reason: string };
 
