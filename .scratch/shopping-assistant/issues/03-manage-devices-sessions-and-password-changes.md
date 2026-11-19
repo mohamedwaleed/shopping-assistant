@@ -4,12 +4,14 @@
 
 **Blocked by:** 02 — Create the first administrator and private workspace (GitHub #3)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Enforce secure HTTP-only database-backed sessions, seven-day inactivity expiry and thirty-day absolute maximum with time-controlled tests.
-- [ ] List devices and sign out current/all devices with server-verified revocation.
-- [ ] Require recent authentication for password changes and sensitive credential-creation authorization; email-address changes are delivered with the SMTP-backed account flows.
-- [ ] Test invalid input, stale/revoked identities, account isolation and supported CSRF/origin protections.
+- [x] Enforce secure HTTP-only database-backed sessions, seven-day inactivity expiry and thirty-day absolute maximum with time-controlled tests.
+- [x] List devices and sign out current/all devices with server-verified revocation.
+- [x] Require recent authentication for password changes and sensitive credential-creation authorization; email-address changes are delivered with the SMTP-backed account flows.
+- [x] Test invalid input, stale/revoked identities, account isolation and supported CSRF/origin protections.
+
+**Outcome:** PR #40 (squash `9b58282`)
 
 ## Delivery constraints
 

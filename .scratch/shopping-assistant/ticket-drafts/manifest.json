@@ -13,7 +13,10 @@
         "An example exact variant/offer renders through core \u2192 HTTP \u2192 UI; development fixtures are separate from live data.",
         "One-command startup, health checks, schema ordering, AGPL notices and focused integration/type checks are demonstrated."
       ],
-      "draft": "01-run-a-catalogue-to-screen-walking-skeleton.md"
+      "draft": "01-run-a-catalogue-to-screen-walking-skeleton.md",
+      "status": "done",
+      "pr": 36,
+      "commit": "30b1aa8"
     },
     {
       "number": 2,
@@ -28,7 +31,10 @@
         "Email/password sign-in/out and invitation-only admission enforce trusted workspace authorization in core and HTTP, including direct-call and two-workspace tests.",
         "Deliver responsive English/Dutch Studio setup/sign-in screens without asserting email verification from operator provisioning."
       ],
-      "draft": "02-create-the-first-administrator-and-private-workspace.md"
+      "draft": "02-create-the-first-administrator-and-private-workspace.md",
+      "status": "done",
+      "pr": 37,
+      "commit": "11fc88b"
     },
     {
       "number": 3,
@@ -43,7 +49,10 @@
         "Require recent authentication for password changes and sensitive credential-creation authorization; email-address changes are delivered with the SMTP-backed account flows.",
         "Test invalid input, stale/revoked identities, account isolation and supported CSRF/origin protections."
       ],
-      "draft": "03-manage-devices-sessions-and-sensitive-account-changes.md"
+      "draft": "03-manage-devices-sessions-and-sensitive-account-changes.md",
+      "status": "done",
+      "pr": 40,
+      "commit": "9b58282"
     },
     {
       "number": 4,
@@ -57,7 +66,10 @@
         "Use a local test inbox for repeatable verification; real recipients/credentials are explicitly configured, not inferred.",
         "Provide a reusable mailer outcome contract and English/Dutch UI; secrets never reach logs, model context or browser output."
       ],
-      "draft": "04-configure-smtp-and-test-transactional-delivery.md"
+      "draft": "04-configure-smtp-and-test-transactional-delivery.md",
+      "status": "done",
+      "pr": 38,
+      "commit": "6863a05"
     },
     {
       "number": 5,
@@ -74,7 +86,8 @@
         "Document and exercise a separate operator-only administrator recovery route, not a public password override.",
         "Email-address changes require recent authentication and confirmation of the new address before switching account identity; unavailable email cannot report a completed change."
       ],
-      "draft": "05-invite-shoppers-and-recover-passwords.md"
+      "draft": "05-invite-shoppers-and-recover-passwords.md",
+      "status": "ready"
     },
     {
       "number": 6,
@@ -89,7 +102,8 @@
         "Enabled second-factor requirements apply to sign-in and sensitive changes; backup codes are atomically single-use.",
         "Password reset alone cannot bypass the second factor; document separate recovery and test incorrect/replayed codes across responsive account screens."
       ],
-      "draft": "06-add-optional-authenticator-two-factor-authentication.md"
+      "draft": "06-add-optional-authenticator-two-factor-authentication.md",
+      "status": "ready"
     },
     {
       "number": 7,
@@ -104,7 +118,9 @@
         "Newly discovered sources remain candidates; support administrator control without closing discovery to the seed list or influencing rank by popularity/affiliate revenue.",
         "Test source-state changes, duplicates, unauthorized edits, last-failure visibility and seed updates."
       ],
-      "draft": "07-manage-the-netherlands-retailer-registry.md"
+      "draft": "07-manage-the-netherlands-retailer-registry.md",
+      "status": "withdrawn",
+      "reason": "source registry removed; knowledge kept in docs/retailer-registry.md"
     },
     {
       "number": 8,
@@ -120,7 +136,10 @@
         "Use deterministic provider fixtures, isolation/redaction checks and separately configured live smoke checks.",
         "Use verified Vercel AI SDK provider adapters behind the shared model registry; compatible endpoints need tested tool/structured-output/streaming support rather than an assumed compatibility label. Preserve BYOK/local operation without requiring a gateway."
       ],
-      "draft": "08-connect-models-through-vercel-ai-sdk-provider-adapters.md"
+      "draft": "08-connect-models-through-vercel-ai-sdk-provider-adapters.md",
+      "status": "done",
+      "pr": 39,
+      "commit": "6d77e81"
     },
     {
       "number": 9,
@@ -135,7 +154,8 @@
         "Require personal-key background consent and explicit paid/provider fallback; expose usage and pause reasons in settings/test execution.",
         "Prove limits on simultaneous work, cancellation/retries and absence of silent paid-key fallback."
       ],
-      "draft": "09-enforce-research-and-monitoring-budgets.md"
+      "draft": "09-enforce-research-and-monitoring-budgets.md",
+      "status": "ready"
     },
     {
       "number": 10,
@@ -150,7 +170,8 @@
         "Only merge agreeing identities/configurations; retailer SKUs are retailer-local and ambiguity remains explicit.",
         "Details/core/HTTP checks prove idempotence, unsafe-URL rejection, variant conflicts and failed extraction never overwriting valid observations."
       ],
-      "draft": "10-ingest-a-product-page-with-inspectable-evidence.md"
+      "draft": "10-ingest-a-product-page-with-inspectable-evidence.md",
+      "status": "ready"
     },
     {
       "number": 11,
@@ -165,7 +186,8 @@
         "Administrator correction/review focuses on unresolved mappings/merges and invalidates affected assessments; supported routine ingestion remains automatic.",
         "Test mixed categories, units, contradictory variants and unauthorized/non-destructive correction through details and administration."
       ],
-      "draft": "11-normalize-attributes-and-review-conflicting-claims.md"
+      "draft": "11-normalize-attributes-and-review-conflicting-claims.md",
+      "status": "ready"
     },
     {
       "number": 12,
@@ -180,7 +202,8 @@
         "Unknown attributes do not become verified matches; cards/details expose sources, uncertainty and timestamps.",
         "Responsive search/empty/error states work without model/embedding services; check behavior and representative PostgreSQL query performance."
       ],
-      "draft": "12-search-catalogue-identifiers-filters-and-bilingual-text.md"
+      "draft": "12-search-catalogue-identifiers-filters-and-bilingual-text.md",
+      "status": "ready"
     },
     {
       "number": 13,
@@ -195,7 +218,8 @@
         "Search snippets and locale hints are discovery signals, not product/price/delivery verification.",
         "Candidate UI can send supported URLs through ingestion; fixture and opt-in live checks cover bad JSON, duplicates and no-Tavily operation."
       ],
-      "draft": "13-discover-external-candidates-using-searxng.md"
+      "draft": "13-discover-external-candidates-using-searxng.md",
+      "status": "ready"
     },
     {
       "number": 14,
@@ -211,7 +235,8 @@
         "Paid calls and fallback are enabled explicitly and bounded by shared budgets; configuration and exhaustion are visible.",
         "Verify combinations, source failures, redaction and usage accounting with fixtures and separately configured live checks."
       ],
-      "draft": "14-configure-tavily-search-and-extract-independently.md"
+      "draft": "14-configure-tavily-search-and-extract-independently.md",
+      "status": "ready"
     },
     {
       "number": 15,
@@ -227,7 +252,8 @@
         "Retain fetch/source cache times, adapter versions, required-field coverage and last success/failure; layout changes cannot erase good observations.",
         "Use reviewed fixtures and a small permitted cross-category live pilot. No universal retailer support or mandatory browser-automation service is implied."
       ],
-      "draft": "15-make-extraction-resilient-and-expose-source-coverage.md"
+      "draft": "15-make-extraction-resilient-and-expose-source-coverage.md",
+      "status": "ready"
     },
     {
       "number": 16,
@@ -245,7 +271,8 @@
         "Provide bounded requirements/clarification tools calling the authorized core. Persist model/UI messages and structured state; reload/context assembly keeps workspace data isolated and excludes credentials.",
         "Verify a real request through the SDK runtime using deterministic model/provider fixtures, including streaming tool results, malformed output, cancellation/error display and persistence; a static mocked chat transcript is not completion."
       ],
-      "draft": "16-stream-persistent-bilingual-chat-with-vercel-ai-sdk.md"
+      "draft": "16-stream-persistent-bilingual-chat-with-vercel-ai-sdk.md",
+      "status": "ready"
     },
     {
       "number": 17,
@@ -267,7 +294,8 @@
         "Configure explicit documented loop stopping controls (such as stopWhen) and application guards for step/token/cost/time allowances. A model finishing its answer is not by itself proof of sufficient research: verify deterministic evidence conditions or return clarification/partial/unavailable.",
         "Record inspectable phase/tool/progress outcomes without secrets. Verify multiple SDK steps, a clarification stop, denied out-of-phase tools, missing/conflicting evidence and a premature model finish through public research results and trace events."
       ],
-      "draft": "17-run-the-controlled-vercel-ai-sdk-shopping-agent-loop.md"
+      "draft": "17-run-the-controlled-vercel-ai-sdk-shopping-agent-loop.md",
+      "status": "ready"
     },
     {
       "number": 18,
@@ -286,7 +314,8 @@
         "Clarification records a waiting-for-user state and resumes against the new requirement revision; reconnecting the browser reloads stored progress rather than initiating duplicate work.",
         "SDK in-memory state is not durable storage. Test provider-response/checkpoint failure boundaries, idempotent tool effects, changed requirements and owner revocation without promising exactly-once external model calls."
       ],
-      "draft": "18-checkpoint-and-recover-the-sdk-agent-loop-in-durable-workers.md"
+      "draft": "18-checkpoint-and-recover-the-sdk-agent-loop-in-durable-workers.md",
+      "status": "ready"
     },
     {
       "number": 19,
@@ -307,7 +336,8 @@
         "Prove a public end-to-end SDK trace that searches the catalogue first, identifies a real evidence gap, calls an external adapter, validates the discovered variant/offer and either presents supported results or explicitly remains incomplete.",
         "Retrieved pages cannot instruct the agent to change phases, relax must-haves or access secrets. Test malicious source instructions and repeated no-progress work under existing caps."
       ],
-      "draft": "19-extend-the-same-agent-loop-with-external-discovery-and-ingestion.md"
+      "draft": "19-extend-the-same-agent-loop-with-external-discovery-and-ingestion.md",
+      "status": "ready"
     },
     {
       "number": 20,
@@ -322,7 +352,8 @@
         "Private session deletion preserves independent watch ownership/public facts; navigation and settings retain useful provider-outage behavior.",
         "Test cross-session opt-in, two-workspace isolation, summary boundaries and historical result revisions through UI/core/HTTP."
       ],
-      "draft": "20-save-preferences-and-invalidate-revised-research.md"
+      "draft": "20-save-preferences-and-invalidate-revised-research.md",
+      "status": "ready"
     },
     {
       "number": 21,
@@ -337,7 +368,8 @@
         "Show exact variant, delivered-price completeness, freshness and source links in responsive English/Dutch tables.",
         "Verify selection/persistence, invalid variants, keyboard/mobile operation, isolation and no-provider saved comparison access."
       ],
-      "draft": "21-compare-exact-variants-in-persisted-interactive-tables.md"
+      "draft": "21-compare-exact-variants-in-persisted-interactive-tables.md",
+      "status": "ready"
     },
     {
       "number": 22,
@@ -353,7 +385,8 @@
         "Implement threshold crossings and one initial qualifying alert with application-level deduplication across retries/workers.",
         "Personal-key work needs consent/budget and current owner access. Test pause/resume, failure/staleness rejection and session independence through UI and worker execution."
       ],
-      "draft": "22-watch-an-exact-offer-and-receive-target-alerts.md"
+      "draft": "22-watch-an-exact-offer-and-receive-target-alerts.md",
+      "status": "ready"
     },
     {
       "number": 23,
@@ -369,7 +402,8 @@
         "Specify/replay threshold rearming, repeated prices and seller/mandatory-shipping changes without duplicate noise.",
         "Expose observed history/gaps and distinguish advertised discount claims; test conflicts, missing prices and watch edits through the check-to-alert flow."
       ],
-      "draft": "23-watch-variants-across-sellers-and-meaningful-price-drops.md"
+      "draft": "23-watch-variants-across-sellers-and-meaningful-price-drops.md",
+      "status": "ready"
     },
     {
       "number": 24,
@@ -385,7 +419,8 @@
         "Recheck delayed-alert relevance and owner/watch state before delivery; failed freshness validation cannot produce a current-deal claim.",
         "Expose bounded retries and ambiguous SMTP acceptance outcomes; test stale deals, pause/disable/delete and restart behavior via captured email/UI."
       ],
-      "draft": "24-deliver-email-alerts-with-schedules-and-quiet-hours.md"
+      "draft": "24-deliver-email-alerts-with-schedules-and-quiet-hours.md",
+      "status": "ready"
     },
     {
       "number": 25,
@@ -403,7 +438,8 @@
         "Enforce private/background consent and bulk-write rules; no administrator/provider-secret shopping endpoints.",
         "Test scopes, expiry/revocation, invalid input, workspace tampering and an external research-to-watch flow."
       ],
-      "draft": "25-expose-shopping-operations-through-personal-http-tokens.md"
+      "draft": "25-expose-shopping-operations-through-personal-http-tokens.md",
+      "status": "ready"
     },
     {
       "number": 26,
@@ -418,7 +454,8 @@
         "Provide connected-client display/revocation and documented supported token lifetimes, audience and consent handling.",
         "Exercise an actual compatible client and rejected/revoked access. Do not build the withdrawn inbound extension/skill-loader feature."
       ],
-      "draft": "26-connect-external-assistants-through-authenticated-mcp.md"
+      "draft": "26-connect-external-assistants-through-authenticated-mcp.md",
+      "status": "ready"
     },
     {
       "number": 27,
@@ -435,7 +472,8 @@
         "Pause watches/research/notifications with visible reasons; re-enabling access does not implicitly resume them.",
         "Test authorization, job checkpoints, delayed email and sessions/tokens/grants across processes."
       ],
-      "draft": "27-disable-and-restore-users-without-resuming-private-work.md"
+      "draft": "27-disable-and-restore-users-without-resuming-private-work.md",
+      "status": "ready"
     },
     {
       "number": 28,
@@ -451,7 +489,8 @@
         "Deleting sessions preserves independently created watches; public facts do not inherit private deletion ownership.",
         "Test retry/resume, racing jobs, private-cache cleanup and two-workspace isolation with real storage and UI/API checks."
       ],
-      "draft": "28-delete-private-data-and-enforce-retention.md"
+      "draft": "28-delete-private-data-and-enforce-retention.md",
+      "status": "ready"
     },
     {
       "number": 29,
@@ -467,7 +506,8 @@
         "Provide checkpointed/idempotent progress and partial failure visibility, retaining good facts when a source omits or withdraws fields.",
         "Verify permitted fixtures and a real source only when available; document supported format/adapter limits rather than claiming universal API import."
       ],
-      "draft": "29-import-evidence-from-an-approved-structured-source.md"
+      "draft": "29-import-evidence-from-an-approved-structured-source.md",
+      "status": "ready"
     },
     {
       "number": 30,
@@ -483,7 +523,8 @@
         "Show enabled/disabled/unavailable states without silent paid fallback or private-data embedding leakage.",
         "Benchmark bilingual/descriptive/filter cases and failure modes; similarity never establishes exact identity or verified must-haves."
       ],
-      "draft": "30-add-optional-multilingual-semantic-catalogue-retrieval.md"
+      "draft": "30-add-optional-multilingual-semantic-catalogue-retrieval.md",
+      "status": "ready"
     },
     {
       "number": 31,
@@ -498,7 +539,8 @@
         "Show eligibility/expiry/quota/usage-source states without browser-cookie reuse or silent API-key billing.",
         "Document supported local/private-VM deployment, paid-hosting access limits and dependency licensing; use fixtures plus a configured eligible-account live test or retain a concrete unresolved entitlement gate."
       ],
-      "draft": "31-connect-eligible-chatgpt-plan-usage-to-shopping-chat.md"
+      "draft": "31-connect-eligible-chatgpt-plan-usage-to-shopping-chat.md",
+      "status": "ready"
     },
     {
       "number": 32,
@@ -513,7 +555,8 @@
         "If expressly permitted, verify one bounded authenticated request; otherwise retain the unmet requirement and concrete follow-up condition.",
         "Test capability/error states; no impersonation, credential scraping, forced replacement of the Vercel agent, invitation bypass or silent billing change."
       ],
-      "draft": "32-expose-truthful-claude-plan-availability-in-settings.md"
+      "draft": "32-expose-truthful-claude-plan-availability-in-settings.md",
+      "status": "ready"
     },
     {
       "number": 33,
@@ -528,7 +571,8 @@
         "Demonstrate restore of representative private/public/job state without lost isolation, exceeded budgets, fabricated history or duplicate alerts.",
         "Verify fresh-install/upgrade/degraded operation and AGPL licence/source notices; no hosted billing infrastructure is required."
       ],
-      "draft": "33-operate-and-restore-the-full-self-hosted-stack.md"
+      "draft": "33-operate-and-restore-the-full-self-hosted-stack.md",
+      "status": "ready"
     },
     {
       "number": 34,
@@ -549,10 +593,26 @@
         "Demonstrate isolation, conflicts, budgets, freshness, lifecycle controls, restart/cancellation, quiet hours and deduplication.",
         "Run bounded separately configured live provider/source/SMTP smoke checks and full Compose/restore evidence. Missing permissions/accounts remain explicit release gates, not fabricated success or silent removal of requested subscription support."
       ],
-      "draft": "34-verify-complete-flows-and-measured-release-coverage.md"
+      "draft": "34-verify-complete-flows-and-measured-release-coverage.md",
+      "status": "ready"
     }
   ],
   "revision": 2,
   "changes": "Make SDK provider integration, streaming chat, controlled agent loop, durable checkpoints and external-research extension explicit in tickets 8 and 16\u201319. No blocker changes.",
-  "approved": "2026-11-17"
+  "approved": "2026-11-17",
+  "implementation": {
+    "updated": "2026-11-19",
+    "main_commit": "6d77e81",
+    "done": [
+      1,
+      2,
+      3,
+      4,
+      8
+    ],
+    "withdrawn": [
+      7
+    ],
+    "note": "Ticket 07's registry was withdrawn; ticket 10 must define its own source policy concept."
+  }
 }

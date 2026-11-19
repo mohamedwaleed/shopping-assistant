@@ -4,12 +4,14 @@
 
 **Blocked by:** 02 — Create the first administrator and private workspace (GitHub #3)
 
-**Status:** ready-for-agent
+**Status:** withdrawn
 
-- [ ] Idempotently seed the researched fourteen entries as candidates while retaining administrator edits; no scraping permission or working adapter is assumed.
-- [ ] Separate platform domains, actual sellers, categories, Netherlands delivery evidence and source acquisition policy/adapter health.
-- [ ] Newly discovered sources remain candidates; support administrator control without closing discovery to the seed list or influencing rank by popularity/affiliate revenue.
-- [ ] Test source-state changes, duplicates, unauthorized edits, last-failure visibility and seed updates.
+- [x] Idempotently seed the researched fourteen entries as candidates while retaining administrator edits; no scraping permission or working adapter is assumed.
+- [x] Separate platform domains, actual sellers, categories, Netherlands delivery evidence and source acquisition policy/adapter health.
+- [x] Newly discovered sources remain candidates; support administrator control without closing discovery to the seed list or influencing rank by popularity/affiliate revenue.
+- [x] Test source-state changes, duplicates, unauthorized edits, last-failure visibility and seed updates.
+
+**Outcome:** no PR — feature removed
 
 ## Delivery constraints
 

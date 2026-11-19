@@ -4,11 +4,13 @@
 
 **Blocked by:** 02 — Create the first administrator and private workspace (GitHub #3)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Administration stores masked/protected SMTP settings and exposes connection/delivery failure states.
-- [ ] Use a local test inbox for repeatable verification; real recipients/credentials are explicitly configured, not inferred.
-- [ ] Provide a reusable mailer outcome contract and English/Dutch UI; secrets never reach logs, model context or browser output.
+- [x] Administration stores masked/protected SMTP settings and exposes connection/delivery failure states.
+- [x] Use a local test inbox for repeatable verification; real recipients/credentials are explicitly configured, not inferred.
+- [x] Provide a reusable mailer outcome contract and English/Dutch UI; secrets never reach logs, model context or browser output.
+
+**Outcome:** PR #38 (squash `6863a05`)
 
 ## Delivery constraints
 

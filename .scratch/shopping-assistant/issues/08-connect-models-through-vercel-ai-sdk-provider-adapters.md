@@ -4,13 +4,15 @@
 
 **Blocked by:** 02 — Create the first administrator and private workspace (GitHub #3)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Verify OpenAI/Anthropic API-key adapters and a configurable compatible/local endpoint, with pinned/documented capability support.
-- [ ] Protect installation defaults and workspace overrides; expose model/usage-source choices and optional extraction overrides without leaking secrets.
-- [ ] Diagnostic requests have explicit call/token bounds and test typed tools/streaming/structured output; no hidden fallback or unattended personal-key use.
-- [ ] Use deterministic provider fixtures, isolation/redaction checks and separately configured live smoke checks.
-- [ ] Use verified Vercel AI SDK provider adapters behind the shared model registry; compatible endpoints need tested tool/structured-output/streaming support rather than an assumed compatibility label. Preserve BYOK/local operation without requiring a gateway.
+- [x] Verify OpenAI/Anthropic API-key adapters and a configurable compatible/local endpoint, with pinned/documented capability support.
+- [x] Protect installation defaults and workspace overrides; expose model/usage-source choices and optional extraction overrides without leaking secrets.
+- [x] Diagnostic requests have explicit call/token bounds and test typed tools/streaming/structured output; no hidden fallback or unattended personal-key use.
+- [x] Use deterministic provider fixtures, isolation/redaction checks and separately configured live smoke checks.
+- [x] Use verified Vercel AI SDK provider adapters behind the shared model registry; compatible endpoints need tested tool/structured-output/streaming support rather than an assumed compatibility label. Preserve BYOK/local operation without requiring a gateway.
+
+**Outcome:** PR #39 (squash `6d77e81`)
 
 ## Delivery constraints
 
