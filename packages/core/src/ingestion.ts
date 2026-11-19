@@ -96,6 +96,10 @@ function parseProduct(html: string): StructuredProduct | null {
 
 function excerpt(html: string): string { return html.replace(/\s+/g, " ").trim().slice(0, 2_000); }
 
+function normalizedAttributeName(name: string): string {
+  return name.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
 export function createIngestion(db: Knex, deps: IngestionDependencies = {}) {
   const fetchPage = deps.fetch ?? fetch;
   const policy = deps.sourcePolicy ?? (() => null);
@@ -137,16 +141,54 @@ export function createIngestion(db: Knex, deps: IngestionDependencies = {}) {
       if (!retailer) [retailer] = await trx("retailers").insert({ name: permitted.retailerName, base_url: permitted.baseUrl }).returning("*");
       const identifier = product.gtin ?? product.mpn;
       let variant = identifier ? await trx("variants").where(product.gtin ? { gtin: product.gtin } : { manufacturer_part_number: product.mpn }).first() : undefined;
-      if (variant && JSON.stringify(variant.attributes ?? {}) !== JSON.stringify(product.attributes)) return err({ kind: "identity-conflict", identifier: identifier! });
+      if (variant && JSON.stringify(variant.attributes ?? {}) !== JSON.stringify(product.attributes)) {
+        for (const [rawName, value] of Object.entries(product.attributes)) {
+          await trx("source_claims").insert({
+            evidence_id: evidenceId,
+            variant_id: variant.id,
+            field: `attribute.${rawName}`,
+            raw_name: rawName,
+            value: JSON.stringify(value),
+            observed_at: observedAt,
+            mapping_status: "unresolved",
+          }).onConflict(["evidence_id", "field"]).merge({
+            value: JSON.stringify(value),
+            observed_at: observedAt,
+            mapping_status: "unresolved",
+            canonical_attribute_id: null,
+          });
+        }
+        return err({ kind: "identity-conflict", identifier: identifier! });
+      }
       let productRow = variant ? await trx("products").where({ id: variant.product_id }).first() : await trx("products").where({ name: product.name, manufacturer: product.manufacturer }).first();
       if (!productRow) [productRow] = await trx("products").insert({ name: product.name, manufacturer: product.manufacturer }).returning("*");
-      if (!variant) [variant] = await trx("variants").insert({ product_id: productRow.id, name: product.name, gtin: product.gtin, manufacturer_part_number: product.mpn, attributes: JSON.stringify(product.attributes) }).returning("*");
+      const attributeRows = await trx("catalogue_attributes").select("id", "key");
+      const synonyms = await trx("catalogue_attribute_synonyms").select("attribute_id", "synonym");
+      const byName = new Map(attributeRows.map((attribute) => [normalizedAttributeName(attribute.key), attribute]));
+      for (const synonym of synonyms) {
+        const attribute = attributeRows.find((candidate) => candidate.id === synonym.attribute_id);
+        if (attribute) byName.set(normalizedAttributeName(synonym.synonym), attribute);
+      }
+      const acceptedAttributes: Record<string, unknown> = {};
+      for (const [rawName, value] of Object.entries(product.attributes)) {
+        const attribute = byName.get(normalizedAttributeName(rawName));
+        if (attribute) acceptedAttributes[attribute.key] = value;
+      }
+      if (!variant) [variant] = await trx("variants").insert({ product_id: productRow.id, name: product.name, gtin: product.gtin, manufacturer_part_number: product.mpn, attributes: JSON.stringify(acceptedAttributes) }).returning("*");
       let offer = await trx("offers").where({ retailer_id: retailer.id, url: sourceUrl }).first();
       if (!offer) [offer] = await trx("offers").insert({ variant_id: variant.id, retailer_id: retailer.id, url: sourceUrl, condition: product.condition, retailer_sku: product.sku, seller_name: product.seller }).returning("*");
       await trx("price_observations").where({ offer_id: offer.id, source_kind: "retailer_page" }).del();
       await trx("price_observations").insert({ offer_id: offer.id, amount: product.price, currency: product.currency, shipping_amount: "0.00", vat_included: true, source_kind: "retailer_page", observed_at: observedAt });
       const claims = [["product.name", product.name, "product_id"], ["variant.identifiers", { gtin: product.gtin, manufacturerPartNumber: product.mpn }, "variant_id"], ["offer", { retailerSku: product.sku, seller: product.seller, price: product.price, currency: product.currency }, "offer_id"]] as const;
       for (const [field, value, target] of claims) await trx("source_claims").insert({ evidence_id: evidenceId, field, value: JSON.stringify(value), observed_at: observedAt, [target]: target === "product_id" ? productRow.id : target === "variant_id" ? variant.id : offer.id }).onConflict(["evidence_id", "field"]).merge({ value: JSON.stringify(value), observed_at: observedAt });
+      for (const [rawName, value] of Object.entries(product.attributes)) {
+        const attribute = byName.get(normalizedAttributeName(rawName));
+        await trx("source_claims").insert({
+          evidence_id: evidenceId, variant_id: variant.id, field: `attribute.${rawName}`, raw_name: rawName,
+          value: JSON.stringify(value), observed_at: observedAt,
+          mapping_status: attribute ? "accepted" : "unresolved", canonical_attribute_id: attribute?.id ?? null,
+        }).onConflict(["evidence_id", "field"]).merge({ value: JSON.stringify(value), observed_at: observedAt, mapping_status: attribute ? "accepted" : "unresolved", canonical_attribute_id: attribute?.id ?? null });
+      }
       return ok({ variantId: variant.id, offerId: offer.id, evidenceId });
     });
   };

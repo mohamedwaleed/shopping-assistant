@@ -154,6 +154,15 @@ export default async function Home({
             </section>
 
             <section className="panel">
+              <h3>Source claims</h3>
+              {detail.claims.filter((claim) => claim.field.startsWith("attribute.")).map((claim) => (
+                <p className="muted" key={`${claim.field}-${claim.sourceUrl}`}>
+                  {claim.field.replace("attribute.", "")}: {String(claim.value)} · {claim.mappingStatus === "unresolved" ? "Needs review" : "Validated"}
+                </p>
+              ))}
+            </section>
+
+            <section className="panel">
               <h3 style={{ marginTop: 0 }}>{t.offers}</h3>
               {detail.offers.length === 0 ? (
                 <p className="muted">{t.noOffers}</p>

@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { Knex } from "knex";
-import {
-  getVariantOfferDetail,
-  type VariantOfferDetail,
-} from "./catalogue";
+import { getVariantOfferDetail, listAttributeReviews, reviewAttributeClaim, type AttributeReview, type VariantOfferDetail } from "./catalogue";
 import { createAuthentication, type AuthDependencies, type Authentication } from "./auth/authentication";
 import { createMailer, type Mailer, type MailerDependencies } from "./mail/mailer";
 import { createEmailLinkOperations, type EmailLinkOperations } from "./auth/email-links";
@@ -29,6 +26,8 @@ export interface ShoppingCore {
       variantId: string,
     ): Promise<Result<VariantOfferDetail>>;
     ingestProductPage(principal: Principal, sourceUrl: string): Promise<Result<IngestedPage>>;
+    listAttributeReviews(principal: Principal): Promise<Result<AttributeReview[]>>;
+    reviewAttributeClaim(principal: Principal, claimId: string, canonicalKey: string | null): Promise<Result<void>>;
   };
 }
 
@@ -65,6 +64,8 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
       getVariantOfferDetail: (principal, variantId) =>
         getVariantOfferDetail(deps.db, principal, variantId),
       ingestProductPage: createIngestion(deps.db, deps.ingestion),
+      listAttributeReviews: (principal) => listAttributeReviews(deps.db, principal),
+      reviewAttributeClaim: (principal, claimId, canonicalKey) => reviewAttributeClaim(deps.db, principal, claimId, canonicalKey),
     },
   };
 }
