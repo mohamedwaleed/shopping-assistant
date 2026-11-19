@@ -7,7 +7,6 @@ import {
   createAccountLinks,
   createAuthentication,
   createMailer,
-  nodemailerTransport,
   RECENT_AUTHENTICATION_SECONDS,
   type AccountLinks,
   type AccountProvisioner,
@@ -17,6 +16,7 @@ import {
   type MailTransport,
   type Principal,
 } from "../src/index";
+import { nodemailerTransport } from "../src/mail/nodemailer-transport";
 
 // Account access through the core: real PostgreSQL, a real SMTP conversation
 // against an in-process test inbox and a clock the test moves by hand. Core is

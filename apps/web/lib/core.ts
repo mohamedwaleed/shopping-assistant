@@ -4,10 +4,10 @@ import {
   createShoppingCore,
   INSTALLATION_SECRET_ENV,
   MINIMUM_INSTALLATION_SECRET_LENGTH,
-  nodemailerTransport,
   type SecretCipher,
   type ShoppingCore,
 } from "@shopping/core";
+import { nodemailerTransport } from "@shopping/core/mail-transport";
 import { createDb, databaseUrl } from "@shopping/db";
 import type { Knex } from "knex";
 import { createAiSdkProbe } from "@/lib/models/ai-sdk-probe";
