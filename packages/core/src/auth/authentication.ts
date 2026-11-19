@@ -74,6 +74,24 @@ export interface CredentialChanger {
     sessionId: string;
   }): Promise<void>;
   changeEmail(input: { userId: string; newEmail: string }): Promise<void>;
+  /**
+   * Replace a password without knowing the current one. Only a spent,
+   * unexpired link authorizes this: the password reset and the confirmed
+   * email-address change both come through here.
+   */
+  setPassword(input: { userId: string; newPassword: string }): Promise<void>;
+}
+
+/**
+ * Sends the email-address change confirmation. Core decides who may ask and
+ * when; the account-link module owns the expiring single-use link, so an
+ * address only becomes the sign-in identity once its mailbox confirms it.
+ */
+export interface EmailChangeRequester {
+  requestEmailChange(
+    principal: Principal,
+    newEmail: string,
+  ): Promise<Result<{ confirmationSent: true }>>;
 }
 
 export interface Authentication {
@@ -100,7 +118,9 @@ export interface Authentication {
   changeEmail(
     principal: Principal,
     request: ChangeEmailRequest,
-  ): Promise<Result<{ changed: true }>>;
+    /** Sends the confirmation link to the new address; core never switches it directly. */
+    links: EmailChangeRequester,
+  ): Promise<Result<{ confirmationSent: true }>>;
   createCredentialAccount(
     principal: Principal,
     request: CreateCredentialAccountRequest,
@@ -496,13 +516,19 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
   async function changeEmail(
     principal: Principal,
     request: ChangeEmailRequest,
-  ): Promise<Result<{ changed: true }>> {
+    links: EmailChangeRequester,
+  ): Promise<Result<{ confirmationSent: true }>> {
+    // The recent-authentication gate comes first, so a stale session is told
+    // to sign in again rather than refused as an address problem.
+    const recent = await recentAuthentication(principal);
+    if (!recent.ok) return recent;
     const admitted = await admittedUser(principal);
     if (!admitted.ok) return admitted;
-    // Changing the sign-in address has to prove ownership of the new mailbox,
-    // so it belongs to the SMTP-backed account flows (ticket 04).
-    void request;
-    return err({ kind: "email-change-unsupported" });
+    if (!recent.value.recent) return err({ kind: "reauthentication-required" });
+
+    // The new address has to prove it is reachable before it becomes the
+    // sign-in identity, so this only sends the confirmation link.
+    return links.requestEmailChange(principal, request.newEmail);
   }
 
   async function createCredentialAccount(

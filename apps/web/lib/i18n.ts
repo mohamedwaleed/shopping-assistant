@@ -70,12 +70,12 @@ export const dictionaries = {
     errorReauthenticationRequired:
       "Sign in again first: changing credentials needs a session from the last few minutes.",
     errorInvalidCurrentPassword: "Your current password is not correct.",
-    errorEmailChangeUnsupported:
-      "Changing your email address arrives with the account email flows. Nothing was changed.",
+    errorInvalidAccountLink:
+      "That link is not valid any more: it may have expired, already been used, or belong to another address. Nothing was changed.",
     errorInvalidOrigin: "That request did not come from this installation.",
     accountTitle: "Account and devices",
     accountIntro:
-      "Review where you are signed in, sign devices out, and change your password.",
+      "Review where you are signed in, sign devices out, change your password and manage your sign-in address.",
     devicesTitle: "Signed-in devices",
     devicesEmpty: "No other devices are signed in.",
     deviceCurrent: "This device",
@@ -93,6 +93,49 @@ export const dictionaries = {
     currentPasswordLabel: "Current password",
     newPasswordLabel: "New password",
     passwordChangedNotice: "Your password was changed. Other devices were signed out.",
+    emailChangeTitle: "Sign-in address",
+    emailChangeIntro:
+      "We email a confirmation link to the new address. The address only becomes your sign-in address after you confirm it, and every device is signed out at that moment.",
+    emailChangeLabel: "New email address",
+    emailChangeRequest: "Send confirmation link",
+    emailChangeSending: "Sending…",
+    emailChangeSent:
+      "Confirmation sent. Open the link in the new mailbox within thirty minutes; until then nothing changes.",
+    emailChangeRecentAuthRequired:
+      "Sign in again first: changing your sign-in address needs a session from the last few minutes.",
+    forgotPasswordTitle: "Forgot your password?",
+    forgotPasswordIntro:
+      "Enter your email address and we send a reset link that works once and expires in thirty minutes. Every signed-in device is signed out when the link is used.",
+    forgotPasswordSubmit: "Send reset link",
+    forgotPasswordWorking: "Sending…",
+    forgotPasswordSent:
+      "If an account uses that address, a reset link is on its way. The answer is the same for every address.",
+    forgotPasswordAdminNote:
+      "Lost the installation administrator password? An operator recovers it on the server; see the administrator recovery runbook.",
+    forgotPasswordLink: "Forgot your password?",
+    passwordResetTitle: "Choose a new password",
+    passwordResetIntro:
+      "The link works once and expires thirty minutes after it was sent. Every device is signed out once you set the new password.",
+    passwordResetSubmit: "Set new password",
+    passwordResetWorking: "Saving…",
+    invitationTitle: "Accept your invitation",
+    invitationIntro:
+      "Choose your name and a password. This creates your own private workspace; nothing from another shopper is shared with it.",
+    invitationSubmit: "Accept invitation",
+    invitationWorking: "Accepting…",
+    invitationMissingToken:
+      "This invitation link is incomplete. Open the link from the invitation email again, or ask the administrator for a new invitation.",
+    inviteTitle: "Invite a shopper",
+    inviteIntro:
+      "The invitation works once, is tied to the address it is sent to, and expires in seven days. Accepting it creates a private workspace for that shopper alone.",
+    inviteHint: "The invitation goes to this address and cannot be used by another one.",
+    inviteSubmit: "Send invitation",
+    inviteWorking: "Sending…",
+    inviteSent: "Invitation sent. It expires in seven days.",
+    emailChangeConfirmTitle: "Confirm your new email address",
+    emailChangeConfirmIntro:
+      "Confirming makes this address your sign-in address and signs out every device.",
+    emailChangeConfirmSubmit: "Confirm new address",
     accountSessionsExpired: "Your session has ended. Sign in again.",
     backToProducts: "Back to products",
     navAdministration: "Administration",
@@ -289,12 +332,12 @@ export const dictionaries = {
     errorReauthenticationRequired:
       "Meld je eerst opnieuw aan: inloggegevens wijzigen vereist een sessie van de laatste paar minuten.",
     errorInvalidCurrentPassword: "Je huidige wachtwoord is niet juist.",
-    errorEmailChangeUnsupported:
-      "Je e-mailadres wijzigen komt met de e-mailflows voor accounts. Er is niets gewijzigd.",
+    errorInvalidAccountLink:
+      "Die link is niet meer geldig: verlopen, al gebruikt of van een ander adres. Er is niets gewijzigd.",
     errorInvalidOrigin: "Dat verzoek kwam niet van deze installatie.",
     accountTitle: "Account en apparaten",
     accountIntro:
-      "Bekijk waar je bent aangemeld, meld apparaten af en wijzig je wachtwoord.",
+      "Bekijk waar je bent aangemeld, meld apparaten af, wijzig je wachtwoord en beheer je inlogadres.",
     devicesTitle: "Aangemelde apparaten",
     devicesEmpty: "Er zijn geen andere apparaten aangemeld.",
     deviceCurrent: "Dit apparaat",
@@ -312,6 +355,49 @@ export const dictionaries = {
     currentPasswordLabel: "Huidig wachtwoord",
     newPasswordLabel: "Nieuw wachtwoord",
     passwordChangedNotice: "Je wachtwoord is gewijzigd. Andere apparaten zijn afgemeld.",
+    emailChangeTitle: "Inlogadres",
+    emailChangeIntro:
+      "We mailen een bevestigingslink naar het nieuwe adres. Het adres wordt pas je inlogadres nadat je het bevestigt; op dat moment worden alle apparaten afgemeld.",
+    emailChangeLabel: "Nieuw e-mailadres",
+    emailChangeRequest: "Bevestigingslink sturen",
+    emailChangeSending: "Versturen…",
+    emailChangeSent:
+      "Bevestiging verstuurd. Open de link binnen dertig minuten in de nieuwe mailbox; tot die tijd verandert er niets.",
+    emailChangeRecentAuthRequired:
+      "Meld je eerst opnieuw aan: je inlogadres wijzigen vereist een sessie van de laatste paar minuten.",
+    forgotPasswordTitle: "Wachtwoord vergeten?",
+    forgotPasswordIntro:
+      "Vul je e-mailadres in en we sturen een resetlink die één keer werkt en na dertig minuten verloopt. Bij gebruik worden alle aangemelde apparaten afgemeld.",
+    forgotPasswordSubmit: "Resetlink sturen",
+    forgotPasswordWorking: "Versturen…",
+    forgotPasswordSent:
+      "Als er een account met dat adres bestaat, is er een resetlink onderweg. Het antwoord is voor elk adres hetzelfde.",
+    forgotPasswordAdminNote:
+      "Wachtwoord van de installatiebeheerder kwijt? Een beheerder van de server herstelt het; zie de runbook voor beheerdersherstel.",
+    forgotPasswordLink: "Wachtwoord vergeten?",
+    passwordResetTitle: "Kies een nieuw wachtwoord",
+    passwordResetIntro:
+      "De link werkt één keer en verloopt dertig minuten na verzending. Zodra je het nieuwe wachtwoord instelt, worden alle apparaten afgemeld.",
+    passwordResetSubmit: "Nieuw wachtwoord instellen",
+    passwordResetWorking: "Opslaan…",
+    invitationTitle: "Accepteer je uitnodiging",
+    invitationIntro:
+      "Kies je naam en een wachtwoord. Dit maakt je eigen privéwerkruimte; gegevens van andere shoppers worden niet gedeeld.",
+    invitationSubmit: "Uitnodiging accepteren",
+    invitationWorking: "Accepteren…",
+    invitationMissingToken:
+      "Deze uitnodigingslink is onvolledig. Open de link uit de uitnodigingsmail opnieuw, of vraag de beheerder om een nieuwe uitnodiging.",
+    inviteTitle: "Shopper uitnodigen",
+    inviteIntro:
+      "De uitnodiging werkt één keer, hoort bij het adres waarnaar hij gaat en verloopt na zeven dagen. Accepteren maakt een privéwerkruimte voor die shopper alleen.",
+    inviteHint: "De uitnodiging gaat naar dit adres en werkt niet voor een ander adres.",
+    inviteSubmit: "Uitnodiging sturen",
+    inviteWorking: "Versturen…",
+    inviteSent: "Uitnodiging verstuurd. Deze verloopt na zeven dagen.",
+    emailChangeConfirmTitle: "Bevestig je nieuwe e-mailadres",
+    emailChangeConfirmIntro:
+      "Na bevestigen wordt dit je inlogadres en worden alle apparaten afgemeld.",
+    emailChangeConfirmSubmit: "Nieuw adres bevestigen",
     accountSessionsExpired: "Je sessie is beëindigd. Meld je opnieuw aan.",
     backToProducts: "Terug naar producten",
     navAdministration: "Beheer",

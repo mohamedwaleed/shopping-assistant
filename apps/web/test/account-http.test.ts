@@ -443,10 +443,12 @@ describe("POST /api/account/password", () => {
 });
 
 describe("POST /api/account/email", () => {
-  it("refuses email changes until the SMTP-backed flows own them", async () => {
+  it("never switches the sign-in address without the new mailbox confirming it", async () => {
     await claim();
     const cookie = await signIn(ADMIN_EMAIL, ADMIN_PASSWORD);
 
+    // This suite has no SMTP settings, so the confirmation cannot be sent and
+    // the endpoint reports that instead of a change that will never happen.
     const res = await emailRoute.POST(
       jsonRequest(
         "http://localhost:3000/api/account/email",
@@ -455,10 +457,11 @@ describe("POST /api/account/email", () => {
       ),
     );
     expect(res.status).toBe(409);
-    expect((await res.json()).error.kind).toBe("email-change-unsupported");
+    expect((await res.json()).error).toEqual({ kind: "mail-not-configured", missing: "smtp" });
 
     const stored = await db("user").where({ email: ADMIN_EMAIL }).first();
     expect(stored).toBeDefined();
+    expect(await db("user").where({ email: "someone@example.com" })).toEqual([]);
   });
 });
 

@@ -12,7 +12,9 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   "access-disabled": 403,
   "invalid-credentials": 401,
   "reauthentication-required": 403,
-  "email-change-unsupported": 409,
+  // An invitation, reset or email-change link that is unknown, expired, spent
+  // or bound elsewhere: one answer, so it cannot tell the four apart.
+  "invalid-account-link": 400,
   /** The request came from another origin than the one it was sent to. */
   "invalid-origin": 403,
   "mail-not-configured": 409,

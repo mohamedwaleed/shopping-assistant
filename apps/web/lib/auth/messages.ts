@@ -37,8 +37,8 @@ export function accountErrorMessage(error: CoreError, t: Dictionary): string {
       return t.errorReauthenticationRequired;
     case "invalid-credentials":
       return t.errorInvalidCredentials;
-    case "email-change-unsupported":
-      return t.errorEmailChangeUnsupported;
+    case "invalid-account-link":
+      return t.errorInvalidAccountLink;
     case "invalid-origin":
       return t.errorInvalidOrigin;
     case "invalid-input":

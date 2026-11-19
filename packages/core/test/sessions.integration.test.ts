@@ -448,6 +448,9 @@ describe("devices, sessions and password changes through the core", () => {
         changePassword: async () => {
           throw new Error("must not run");
         },
+        setPassword: async () => {
+          throw new Error("must not run");
+        },
         changeEmail: async () => {
           throw new Error("must not run");
         },
@@ -493,6 +496,9 @@ describe("devices, sessions and password changes through the core", () => {
           sessionId: string;
         }) => {
           changes.push(input);
+        },
+        setPassword: async () => {
+          throw new Error("must not run");
         },
         changeEmail: async () => {
           throw new Error("email changes belong to the SMTP-backed account flows");
@@ -544,6 +550,9 @@ describe("devices, sessions and password changes through the core", () => {
         changePassword: async () => {
           throw new Error("must not run");
         },
+        setPassword: async () => {
+          throw new Error("must not run");
+        },
         changeEmail: async () => {
           throw new Error("must not run");
         },
@@ -579,6 +588,9 @@ describe("devices, sessions and password changes through the core", () => {
       const credentials = {
         changePassword: async (input: { userId: string }) => {
           changes.push(input.userId);
+        },
+        setPassword: async () => {
+          throw new Error("must not run");
         },
         changeEmail: async () => {
           throw new Error("must not run");
@@ -619,6 +631,9 @@ describe("devices, sessions and password changes through the core", () => {
         changePassword: async () => {
           throw new Error("must not run");
         },
+        setPassword: async () => {
+          throw new Error("must not run");
+        },
         changeEmail: async () => {
           throw new Error("must not run");
         },
@@ -638,11 +653,38 @@ describe("devices, sessions and password changes through the core", () => {
       ).toEqual({ ok: false, error: { kind: "invalid-credentials" } });
     });
 
-    it("leaves email changes to the SMTP-backed account flows", async () => {
+    it("requires recent authentication before an email change is confirmed", async () => {
       const ada = await person("ada@example.nl", "Ada's workspace");
+      const requests: string[] = [];
+      const links = {
+        requestEmailChange: async (_principal: Principal, newEmail: string) => {
+          requests.push(newEmail);
+          return { ok: true as const, value: { confirmationSent: true as const } };
+        },
+      };
+
+      advance(RECENT_AUTHENTICATION_SECONDS * 1000 + 3000);
       expect(
-        await auth.changeEmail(ada.principal, { newEmail: "ada@example.com" }),
-      ).toEqual({ ok: false, error: { kind: "email-change-unsupported" } });
+        await auth.changeEmail(ada.principal, { newEmail: "ada@example.com" }, links),
+      ).toEqual({ ok: false, error: { kind: "reauthentication-required" } });
+      expect(requests).toEqual([]);
+
+      // Signing in again is what makes the change possible, and even then it
+      // only sends the confirmation for the new address.
+      const fresh = await startSession(ada.userId);
+      expect(
+        await auth.changeEmail(
+          principalForUser(
+            ada.userId,
+            { workspaceId: ada.workspaceId, role: "owner" },
+            false,
+            fresh.sessionId,
+          ),
+          { newEmail: "ada@example.com" },
+          links,
+        ),
+      ).toEqual({ ok: true, value: { confirmationSent: true } });
+      expect(requests).toEqual(["ada@example.com"]);
     });
   });
 

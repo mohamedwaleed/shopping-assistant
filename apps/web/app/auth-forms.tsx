@@ -7,6 +7,7 @@ import { dictionaries } from "@/lib/i18n";
 
 export interface AuthFormState {
   error: string | null;
+  notice?: string;
 }
 
 export type AuthFormAction = (
@@ -138,6 +139,9 @@ export function SignInForm({ lang, action }: { lang: Lang; action: AuthFormActio
         <button className="btn-submit" type="submit" disabled={pending}>
           {pending ? t.signInWorking : t.signInSubmit}
         </button>
+        <p className="auth-note">
+          <a href={`/forgot-password?lang=${lang}`}>{t.forgotPasswordLink}</a>
+        </p>
         <p className="auth-note">{t.signInNoAccount}</p>
       </form>
     </div>
@@ -315,5 +319,256 @@ export function DeviceList({
         <p className="hint">{t.signOutEverywhereHint}</p>
       </form>
     </section>
+  );
+}
+
+/**
+ * Ask for the new sign-in address. The address only changes after the new
+ * mailbox confirms the link, so this form reports the send, never a change.
+ */
+export function EmailChangeForm({
+  lang,
+  action,
+}: {
+  lang: Lang;
+  action: AccountFormAction;
+}) {
+  const t = dictionaries[lang];
+  const [state, formAction, pending] = useActionState(action, { error: null });
+
+  return (
+    <form className="panel" action={formAction} aria-labelledby="email-change-title">
+      <input type="hidden" name="lang" value={lang} />
+      <h2 id="email-change-title">{t.emailChangeTitle}</h2>
+      <p className="muted">{t.emailChangeIntro}</p>
+
+      {state.error && (
+        <div className="notice notice-error" role="alert">
+          {state.error}
+        </div>
+      )}
+      {state.notice && (
+        <div className="notice notice-info" role="status">
+          {state.notice}
+        </div>
+      )}
+
+      <div className="field">
+        <label htmlFor="newEmail">{t.emailChangeLabel}</label>
+        <input id="newEmail" name="newEmail" type="email" autoComplete="email" required />
+      </div>
+
+      <button className="btn-submit" type="submit" disabled={pending}>
+        {pending ? t.emailChangeSending : t.emailChangeRequest}
+      </button>
+    </form>
+  );
+}
+
+/** Accept an invitation: the token names the address the account is created for. */
+export function AcceptInvitationForm({
+  lang,
+  action,
+  token,
+}: {
+  lang: Lang;
+  action: AuthFormAction;
+  token: string;
+}) {
+  const t = dictionaries[lang];
+  const [state, formAction, pending] = useActionState(action, { error: null });
+
+  return (
+    <div className="auth-shell" lang={lang}>
+      <div className="auth-header">
+        <span className="brand">{t.appName}</span>
+        <LanguageSwitch lang={lang} />
+      </div>
+      <form className="auth-card" action={formAction} aria-labelledby="invitation-title">
+        <input type="hidden" name="lang" value={lang} />
+        <input type="hidden" name="token" value={token} />
+        <h1 id="invitation-title">{t.invitationTitle}</h1>
+        <p className="lede">{t.invitationIntro}</p>
+
+        {state.error && (
+          <div className="notice notice-error" role="alert">
+            {state.error}
+          </div>
+        )}
+
+        <div className="field">
+          <label htmlFor="invitation-name">{t.nameLabel}</label>
+          <input id="invitation-name" name="name" type="text" autoComplete="name" required />
+        </div>
+
+        <div className="field">
+          <label htmlFor="invitation-password">{t.passwordLabel}</label>
+          <input
+            id="invitation-password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            minLength={10}
+            required
+          />
+          <span className="hint">{t.passwordHint}</span>
+        </div>
+
+        <button className="btn-submit" type="submit" disabled={pending}>
+          {pending ? t.invitationWorking : t.invitationSubmit}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/** Choose a new password from a reset or email-change link. */
+export function NewPasswordForm({
+  lang,
+  action,
+  token,
+  title,
+  intro,
+  submit,
+}: {
+  lang: Lang;
+  action: AuthFormAction;
+  token: string;
+  title: string;
+  intro: string;
+  submit: string;
+}) {
+  const t = dictionaries[lang];
+  const [state, formAction, pending] = useActionState(action, { error: null });
+
+  return (
+    <div className="auth-shell" lang={lang}>
+      <div className="auth-header">
+        <span className="brand">{t.appName}</span>
+        <LanguageSwitch lang={lang} />
+      </div>
+      <form className="auth-card" action={formAction} aria-labelledby="new-password-title">
+        <input type="hidden" name="lang" value={lang} />
+        <input type="hidden" name="token" value={token} />
+        <h1 id="new-password-title">{title}</h1>
+        <p className="lede">{intro}</p>
+
+        {state.error && (
+          <div className="notice notice-error" role="alert">
+            {state.error}
+          </div>
+        )}
+
+        <div className="field">
+          <label htmlFor="reset-password">{t.newPasswordLabel}</label>
+          <input
+            id="reset-password"
+            name="newPassword"
+            type="password"
+            autoComplete="new-password"
+            minLength={10}
+            required
+          />
+          <span className="hint">{t.passwordHint}</span>
+        </div>
+
+        <button className="btn-submit" type="submit" disabled={pending}>
+          {pending ? t.passwordResetWorking : submit}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/** Ask for a reset link; the screen answers the same whatever the address is. */
+export function ForgotPasswordForm({
+  lang,
+  action,
+}: {
+  lang: Lang;
+  action: AuthFormAction;
+}) {
+  const t = dictionaries[lang];
+  const [state, formAction, pending] = useActionState(action, { error: null });
+
+  return (
+    <div className="auth-shell" lang={lang}>
+      <div className="auth-header">
+        <span className="brand">{t.appName}</span>
+        <LanguageSwitch lang={lang} />
+      </div>
+      <form className="auth-card" action={formAction} aria-labelledby="forgot-title">
+        <input type="hidden" name="lang" value={lang} />
+        <h1 id="forgot-title">{t.forgotPasswordTitle}</h1>
+        <p className="lede">{t.forgotPasswordIntro}</p>
+
+        {state.error && (
+          <div className="notice notice-error" role="alert">
+            {state.error}
+          </div>
+        )}
+        {state.notice && (
+          <div className="notice notice-info" role="status">
+            {state.notice}
+          </div>
+        )}
+
+        <div className="field">
+          <label htmlFor="forgot-email">{t.emailLabel}</label>
+          <input id="forgot-email" name="email" type="email" autoComplete="email" required />
+        </div>
+
+        <button className="btn-submit" type="submit" disabled={pending}>
+          {pending ? t.forgotPasswordWorking : t.forgotPasswordSubmit}
+        </button>
+        <p className="auth-note">{t.forgotPasswordAdminNote}</p>
+      </form>
+    </div>
+  );
+}
+
+/** Invite a shopper from the administration screen. */
+export function InviteShopperForm({
+  lang,
+  action,
+}: {
+  lang: Lang;
+  action: AccountFormAction;
+}) {
+  const t = dictionaries[lang];
+  const [state, formAction, pending] = useActionState(action, { error: null });
+
+  return (
+    <form className="panel" action={formAction} aria-labelledby="invite-title">
+      <input type="hidden" name="lang" value={lang} />
+      <h2 id="invite-title">{t.inviteTitle}</h2>
+      <p className="muted">{t.inviteIntro}</p>
+
+      {state.error && (
+        <div className="notice notice-error" role="alert">
+          {state.error}
+        </div>
+      )}
+      {state.notice && (
+        <div className="notice notice-info" role="status">
+          {state.notice}
+        </div>
+      )}
+
+      <div className="field">
+        <label htmlFor="invite-name">{t.nameLabel}</label>
+        <input id="invite-name" name="name" type="text" autoComplete="off" required />
+      </div>
+
+      <div className="field">
+        <label htmlFor="invite-email">{t.emailLabel}</label>
+        <input id="invite-email" name="email" type="email" autoComplete="off" required />
+        <span className="hint">{t.inviteHint}</span>
+      </div>
+
+      <button className="btn-submit" type="submit" disabled={pending}>
+        {pending ? t.inviteWorking : t.inviteSubmit}
+      </button>
+    </form>
   );
 }

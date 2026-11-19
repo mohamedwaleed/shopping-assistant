@@ -3,8 +3,13 @@ import { redirect } from "next/navigation";
 import { getCore } from "@/lib/core";
 import { requestIdentity } from "@/lib/auth/session";
 import { dictionaries, resolveLang } from "@/lib/i18n";
-import { signOutAction, saveEmailSettingsAction, sendDiagnosticAction } from "@/app/actions";
-import { SignOutButton } from "@/app/auth-forms";
+import {
+  signOutAction,
+  saveEmailSettingsAction,
+  sendDiagnosticAction,
+  inviteShopperAction,
+} from "@/app/actions";
+import { InviteShopperForm, SignOutButton } from "@/app/auth-forms";
 import { EmailSettingsForm } from "@/app/administration/email/email-form";
 
 export const dynamic = "force-dynamic";
@@ -70,6 +75,7 @@ export default async function EmailSettingsPage({
               saveAction={saveEmailSettingsAction}
               diagnosticAction={sendDiagnosticAction}
             />
+            <InviteShopperForm lang={lang} action={inviteShopperAction} />
           </>
         )}
       </main>

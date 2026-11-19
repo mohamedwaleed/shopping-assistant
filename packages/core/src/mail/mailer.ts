@@ -124,6 +124,14 @@ export interface Mailer {
     principal: Principal,
     transport: MailTransport,
   ): Promise<Result<MailDelivery>>;
+  /**
+   * Deliver one transactional message through the stored SMTP settings. The
+   * caller has already decided who may receive it (an invitation, a reset
+   * link); this only decrypts the stored credentials, sends and reports the
+   * same outcome contract as the diagnostic. Delivery failures are recorded
+   * on the installation so an administrator sees that email is failing.
+   */
+  send(transport: MailTransport, message: MailMessage): Promise<Result<MailDelivery>>;
 }
 
 export interface MailerDependencies {
@@ -325,8 +333,6 @@ export function createMailer(deps: MailerDependencies): Mailer {
     const stored = row.smtp_settings;
     if (!stored) return err({ kind: "mail-not-configured", missing: "smtp" });
     if (!stored.recipient) return err({ kind: "mail-not-configured", missing: "recipient" });
-    const secret = installationSecret();
-    if (!secret.ok) return secret;
 
     // A diagnostic send is a deliberate, rate-limited action: the last attempt
     // is persisted, so a second send has to wait for the cooldown to pass.
@@ -349,6 +355,36 @@ export function createMailer(deps: MailerDependencies): Mailer {
       }
     }
 
+    return deliver(
+      transport,
+      stored,
+      {
+        to: stored.recipient,
+        subject: "Shopping Assistant diagnostic message",
+        text: [
+          "This is a diagnostic message from your Shopping Assistant installation.",
+          "",
+          "If you received it, transactional email delivery works. No shopper data is included.",
+        ].join("\n"),
+      },
+      attemptedAt,
+    );
+  }
+
+  /**
+   * One delivery through the stored settings, recording the outcome. The
+   * stored password is decrypted here and never leaves this function, and a
+   * reported reason is redacted before it can reach a log or a response.
+   */
+  async function deliver(
+    transport: MailTransport,
+    stored: StoredSettings,
+    message: MailMessage,
+    attemptedAt: Date,
+  ): Promise<Result<MailDelivery>> {
+    const secret = installationSecret();
+    if (!secret.ok) return secret;
+
     let password: string;
     try {
       password = openSecret(stored.passwordCiphertext, secret.value);
@@ -361,7 +397,7 @@ export function createMailer(deps: MailerDependencies): Mailer {
     }
 
     const attemptedIso = attemptedAt.toISOString();
-    const recipient = stored.recipient;
+    const recipient = message.to;
     try {
       const delivery = await transport.deliver(
         {
@@ -373,15 +409,7 @@ export function createMailer(deps: MailerDependencies): Mailer {
           fromAddress: stored.fromAddress,
           fromName: stored.fromName,
         },
-        {
-          to: recipient,
-          subject: "Shopping Assistant diagnostic message",
-          text: [
-            "This is a diagnostic message from your Shopping Assistant installation.",
-            "",
-            "If you received it, transactional email delivery works. No shopper data is included.",
-          ].join("\n"),
-        },
+        message,
       );
       const delivered: MailDeliveryView = {
         outcome: "delivered",
@@ -417,5 +445,19 @@ export function createMailer(deps: MailerDependencies): Mailer {
     }
   }
 
-  return { settings, saveSettings, sendDiagnostic };
+  async function send(
+    transport: MailTransport,
+    message: MailMessage,
+  ): Promise<Result<MailDelivery>> {
+    const row = await installation();
+    const stored = row.smtp_settings;
+    if (!stored) return err({ kind: "mail-not-configured", missing: "smtp" });
+    const recipient = message.to.trim().toLowerCase();
+    if (!EMAIL_PATTERN.test(recipient)) {
+      return err({ kind: "invalid-input", field: "to", message: "to must be a valid address" });
+    }
+    return deliver(transport, stored, { ...message, to: recipient }, now());
+  }
+
+  return { settings, saveSettings, sendDiagnostic, send };
 }

@@ -167,6 +167,127 @@ export async function changePasswordAction(
   return { error: null, notice: t.passwordChangedNotice };
 }
 
+/**
+ * Ask for the new sign-in address. Core requires recent authentication and
+ * sends the confirmation to the new mailbox; the address only becomes the
+ * identity once that link is confirmed, so the notice never claims a change.
+ */
+export async function changeEmailAction(
+  _previous: AccountFormState,
+  formData: FormData,
+): Promise<AccountFormState> {
+  const lang = resolveLang(text(formData, "lang"));
+  const t = dictionaries[lang];
+  const identity = await requestIdentity();
+  if (!identity) redirect(`/sign-in?lang=${lang}`);
+
+  const core = getCore();
+  const result = await core.auth.changeEmail(
+    identity.trusted.principal,
+    { newEmail: text(formData, "newEmail") },
+    core.accountLinks,
+  );
+  if (!result.ok) return { error: accountErrorMessage(result.error, t) };
+  return { error: null, notice: t.emailChangeSent };
+}
+
+/** Invite a shopper; the invitation creates their own private workspace. */
+export async function inviteShopperAction(
+  _previous: AccountFormState,
+  formData: FormData,
+): Promise<AccountFormState> {
+  const lang = resolveLang(text(formData, "lang"));
+  const t = dictionaries[lang];
+  const identity = await requestIdentity();
+  if (!identity) return { error: t.emailAdministratorsOnly };
+
+  const result = await getCore().accountLinks.invite(identity.trusted.principal, {
+    email: text(formData, "email"),
+    name: text(formData, "name"),
+  });
+  if (!result.ok) return { error: accountErrorMessage(result.error, t) };
+  return { error: null, notice: t.inviteSent };
+}
+
+/**
+ * Accept an invitation. The token comes from the link, and the account is
+ * created for the address the invitation was sent to.
+ */
+export async function acceptInvitationAction(
+  _previous: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const lang = resolveLang(text(formData, "lang"));
+  const t = dictionaries[lang];
+
+  const result = await getCore().accountLinks.acceptInvitation(
+    {
+      token: text(formData, "token"),
+      name: text(formData, "name"),
+      password: text(formData, "password"),
+    },
+    createAccountProvisioner(getAuth(), getDb()),
+  );
+  if (!result.ok) return { error: accountErrorMessage(result.error, t) };
+  redirect(`/sign-in?lang=${lang}`);
+}
+
+/**
+ * Ask for a reset link. The answer is the same whatever the address is, so the
+ * screen cannot be used to find out whether an account exists.
+ */
+export async function requestPasswordResetAction(
+  _previous: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const lang = resolveLang(text(formData, "lang"));
+  const t = dictionaries[lang];
+  await getCore().accountLinks.requestPasswordReset({ email: text(formData, "email") });
+  return { error: null, notice: t.forgotPasswordSent };
+}
+
+/** Spend a reset link; every session of that account is signed out. */
+export async function resetPasswordAction(
+  _previous: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const lang = resolveLang(text(formData, "lang"));
+  const t = dictionaries[lang];
+  const requestHeaders = await headers();
+
+  const result = await getCore().accountLinks.resetPassword(
+    { token: text(formData, "token"), newPassword: text(formData, "newPassword") },
+    createCredentialChanger(getAuth(), getDb(), {
+      cookie: requestHeaders.get("cookie"),
+    }),
+  );
+  if (!result.ok) return { error: accountErrorMessage(result.error, t) };
+  const store = await cookies();
+  for (const name of SESSION_COOKIE_NAMES) store.delete(name);
+  redirect(`/sign-in?lang=${lang}`);
+}
+
+/** Spend the email-change confirmation; the account then signs in as the new address. */
+export async function confirmEmailChangeAction(
+  _previous: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const lang = resolveLang(text(formData, "lang"));
+  const t = dictionaries[lang];
+  const requestHeaders = await headers();
+
+  const result = await getCore().accountLinks.confirmEmailChange(
+    { token: text(formData, "token") },
+    createCredentialChanger(getAuth(), getDb(), {
+      cookie: requestHeaders.get("cookie"),
+    }),
+  );
+  if (!result.ok) return { error: accountErrorMessage(result.error, t) };
+  const store = await cookies();
+  for (const name of SESSION_COOKIE_NAMES) store.delete(name);
+  redirect(`/sign-in?lang=${lang}`);
+}
+
 export async function saveEmailSettingsAction(
   _previous: EmailSettingsState,
   formData: FormData,

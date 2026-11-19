@@ -18,8 +18,11 @@ export type CoreError =
   | { kind: "invalid-credentials" }
   /** The session is valid but older than the recent-authentication window. */
   | { kind: "reauthentication-required" }
-  /** Email-address changes travel through the SMTP-backed account flows. */
-  | { kind: "email-change-unsupported" }
+  /**
+   * An invitation, reset or email-change link is unknown, expired, already
+   * spent or bound to another address. The four are deliberately one answer.
+   */
+  | { kind: "invalid-account-link" }
   /** The request named an origin the installation does not trust. */
   | { kind: "invalid-origin" }
   /** No complete SMTP settings, or no explicit diagnostic recipient. */

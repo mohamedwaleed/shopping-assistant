@@ -13,8 +13,8 @@ export interface CredentialChangerOptions {
  * decides who may change a password and when the change is recent enough; the
  * library verifies the current password, hashes the new one and re-reads the
  * stored session, so a session revoked in between cannot complete the change.
- * Email changes never reach this adapter: they need the SMTP-backed account
- * flows (ticket 04), and core refuses them before any credential work.
+ * An email change reaches this adapter only after the new address confirmed
+ * the expiring link, and core has already revoked the old sessions.
  */
 export function createCredentialChanger(
   auth: ShoppingAuth,
@@ -41,8 +41,26 @@ export function createCredentialChanger(
       });
     },
 
-    async changeEmail() {
-      throw new Error("email changes travel through the SMTP-backed account flows");
+    /**
+     * A spent, unexpired link is the authorization here, so there is no current
+     * password to verify. The library's own reset route always consumes its
+     * verification token, which core does not use, so the credential account's
+     * password is replaced with a hash the library itself produced.
+     */
+    async setPassword({ userId, newPassword }) {
+      const hashed = await auth.$context.then((context) =>
+        context.password.hash(newPassword),
+      );
+      const updated = await db("account")
+        .where({ user_id: userId, provider_id: "credential" })
+        .update({ password: hashed, updated_at: new Date() });
+      if (updated === 0) throw new Error("no credential account to update");
+    },
+
+    async changeEmail({ userId, newEmail }) {
+      await db("user")
+        .where({ id: userId })
+        .update({ email: newEmail, email_verified: true, updated_at: new Date() });
     },
   };
 }

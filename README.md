@@ -30,8 +30,19 @@ with the administrator's name, email and password; that claim creates the first
 administrator and their private workspace and then stops working. No SMTP
 server is needed, and the claim does not assert email ownership. Afterwards
 `/sign-in` is the entry point, and `?lang=nl` switches any screen to Dutch.
-Public registration stays closed: further accounts arrive through invitations
-(a later ticket). Set `BETTER_AUTH_SECRET` to a generated value whenever the app
+Public registration stays closed: further accounts arrive through invitations.
+An administrator invites a shopper from `/administration/email`, and the
+invitation email carries a link that works once, is tied to the invited address
+and expires after seven days; accepting it creates that shopper's own private
+workspace. Password recovery and email-address changes use the same kind of
+expiring single-use link, delivered over the installation's SMTP settings, so
+configure email before relying on them. Invitations, resets and confirmations
+share one table and one module: see
+[ADR 0013](docs/adr/0013-expiring-account-links.md). Losing the administrator's
+password is recovered on the host with `pnpm admin:recover`, never from the
+browser: see [administrator recovery](docs/runbooks/administrator-recovery.md).
+
+Set `BETTER_AUTH_SECRET` to a generated value whenever the app
 is reachable beyond your machine, and set `INSTALLATION_SECRET` (at least 16
 characters) before saving credentials such as the SMTP password: it encrypts
 them at rest and is held outside PostgreSQL, so changing it makes stored

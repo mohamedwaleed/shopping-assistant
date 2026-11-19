@@ -17,7 +17,27 @@ export {
   type Authentication,
   type AuthDependencies,
   type CredentialChanger,
+  type EmailChangeRequester,
 } from "./auth/authentication";
+export {
+  ACCOUNT_LINK_LIFETIME_MS,
+  createAccountLinks,
+  INVITATION_LIFETIME_MS,
+  type AccountLinkDependencies,
+  type AccountLinks,
+} from "./auth/account-links";
+export {
+  type AcceptInvitationRequest,
+  type ConfirmEmailChangeRequest,
+  type EmailChangeConfirmationSent,
+  type EmailChangeConfirmed,
+  type InvitedShopper,
+  type InviteRequest,
+  type PasswordResetAccepted,
+  type PasswordResetOutcome,
+  type RequestPasswordResetRequest,
+  type ResetPasswordRequest,
+} from "./auth/account-link-types";
 export {
   hashSetupToken,
   readSetupToken,

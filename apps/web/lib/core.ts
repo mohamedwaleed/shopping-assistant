@@ -4,6 +4,7 @@ import {
   createShoppingCore,
   INSTALLATION_SECRET_ENV,
   MINIMUM_INSTALLATION_SECRET_LENGTH,
+  nodemailerTransport,
   type SecretCipher,
   type ShoppingCore,
 } from "@shopping/core";
@@ -51,6 +52,10 @@ export function getCore(): ShoppingCore {
     core = createShoppingCore({
       db: getDb(),
       models: { cipher: modelCipher(), probe: createAiSdkProbe() },
+      // Account links point back at this deployment, and transactional email
+      // always goes through a real SMTP conversation.
+      baseUrl: () => process.env.BETTER_AUTH_URL,
+      mailTransport: nodemailerTransport(),
     });
   }
   return core;

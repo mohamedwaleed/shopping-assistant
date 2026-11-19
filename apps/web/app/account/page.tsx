@@ -4,16 +4,19 @@ import { getCore } from "@/lib/core";
 import { requestIdentity } from "@/lib/auth/session";
 import { dictionaries, resolveLang } from "@/lib/i18n";
 import {
+  changeEmailAction,
   changePasswordAction,
   revokeAllDevicesAction,
   revokeDeviceAction,
 } from "@/app/actions";
-import { DeviceList, PasswordForm } from "@/app/auth-forms";
+import { DeviceList, EmailChangeForm, PasswordForm } from "@/app/auth-forms";
 
 /**
- * Account settings: the signed-in devices of this account and the password
- * change form. Devices come from stored sessions through the core, so the list
- * shows exactly what a revoke would delete, and nothing about another account.
+ * Account settings: the signed-in devices of this account, the password change
+ * form and the sign-in address. Devices come from stored sessions through the
+ * core, so the list shows exactly what a revoke would delete, and nothing about
+ * another account. An address change only sends a confirmation to the new
+ * mailbox; the identity moves when that link is confirmed.
  */
 export default async function Account({
   searchParams,
@@ -57,6 +60,7 @@ export default async function Account({
           revokeAllAction={revokeAllDevicesAction}
         />
         <PasswordForm lang={lang} action={changePasswordAction} />
+        <EmailChangeForm lang={lang} action={changeEmailAction} />
       </main>
     </div>
   );
