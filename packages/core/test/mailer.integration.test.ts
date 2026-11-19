@@ -351,7 +351,10 @@ describe("protected SMTP settings and diagnostic delivery", () => {
     expect(await send.sendDiagnostic(admin, transport())).toMatchObject({ ok: true });
 
     // The cooldown is persisted, so a fresh mailer cannot bypass it either.
-    const tooSoon = await mailer().sendDiagnostic(admin, transport());
+    // It must read the same clock as the first send, or the wall clock decides
+    // the outcome and the assertion only holds when the test runs near 09:00.
+    const fresh = createMailer({ db, installationSecret: SECRET, now: time.now });
+    const tooSoon = await fresh.sendDiagnostic(admin, transport());
     expect(tooSoon).toEqual({
       ok: false,
       error: { kind: "mail-diagnostic-cooldown", retryAfterSeconds: 30 },
