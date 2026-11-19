@@ -22,6 +22,7 @@ export type FixtureMode =
   /** Answers valid JSON of another shape, ignoring the requested schema. */
   | "no-structured-schema"
   | "no-streaming"
+  | "malformed-tools"
   | "unauthorized"
   | "unreachable";
 
@@ -48,6 +49,7 @@ const MODELS: Record<string, FixtureMode> = {
   "fixture-model-no-structured": "no-structured-output",
   "fixture-model-json-prose": "no-structured-schema",
   "fixture-model-no-streaming": "no-streaming",
+  "fixture-model-malformed-tools": "malformed-tools",
   "fixture-model-unauthorized": "unauthorized",
   "fixture-model-unreachable": "unreachable",
 };
@@ -145,6 +147,7 @@ interface Reply {
   kind: "tool-call" | "final" | "structured" | "text";
   toolName?: string;
   text: string;
+  malformed?: boolean;
 }
 
 /**
@@ -182,7 +185,7 @@ function replyFor(
   tools: ToolSpec[],
 ): Reply {
   if (prompt.includes("Call the requirements_update tool") && tools.length > 0) {
-    return { kind: "tool-call", toolName: tools.find((tool) => tool.name === "requirements_update")?.name ?? tools[0]!.name, text: "" };
+    return { kind: "tool-call", toolName: tools.find((tool) => tool.name === "requirements_update")?.name ?? tools[0]!.name, text: "", malformed: mode === "malformed-tools" };
   }
   if (prompt.includes(TOOL_CALL_MARKER) && mode !== "no-tools" && tools.length > 0) {
     return { kind: "tool-call", toolName: tools[0]!.name, text: "" };
@@ -426,7 +429,7 @@ function chatCompletionEvents(reply: Reply): string[] {
     );
     events.push(
       chunk(
-        { tool_calls: [{ index: 0, function: { arguments: JSON.stringify(reply.toolName === "requirements_update" ? { mustHaves: ["under €1000"], preferences: ["quiet"], assumptions: ["delivery in the Netherlands"], questions: ["What screen size?"], revisionNote: "fixture extraction" } : { value: "fixture" }) } }] },
+        { tool_calls: [{ index: 0, function: { arguments: JSON.stringify(reply.malformed ? { value: "fixture" } : reply.toolName === "requirements_update" ? { mustHaves: ["under €1000"], preferences: ["quiet"], assumptions: ["delivery in the Netherlands"], questions: ["What screen size?"], revisionNote: "fixture extraction" } : { value: "fixture" }) } }] },
         null,
       ),
     );

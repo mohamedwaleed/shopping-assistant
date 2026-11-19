@@ -45,6 +45,7 @@ export async function POST(request: Request): Promise<Response> {
         description: "Persist visible must-haves, preferences, assumptions, and material clarification questions.",
         inputSchema: jsonSchema<{ mustHaves: string[]; preferences: string[]; assumptions: string[]; questions: string[]; revisionNote: string }>({ type: "object", properties: { mustHaves: { type: "array", items: { type: "string" } }, preferences: { type: "array", items: { type: "string" } }, assumptions: { type: "array", items: { type: "string" } }, questions: { type: "array", items: { type: "string" } }, revisionNote: { type: "string" } }, required: ["mustHaves", "preferences", "assumptions", "questions", "revisionNote"], additionalProperties: false }),
         execute: async (input) => {
+          if (![input.mustHaves, input.preferences, input.assumptions, input.questions].every(Array.isArray) || typeof input.revisionNote !== "string") throw new Error("invalid requirements tool output");
           const updated = await core.chat.applyRequirements(principal, sessionId, input);
           if (!updated.ok) throw new Error(updated.error.kind);
           return updated.value;

@@ -27,4 +27,11 @@ describe("shopping chat through the pinned AI SDK runtime", () => {
     const malformed = streamText({ model: languageModel({ provider: "compatible", modelId: "fixture-model-unauthorized", endpoint: `${fixture.baseUrl}/compatible/v1` }, "fixture-secret"), prompt: "hello" });
     await expect(malformed.text).rejects.toThrow();
   });
+
+  it("rejects malformed typed tool arguments without executing the authorized tool", async () => {
+    let executed = false;
+    const result = streamText({ model: languageModel({ provider: "compatible", modelId: "fixture-model-malformed-tools", endpoint: `${fixture.baseUrl}/compatible/v1` }, "fixture-secret"), prompt: "Call the requirements_update tool for this shopping request.", tools: { requirements_update: tool({ description: "Save requirements", inputSchema: jsonSchema<{ mustHaves: string[] }>({ type: "object", properties: { mustHaves: { type: "array", items: { type: "string" } } }, required: ["mustHaves"] }), execute: async (input) => { if (!Array.isArray(input.mustHaves)) throw new Error("invalid requirements tool output"); executed = true; return {}; } }) } });
+    await result.consumeStream();
+    expect(executed).toBe(false);
+  });
 });
