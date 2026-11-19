@@ -3,6 +3,7 @@ import type { Knex } from "knex";
 import { err, ok, type Result } from "./errors";
 import { addMoney } from "./money";
 import { isAuthorized, type Principal } from "./principal";
+import { canonicalizeAttributeValue } from "./attribute-values";
 
 export interface VariantPrice {
   /** Price before delivery, e.g. "559.00". */
@@ -191,10 +192,12 @@ export async function reviewAttributeClaim(db: Knex, principal: Principal, claim
   if (canonicalKey === null) { await db("source_claims").where({ id: claimId }).update({ mapping_status: "rejected" }); return ok(undefined); }
   const attribute = await db("catalogue_attributes").where({ key: canonicalKey }).first();
   if (!attribute) return err({ kind: "invalid-input", field: "canonicalKey", message: "Unknown canonical attribute" });
+  const canonicalValue = canonicalizeAttributeValue({ key: attribute.key, valueType: attribute.value_type, unit: attribute.unit }, claim.value);
+  if (canonicalValue === null) return err({ kind: "invalid-input", field: "canonicalKey", message: "Claim value is not compatible with this attribute type or unit" });
   await db.transaction(async (trx) => {
     await trx("source_claims").where({ id: claimId }).update({ mapping_status: "accepted", canonical_attribute_id: attribute.id });
     const variant = await trx("variants").where({ id: claim.variant_id }).first();
-    await trx("variants").where({ id: claim.variant_id }).update({ attributes: { ...(variant.attributes ?? {}), [canonicalKey]: claim.value } });
+    await trx("variants").where({ id: claim.variant_id }).update({ attributes: { ...(variant.attributes ?? {}), [canonicalKey]: canonicalValue } });
     await trx("attribute_assessments").where({ variant_id: claim.variant_id, attribute_id: attribute.id }).whereNull("invalidated_at").update({ invalidated_at: trx.fn.now() });
   });
   return ok(undefined);

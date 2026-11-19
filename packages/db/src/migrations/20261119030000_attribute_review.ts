@@ -29,9 +29,15 @@ export async function up(knex: Knex): Promise<void> {
   await knex("catalogue_attributes").insert([
     { key: "colour", value_type: "text", is_common: true },
     { key: "power_w", value_type: "number", unit: "W", is_common: true },
+    { key: "screen_size_inch", value_type: "number", unit: "in", is_common: true },
   ]);
   const power = await knex("catalogue_attributes").where({ key: "power_w" }).first();
-  await knex("catalogue_attribute_synonyms").insert({ attribute_id: power.id, synonym: "watt" });
+  const screen = await knex("catalogue_attributes").where({ key: "screen_size_inch" }).first();
+  await knex("catalogue_attribute_synonyms").insert([
+    { attribute_id: power.id, synonym: "watt" },
+    { attribute_id: power.id, synonym: "watts" },
+    { attribute_id: screen.id, synonym: "screen size" },
+  ]);
 }
 
 export async function down(knex: Knex): Promise<void> {

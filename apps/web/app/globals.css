@@ -200,6 +200,10 @@ a {
   white-space: nowrap;
 }
 
+.review-card label { display: grid; gap: 5px; max-width: 320px; font-size: 13px; font-weight: 600; }
+.review-card input { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--panel); color: var(--text); }
+.review-actions { display: flex; gap: 8px; margin-top: 12px; }
+
 .error-panel {
   border: 1px solid var(--error);
   border-radius: 12px;

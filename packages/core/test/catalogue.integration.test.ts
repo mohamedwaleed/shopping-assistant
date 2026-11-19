@@ -147,15 +147,15 @@ describe("catalogue page ingestion through the core", () => {
   });
 
   it("keeps unfamiliar claims unresolved and lets only an administrator validate a canonical mapping", async () => {
-    const unknown = createShoppingCore({ db, ingestion: { sourcePolicy: permitted, resolve: async () => ["203.0.113.10"], fetch: async () => new Response(PAGE.replace("1234567890123", "2345678901234").replace('name":"colour","value":"blue', 'name":"watts","value":"90')), now: () => new Date("2026-11-19T10:00:00Z") }, models: { cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }), probe: async () => { throw new Error("unused"); } } });
+    const unknown = createShoppingCore({ db, ingestion: { sourcePolicy: permitted, resolve: async () => ["203.0.113.10"], fetch: async () => new Response(PAGE.replace("1234567890123", "2345678901234").replace('name":"colour","value":"blue', 'name":"mystery power","value":"90')), now: () => new Date("2026-11-19T10:00:00Z") }, models: { cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }), probe: async () => { throw new Error("unused"); } } });
     const result = await unknown.catalogue.ingestProductPage(shopper, "https://shop.example.test/products/unknown-attribute");
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
     const before = await core.catalogue.getVariantOfferDetail(anonymous, result.value.variantId);
-    expect(before.ok && before.value.variant.attributes).not.toHaveProperty("watts");
+    expect(before.ok && before.value.variant.attributes).not.toHaveProperty("mystery power");
     expect(before.ok && before.value.claims).toContainEqual(expect.objectContaining({
-      field: "attribute.watts", mappingStatus: "unresolved",
+      field: "attribute.mystery power", mappingStatus: "unresolved",
     }));
 
     const denied = await core.catalogue.listAttributeReviews(shopper);
@@ -163,7 +163,7 @@ describe("catalogue page ingestion through the core", () => {
     const queue = await core.catalogue.listAttributeReviews({ kind: "administrator", userId: "admin", workspaceId: "workspace", sessionId: "session" });
     expect(queue.ok).toBe(true);
     if (!queue.ok) return;
-    const claim = queue.value.find((item) => item.rawName === "watts");
+    const claim = queue.value.find((item) => item.rawName === "mystery power");
     expect(claim).toBeDefined();
     if (!claim) return;
 
@@ -176,7 +176,23 @@ describe("catalogue page ingestion through the core", () => {
     expect(await core.catalogue.reviewAttributeClaim({ kind: "administrator", userId: "admin", workspaceId: "workspace", sessionId: "session" }, claim.id, "power_w")).toMatchObject({ ok: true });
     expect(await db("attribute_assessments").where({ variant_id: result.value.variantId }).first()).toMatchObject({ invalidated_at: expect.any(Date) });
     const after = await core.catalogue.getVariantOfferDetail(anonymous, result.value.variantId);
-    expect(after.ok && after.value.variant.attributes).toMatchObject({ power_w: "90" });
+    expect(after.ok && after.value.variant.attributes).toMatchObject({ power_w: 90 });
+  });
+
+  it("normalizes supported units across categories without excluding unfamiliar attributes", async () => {
+    const monitor = PAGE.replace("Acme Sound 1", "Acme Monitor 2").replace("1234567890123", "3456789012345").replace('name":"colour","value":"blue', 'name":"screen size","value":"68.58","unitText":"cm').replace('"@type":"Product",', '"@type":"Product","category":"Monitors",');
+    const kitchen = PAGE.replace("Acme Sound 1", "Acme Kettle 3").replace("1234567890123", "4567890123456").replace('name":"colour","value":"blue', 'name":"watt","value":"1.8","unitCode":"kW').replace('"@type":"Product",', '"@type":"Product","category":"Kitchen",');
+    const source = createShoppingCore({ db, ingestion: { sourcePolicy: permitted, resolve: async () => ["203.0.113.10"], fetch: async (url) => new Response(url.includes("monitor") ? monitor : kitchen), now: () => new Date("2026-11-19T10:00:00Z") }, models: { cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }), probe: async () => { throw new Error("unused"); } } });
+    const monitorResult = await source.catalogue.ingestProductPage(shopper, "https://shop.example.test/products/monitor");
+    const kitchenResult = await source.catalogue.ingestProductPage(shopper, "https://shop.example.test/products/kitchen");
+    expect(monitorResult.ok && kitchenResult.ok).toBe(true);
+    if (!monitorResult.ok || !kitchenResult.ok) return;
+    const monitorDetail = await source.catalogue.getVariantOfferDetail(anonymous, monitorResult.value.variantId);
+    const kitchenDetail = await source.catalogue.getVariantOfferDetail(anonymous, kitchenResult.value.variantId);
+    expect(monitorDetail.ok && monitorDetail.value.variant.product.category).toBe("Monitors");
+    expect(monitorDetail.ok && monitorDetail.value.variant.attributes).toMatchObject({ screen_size_inch: 27 });
+    expect(kitchenDetail.ok && kitchenDetail.value.variant.product.category).toBe("Kitchen");
+    expect(kitchenDetail.ok && kitchenDetail.value.variant.attributes).toMatchObject({ power_w: 1800 });
   });
 
   it("rejects unsafe URLs, HTTP-200 challenge pages and conflicting configurations without replacing the observation", async () => {

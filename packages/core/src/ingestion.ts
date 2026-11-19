@@ -3,6 +3,7 @@ import type { Knex } from "knex";
 import { lookup } from "node:dns/promises";
 import { err, ok, type Result } from "./errors";
 import { isAuthorized, type Principal } from "./principal";
+import { canonicalizeAttributeValue } from "./attribute-values";
 
 export interface PermittedSource {
   retailerName: string;
@@ -31,6 +32,7 @@ export interface IngestedPage {
 type StructuredProduct = {
   name: string;
   manufacturer: string | null;
+  category: string | null;
   gtin: string | null;
   mpn: string | null;
   sku: string | null;
@@ -64,7 +66,9 @@ function propertyValue(product: Record<string, unknown>): Record<string, unknown
   return Object.fromEntries(values.flatMap((item) => {
     if (!item || typeof item !== "object") return [];
     const value = item as Record<string, unknown>;
-    return typeof value.name === "string" && value.value !== undefined ? [[value.name, value.value]] : [];
+    if (typeof value.name !== "string" || value.value === undefined) return [];
+    const rawUnit = typeof value.unitCode === "string" ? value.unitCode : typeof value.unitText === "string" ? value.unitText : null;
+    return [[value.name, rawUnit ? { value: value.value, unit: rawUnit } : value.value]];
   }));
 }
 
@@ -88,7 +92,7 @@ function parseProduct(html: string): StructuredProduct | null {
       const sellerObject = offer?.seller;
       const seller = sellerObject && typeof sellerObject === "object" ? text((sellerObject as Record<string, unknown>).name) : text(sellerObject);
       const condition = String(offer?.itemCondition ?? "").toLowerCase().includes("refurbished") ? "refurbished" : "new";
-      return { name, manufacturer: brand, gtin: text(product.gtin13) ?? text(product.gtin), mpn: text(product.mpn), sku: text(product.sku) ?? text(offer?.sku), attributes: propertyValue(product), price, currency, seller, condition };
+      return { name, manufacturer: brand, category: text(product.category), gtin: text(product.gtin13) ?? text(product.gtin), mpn: text(product.mpn), sku: text(product.sku) ?? text(offer?.sku), attributes: propertyValue(product), price, currency, seller, condition };
     } catch { /* ignore malformed JSON-LD blocks */ }
   }
   return null;
@@ -161,8 +165,8 @@ export function createIngestion(db: Knex, deps: IngestionDependencies = {}) {
         return err({ kind: "identity-conflict", identifier: identifier! });
       }
       let productRow = variant ? await trx("products").where({ id: variant.product_id }).first() : await trx("products").where({ name: product.name, manufacturer: product.manufacturer }).first();
-      if (!productRow) [productRow] = await trx("products").insert({ name: product.name, manufacturer: product.manufacturer }).returning("*");
-      const attributeRows = await trx("catalogue_attributes").select("id", "key");
+      if (!productRow) [productRow] = await trx("products").insert({ name: product.name, manufacturer: product.manufacturer, category: product.category }).returning("*");
+      const attributeRows = await trx("catalogue_attributes").select("id", "key", "value_type", "unit");
       const synonyms = await trx("catalogue_attribute_synonyms").select("attribute_id", "synonym");
       const byName = new Map(attributeRows.map((attribute) => [normalizedAttributeName(attribute.key), attribute]));
       for (const synonym of synonyms) {
@@ -172,7 +176,8 @@ export function createIngestion(db: Knex, deps: IngestionDependencies = {}) {
       const acceptedAttributes: Record<string, unknown> = {};
       for (const [rawName, value] of Object.entries(product.attributes)) {
         const attribute = byName.get(normalizedAttributeName(rawName));
-        if (attribute) acceptedAttributes[attribute.key] = value;
+        const canonical = attribute && canonicalizeAttributeValue({ key: attribute.key, valueType: attribute.value_type, unit: attribute.unit }, value);
+        if (canonical !== null && canonical !== undefined) acceptedAttributes[attribute!.key] = canonical;
       }
       if (!variant) [variant] = await trx("variants").insert({ product_id: productRow.id, name: product.name, gtin: product.gtin, manufacturer_part_number: product.mpn, attributes: JSON.stringify(acceptedAttributes) }).returning("*");
       let offer = await trx("offers").where({ retailer_id: retailer.id, url: sourceUrl }).first();
@@ -183,11 +188,12 @@ export function createIngestion(db: Knex, deps: IngestionDependencies = {}) {
       for (const [field, value, target] of claims) await trx("source_claims").insert({ evidence_id: evidenceId, field, value: JSON.stringify(value), observed_at: observedAt, [target]: target === "product_id" ? productRow.id : target === "variant_id" ? variant.id : offer.id }).onConflict(["evidence_id", "field"]).merge({ value: JSON.stringify(value), observed_at: observedAt });
       for (const [rawName, value] of Object.entries(product.attributes)) {
         const attribute = byName.get(normalizedAttributeName(rawName));
+        const canonical = attribute && canonicalizeAttributeValue({ key: attribute.key, valueType: attribute.value_type, unit: attribute.unit }, value);
         await trx("source_claims").insert({
           evidence_id: evidenceId, variant_id: variant.id, field: `attribute.${rawName}`, raw_name: rawName,
           value: JSON.stringify(value), observed_at: observedAt,
-          mapping_status: attribute ? "accepted" : "unresolved", canonical_attribute_id: attribute?.id ?? null,
-        }).onConflict(["evidence_id", "field"]).merge({ value: JSON.stringify(value), observed_at: observedAt, mapping_status: attribute ? "accepted" : "unresolved", canonical_attribute_id: attribute?.id ?? null });
+          mapping_status: canonical === null || canonical === undefined ? "unresolved" : "accepted", canonical_attribute_id: canonical === null || canonical === undefined ? null : attribute!.id,
+        }).onConflict(["evidence_id", "field"]).merge({ value: JSON.stringify(value), observed_at: observedAt, mapping_status: canonical === null || canonical === undefined ? "unresolved" : "accepted", canonical_attribute_id: canonical === null || canonical === undefined ? null : attribute!.id });
       }
       return ok({ variantId: variant.id, offerId: offer.id, evidenceId });
     });
