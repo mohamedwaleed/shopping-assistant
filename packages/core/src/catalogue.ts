@@ -37,6 +37,7 @@ export interface VariantOfferDetail {
     };
   };
   offers: VariantOffer[];
+  claims: Array<{ field: string; value: unknown; sourceUrl: string; observedAt: string; excerpt: string }>;
 }
 
 const UUID_PATTERN =
@@ -114,6 +115,15 @@ export async function getVariantOfferDetail(
     .where("offers.variant_id", variantId)
     .orderBy("retailers.name");
 
+  const claims = await db("source_claims")
+    .join("source_evidence", "source_evidence.id", "source_claims.evidence_id")
+    .where((query) => query
+      .where("source_claims.product_id", variantRow.product_id)
+      .orWhere("source_claims.variant_id", variantId)
+      .orWhereIn("source_claims.offer_id", offerRows.map((offer) => offer.id)))
+    .select("source_claims.field", "source_claims.value", "source_claims.observed_at", "source_evidence.source_url", "source_evidence.excerpt")
+    .orderBy("source_claims.observed_at", "desc");
+
   return ok({
     variant: {
       id: variantRow.id,
@@ -150,6 +160,13 @@ export async function getVariantOfferDetail(
               vatIncluded: row.price_vat_included,
               observedAt: new Date(row.price_observed_at).toISOString(),
             },
+    })),
+    claims: claims.map((claim) => ({
+      field: claim.field,
+      value: claim.value,
+      sourceUrl: claim.source_url,
+      excerpt: claim.excerpt,
+      observedAt: new Date(claim.observed_at).toISOString(),
     })),
   });
 }

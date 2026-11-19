@@ -16,10 +16,11 @@ export type Principal =
   | { kind: "workspace"; userId: string; workspaceId: string; sessionId: string }
   | { kind: "administrator"; userId: string; workspaceId: string; sessionId: string };
 
-export type Capability = "catalogue.read" | "workspace.read" | "installation.manage";
+export type Capability = "catalogue.read" | "catalogue.ingest" | "workspace.read" | "installation.manage";
 
 const CAPABILITY_PRINCIPALS: Record<Capability, ReadonlyArray<Principal["kind"]>> = {
   "catalogue.read": ["anonymous", "workspace", "administrator"],
+  "catalogue.ingest": ["workspace", "administrator"],
   "workspace.read": ["workspace", "administrator"],
   "installation.manage": ["administrator"],
 };
