@@ -23,6 +23,7 @@ export type FixtureMode =
   | "no-structured-schema"
   | "no-streaming"
   | "malformed-tools"
+  | "cancelled"
   | "unauthorized"
   | "unreachable";
 
@@ -50,6 +51,7 @@ const MODELS: Record<string, FixtureMode> = {
   "fixture-model-json-prose": "no-structured-schema",
   "fixture-model-no-streaming": "no-streaming",
   "fixture-model-malformed-tools": "malformed-tools",
+  "fixture-model-cancelled": "cancelled",
   "fixture-model-unauthorized": "unauthorized",
   "fixture-model-unreachable": "unreachable",
 };
@@ -560,7 +562,9 @@ export async function startProviderFixtures(): Promise<ProviderFixture> {
           sendJson(res, 400, { error: { message: "fixture does not stream", type: "invalid_request_error" } });
           return;
         }
-        if (stream) sendEventStream(res, chatCompletionEvents(reply));
+        if (stream && mode === "cancelled") {
+          setTimeout(() => { if (!res.destroyed) sendEventStream(res, chatCompletionEvents(reply)); }, 100);
+        } else if (stream) sendEventStream(res, chatCompletionEvents(reply));
         else sendJson(res, 200, chatCompletionPayload(reply));
         return;
       }

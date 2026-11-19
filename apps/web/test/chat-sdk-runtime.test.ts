@@ -34,4 +34,12 @@ describe("shopping chat through the pinned AI SDK runtime", () => {
     await result.consumeStream();
     expect(executed).toBe(false);
   });
+
+  it("aborts an in-flight stream when the shopper stops it", async () => {
+    const controller = new AbortController();
+    const result = streamText({ model: languageModel({ provider: "compatible", modelId: "fixture-model-cancelled", endpoint: `${fixture.baseUrl}/compatible/v1` }, "fixture-secret"), prompt: "hello", abortSignal: controller.signal });
+    controller.abort();
+    await expect(result.text).rejects.toThrow();
+    expect(fixture.requests.at(-1)?.body.stream).toBe(true);
+  });
 });
