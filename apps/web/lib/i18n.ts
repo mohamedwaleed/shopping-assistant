@@ -220,6 +220,32 @@ export const dictionaries = {
     errorProviderUnavailable: "The provider rejected or could not complete the diagnostic request.",
     errorForbiddenAdmin: "Only the installation administrator can change these settings.",
     modelsSectionUnavailable: "Model settings are unavailable until INSTALLATION_SECRET is configured.",
+    planAccessTitle: "Claude plan access",
+    planAccessIntro:
+      "Whether this installation may use a Claude Pro, Max, Ultra or Team plan instead of a Console API key. It is shown for information only and is separate from the API-key configuration above, which is unaffected.",
+    planAccessStateSupported: "Supported",
+    planAccessStateUnavailable: "Not available",
+    planAccessStateApprovalRequired: "Approval required",
+    planAccessRouteConsumerSubscription: "Claude subscription (Pro, Max, Ultra, Team)",
+    planAccessRouteLinkedBilling: "Linked billing through a Claude Console organization",
+    planAccessReasonThirdPartyAppsProhibited:
+      "Anthropic permits subscription credentials only in its own applications (Claude web, desktop, mobile and Claude Code). Third-party apps may not route requests through plan credentials or hold Claude.ai tokens, so there is no permitted route for this assistant and nothing here impersonates one.",
+    planAccessReasonPlanCredentialExcluded:
+      "This route excludes organizations that have only a subscription plan, so a plan alone cannot use it.",
+    planAccessReasonAppRegistrationMissing:
+      "The only plan-adjacent route is linked billing, which needs an approved Anthropic OAuth app registration this installation does not hold, is in beta, and still excludes subscription plans.",
+    planAccessReasonAppRegistered:
+      "This installation holds the registration the route requires.",
+    planAccessCredentialSubscriptionOauth: "Would spend plan credentials",
+    planAccessCredentialConsoleApiKey: "Spends a Console API key",
+    planAccessUseApiKey:
+      "Use an Anthropic API key to run Claude here: choose the Anthropic provider above, store a key and check the capability block. A Max, Ultra or Team plan can also put monthly API credits into a Console organization, which yields an ordinary Console key rather than a new kind of access.",
+    planAccessCheckedAt: "Guidance checked",
+    planAccessSourcesTitle: "Official sources",
+    planAccessNoRequest:
+      "No request is sent for plan access. Plan availability is resolved from Anthropic's published terms, not probed.",
+    planAccessFollowUp:
+      "This becomes available only if Anthropic permits third-party apps to use subscription plans and this installation holds the approval that route requires.",
   },
   nl: {
     appName: "Shopping Assistant",
@@ -447,6 +473,33 @@ export const dictionaries = {
       "Alleen de installatiebeheerder kan deze instellingen wijzigen.",
     modelsSectionUnavailable:
       "Modelinstellingen zijn niet beschikbaar totdat INSTALLATION_SECRET is ingesteld.",
+    planAccessTitle: "Toegang via een Claude-abonnement",
+    planAccessIntro:
+      "Of deze installatie een Claude Pro-, Max-, Ultra- of Team-abonnement mag gebruiken in plaats van een Console-API-sleutel. Dit is alleen ter informatie en staat los van de API-sleutelconfiguratie hierboven, die ongewijzigd blijft.",
+    planAccessStateSupported: "Ondersteund",
+    planAccessStateUnavailable: "Niet beschikbaar",
+    planAccessStateApprovalRequired: "Goedkeuring nodig",
+    planAccessRouteConsumerSubscription: "Claude-abonnement (Pro, Max, Ultra, Team)",
+    planAccessRouteLinkedBilling:
+      "Gekoppelde facturering via een Claude Console-organisatie",
+    planAccessReasonThirdPartyAppsProhibited:
+      "Anthropic staat abonnementsgegevens alleen toe in zijn eigen toepassingen (Claude web, desktop, mobiel en Claude Code). Apps van derden mogen verzoeken niet via abonnementsgegevens laten lopen en geen Claude.ai-tokens bewaren; er is dus geen toegestane route voor deze assistent en niets hier doet zich voor als een andere app.",
+    planAccessReasonPlanCredentialExcluded:
+      "Deze route sluit organisaties met alleen een abonnement uit, dus een abonnement op zichzelf kan er geen gebruik van maken.",
+    planAccessReasonAppRegistrationMissing:
+      "De enige route die aan een abonnement raakt is gekoppelde facturering. Die vereist een goedgekeurde Anthropic OAuth-app-registratie die deze installatie niet heeft, is in bèta en sluit abonnementen nog steeds uit.",
+    planAccessReasonAppRegistered:
+      "Deze installatie heeft de registratie die de route vereist.",
+    planAccessCredentialSubscriptionOauth: "Zou abonnementsgegevens gebruiken",
+    planAccessCredentialConsoleApiKey: "Gebruikt een Console-API-sleutel",
+    planAccessUseApiKey:
+      "Gebruik een Anthropic-API-sleutel om Claude hier te draaien: kies hierboven de provider Anthropic, sla een sleutel op en controleer de mogelijkheden. Een Max-, Ultra- of Team-abonnement kan ook maandelijkse API-tegoeden aan een Console-organisatie geven; dat levert een gewone Console-sleutel op, geen nieuwe vorm van toegang.",
+    planAccessCheckedAt: "Richtlijnen gecontroleerd op",
+    planAccessSourcesTitle: "Officiële bronnen",
+    planAccessNoRequest:
+      "Er wordt geen verzoek verstuurd voor abonnementstoegang. De beschikbaarheid komt uit de gepubliceerde voorwaarden van Anthropic, niet uit een test.",
+    planAccessFollowUp:
+      "Dit wordt pas beschikbaar als Anthropic apps van derden toestaat abonnementen te gebruiken én deze installatie de goedkeuring heeft die die route vereist.",
   },
 } as const;
 

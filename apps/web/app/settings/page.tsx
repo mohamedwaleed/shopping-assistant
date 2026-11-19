@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { redirect } from "next/navigation";
-import { createSecretCipher, type ModelConfigurationViewResult } from "@shopping/core";
+import {
+  createSecretCipher,
+  planAccessView,
+  CLAUDE_PLAN_ROUTES,
+  type ModelConfigurationViewResult,
+} from "@shopping/core";
 import { getCore } from "@/lib/core";
 import { dictionaries, resolveLang } from "@/lib/i18n";
 import { requestIdentity } from "@/lib/auth/session";
 import { signOutAction } from "@/app/actions";
 import { SignOutButton } from "@/app/auth-forms";
 import { ModelSettingsForm } from "@/app/model-settings";
+import { PlanAccessPanel } from "@/app/plan-access";
 
 const EMPTY_VIEW: ModelConfigurationViewResult = {
   installation: { defaultModel: null, extractionModel: null, usageSource: null, credential: null },
@@ -14,6 +20,7 @@ const EMPTY_VIEW: ModelConfigurationViewResult = {
   effective: null,
   capability: null,
   diagnostics: { bounds: { maxCalls: 4, maxOutputTokens: 64 }, limits: { maxCalls: 8, maxOutputTokens: 512 } },
+  planAccess: planAccessView(CLAUDE_PLAN_ROUTES),
 };
 
 export default async function Settings({
@@ -79,12 +86,17 @@ export default async function Settings({
         </div>
 
         {available ? (
-          <ModelSettingsForm
-            lang={lang}
-            canManage={isAdministrator}
-            view={view}
-            bounds={view.diagnostics.bounds}
-          />
+          <>
+            <ModelSettingsForm
+              lang={lang}
+              canManage={isAdministrator}
+              view={view}
+              bounds={view.diagnostics.bounds}
+            />
+            {/* Separate panel, not part of the API-key form: plan access is a
+                published-terms question, not a credential to configure. */}
+            <PlanAccessPanel lang={lang} planAccess={view.planAccess} />
+          </>
         ) : (
           <div className="error-panel" role="alert">
             {t.modelsSectionUnavailable}

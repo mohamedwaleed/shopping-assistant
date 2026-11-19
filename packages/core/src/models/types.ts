@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { Result } from "../errors";
+import type { PlanAccessView } from "./plan-access";
 
 /**
  * Vercel AI SDK providers this installation supports, pinned in
@@ -110,6 +111,12 @@ export interface ModelConfigurationViewResult {
   effective: EffectiveModelConfigurationView | null;
   capability: CapabilityReport | null;
   diagnostics: { bounds: DiagnosticBounds; limits: DiagnosticBounds };
+  /**
+   * Whether a Claude plan may be spent by this deployment. Reported next to the
+   * API-key configuration and never conflated with it: it is read-only, derived
+   * from the route declaration rather than stored (docs/adr/0013).
+   */
+  planAccess: PlanAccessView;
 }
 
 export interface SaveModelConfiguration {
