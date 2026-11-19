@@ -116,3 +116,4 @@ export {
   type SaveModelConfiguration,
   type UsageSource,
 } from "./models/types";
+export { createBudgetRegistry, type BudgetKind, type BudgetRegistry, type BudgetReservation, type BudgetSettings, type BudgetView } from "./budgets/budget-registry";
