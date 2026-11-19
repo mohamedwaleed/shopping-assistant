@@ -45,6 +45,14 @@ export {
   type WorkspaceMembership,
 } from "./auth/types";
 export {
+  createEmailLinkOperations,
+  EMAIL_CHANGE_SECONDS,
+  INVITATION_SECONDS,
+  PASSWORD_RESET_SECONDS,
+  type EmailLinkOperations,
+  type PasswordRecovery,
+} from "./auth/email-links";
+export {
   createMailer,
   DIAGNOSTIC_COOLDOWN_MS,
   failureStageFromCode,

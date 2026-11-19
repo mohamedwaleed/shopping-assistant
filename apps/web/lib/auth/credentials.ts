@@ -1,11 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { Knex } from "knex";
 import type { CredentialChanger } from "@shopping/core";
+import { randomUUID } from "node:crypto";
+import type { PasswordRecovery } from "@shopping/core";
 import type { ShoppingAuth } from "./server";
 
 export interface CredentialChangerOptions {
   /** Session cookie header value presented by the caller's request. */
   cookie: string | null;
+}
+
+/** Uses Better Auth's supported reset endpoint to hash the replacement password. */
+export function createPasswordRecovery(auth: ShoppingAuth, db: Knex): PasswordRecovery {
+  return {
+    async setPassword({ userId, newPassword }) {
+      const token = randomUUID();
+      await db("verification").insert({
+        id: randomUUID(), identifier: `reset-password:${token}`, value: userId,
+        expires_at: new Date(Date.now() + 60_000),
+      });
+      await auth.api.resetPassword({ body: { token, newPassword } });
+    },
+  };
 }
 
 /**

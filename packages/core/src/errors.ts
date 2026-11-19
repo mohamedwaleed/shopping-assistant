@@ -20,6 +20,8 @@ export type CoreError =
   | { kind: "reauthentication-required" }
   /** Email-address changes travel through the SMTP-backed account flows. */
   | { kind: "email-change-unsupported" }
+  /** An invitation, reset or email-confirmation link is invalid, expired or spent. */
+  | { kind: "invalid-email-link" }
   /** The request named an origin the installation does not trust. */
   | { kind: "invalid-origin" }
   /** No complete SMTP settings, or no explicit diagnostic recipient. */

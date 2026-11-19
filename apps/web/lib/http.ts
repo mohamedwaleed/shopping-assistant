@@ -13,6 +13,7 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   "invalid-credentials": 401,
   "reauthentication-required": 403,
   "email-change-unsupported": 409,
+  "invalid-email-link": 400,
   /** The request came from another origin than the one it was sent to. */
   "invalid-origin": 403,
   "mail-not-configured": 409,
