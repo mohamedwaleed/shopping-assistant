@@ -5,8 +5,15 @@ import { isAuthorized, principalForUser, type Principal } from "../principal";
 import { hashSetupToken, readSetupToken, setupTokenMatches } from "./setup-token";
 import type {
   AuthenticatedUser,
-  AuthenticationReport,
+  ChangeEmailRequest,
+  ChangePasswordRequest,
+  CreateCredentialAccountRequest,
+  DeviceList,
+  DeviceSession,
   InstallationAdministrator,
+  RecentAuthentication,
+  RevokeSessionRequest,
+  SessionReport,
   SetupClaim,
   SetupClaimRequest,
   SetupState,
@@ -20,6 +27,19 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 10;
+
+/**
+ * Session lifetime. The inactivity window moves with every admitted use of a
+ * stored session; the absolute maximum is counted from creation, so an active
+ * session still ends thirty days after sign-in.
+ */
+export const SESSION_INACTIVITY_SECONDS = 7 * 24 * 60 * 60;
+export const SESSION_ABSOLUTE_SECONDS = 30 * 24 * 60 * 60;
+/**
+ * Password changes and credential creation need a session authenticated this
+ * recently, counted from the sign-in that created it.
+ */
+export const RECENT_AUTHENTICATION_SECONDS = 5 * 60;
 
 export interface AuthDependencies {
   db: Knex;
@@ -39,6 +59,23 @@ export interface AccountProvisioner {
   verifyCredentials(input: { email: string; password: string }): Promise<{ userId: string } | null>;
 }
 
+/**
+ * Credential work core authorizes but cannot perform: the identity library
+ * hashes passwords and validates the current one. An adapter reports whether
+ * it accepted the change; core has already decided who may ask.
+ */
+export interface CredentialChanger {
+  changePassword(input: {
+    userId: string;
+    /** Password the caller presented, which the adapter verifies. */
+    currentPassword: string;
+    newPassword: string;
+    /** Session whose stored row must stay valid. */
+    sessionId: string;
+  }): Promise<void>;
+  changeEmail(input: { userId: string; newEmail: string }): Promise<void>;
+}
+
 export interface Authentication {
   getSetupState(): Promise<Result<SetupState>>;
   claimSetup(
@@ -46,10 +83,29 @@ export interface Authentication {
     provisioner: AccountProvisioner,
   ): Promise<Result<SetupClaim>>;
   admission(principal: Principal): Promise<Result<AuthenticatedUser>>;
-  requireSession(
-    userId: string,
-    sessionExpiresAt: string | null,
-  ): Promise<Result<AuthenticationReport>>;
+  /** Accept a stored session, apply its lifetime and record the use. */
+  requireSession(userId: string, sessionId: string): Promise<Result<SessionReport>>;
+  listSessions(principal: Principal): Promise<Result<DeviceList>>;
+  revokeSession(
+    principal: Principal,
+    request: RevokeSessionRequest,
+  ): Promise<Result<{ revoked: number }>>;
+  revokeAllSessions(principal: Principal): Promise<Result<{ revoked: number }>>;
+  recentAuthentication(principal: Principal): Promise<Result<RecentAuthentication>>;
+  changePassword(
+    principal: Principal,
+    request: ChangePasswordRequest,
+    credentials: CredentialChanger,
+  ): Promise<Result<{ changed: true; otherSessionsRevoked: number }>>;
+  changeEmail(
+    principal: Principal,
+    request: ChangeEmailRequest,
+  ): Promise<Result<{ changed: true }>>;
+  createCredentialAccount(
+    principal: Principal,
+    request: CreateCredentialAccountRequest,
+    provisioner: AccountProvisioner,
+  ): Promise<Result<{ userId: string }>>;
   signUp(
     request: SignUpRequest,
     provisioner: AccountProvisioner,
@@ -72,6 +128,17 @@ interface InstallationRow {
   setup_completed_at: Date | null;
   setup_token_hash: string | null;
   setup_administrator_user_id: string | null;
+}
+
+interface SessionRow {
+  id: string;
+  user_id: string;
+  token: string;
+  expires_at: Date;
+  created_at: Date;
+  updated_at: Date;
+  ip_address: string | null;
+  user_agent: string | null;
 }
 
 export function createAuthentication(deps: AuthDependencies): Authentication {
@@ -230,17 +297,253 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
     return user;
   }
 
+  async function sessionRow(userId: string, sessionId: string): Promise<SessionRow | null> {
+    if (!userId || !sessionId) return null;
+    const row = await db("session").where({ id: sessionId, user_id: userId }).first();
+    return (row as SessionRow | undefined) ?? null;
+  }
+
+  /**
+   * The only place a stored session is accepted. An idle session ends seven
+   * days after its last use, an active one ends thirty days after sign-in, and
+   * an accepted use moves the inactivity window and records the device's
+   * latest activity. Expired rows are deleted so the cookie cannot be replayed.
+   */
   async function requireSession(
     userId: string,
-    sessionExpiresAt: string | null,
-  ): Promise<Result<AuthenticationReport>> {
-    if (!userId) return err({ kind: "invalid-credentials" });
-    if (!sessionExpiresAt) return err({ kind: "invalid-credentials" });
-    const expiresAt = new Date(sessionExpiresAt);
-    if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= now().getTime()) {
+    sessionId: string,
+  ): Promise<Result<SessionReport>> {
+    const row = await sessionRow(userId, sessionId);
+    if (!row) return err({ kind: "invalid-credentials" });
+
+    const at = now();
+    const createdAt = row.created_at.getTime();
+    const lastActiveAt = row.updated_at.getTime();
+    const absoluteEnd = createdAt + SESSION_ABSOLUTE_SECONDS * 1000;
+    const idleEnd = lastActiveAt + SESSION_INACTIVITY_SECONDS * 1000;
+    if (at.getTime() >= absoluteEnd || at.getTime() >= idleEnd) {
+      await db("session").where({ id: row.id, user_id: userId }).delete();
       return err({ kind: "invalid-credentials" });
     }
-    return ok({ userId, sessionExpiresAt: expiresAt.toISOString() });
+
+    const expiresAt = new Date(Math.min(idleEnd, absoluteEnd));
+    await db("session").where({ id: row.id, user_id: userId }).update({ updated_at: at });
+    return ok({
+      userId,
+      sessionId: row.id,
+      expiresAt: expiresAt.toISOString(),
+      createdAt: row.created_at.toISOString(),
+      lastActiveAt: at.toISOString(),
+    });
+  }
+
+  async function deviceSessions(userId: string): Promise<SessionRow[]> {
+    const at = now().getTime();
+    const rows = (await db("session").where({ user_id: userId })) as SessionRow[];
+    return rows
+      .filter(
+        (row) =>
+          at < row.created_at.getTime() + SESSION_ABSOLUTE_SECONDS * 1000 &&
+          at < row.updated_at.getTime() + SESSION_INACTIVITY_SECONDS * 1000,
+      )
+      .sort((left, right) => right.updated_at.getTime() - left.updated_at.getTime());
+  }
+
+  /**
+   * Only an admitted caller acting under their own live session may touch
+   * devices or credentials. Anonymous callers and principals naming another
+   * workspace are refused before any session row is read.
+   */
+  async function admittedUser(principal: Principal): Promise<Result<AuthenticatedUser>> {
+    const admitted = await admission(principal);
+    if (!admitted.ok) return admitted;
+    if (principal.kind === "anonymous") {
+      return err({ kind: "forbidden", capability: "workspace.read" });
+    }
+    // Every device and credential action runs under the caller's own session,
+    // so a stale or revoked session cannot drive a change either.
+    const session = await requireSession(admitted.value.id, principal.sessionId);
+    if (!session.ok) return session;
+    return admitted;
+  }
+
+  async function listSessions(principal: Principal): Promise<Result<DeviceList>> {
+    const admitted = await admittedUser(principal);
+    if (!admitted.ok) return admitted;
+    const currentSessionId = principal.kind === "anonymous" ? "" : principal.sessionId;
+
+    const sessions: DeviceSession[] = (await deviceSessions(admitted.value.id)).map((row) => ({
+      id: row.id,
+      current: row.id === currentSessionId,
+      createdAt: row.created_at.toISOString(),
+      lastActiveAt: row.updated_at.toISOString(),
+      expiresAt: new Date(
+        Math.min(
+          row.updated_at.getTime() + SESSION_INACTIVITY_SECONDS * 1000,
+          row.created_at.getTime() + SESSION_ABSOLUTE_SECONDS * 1000,
+        ),
+      ).toISOString(),
+      ipAddress: row.ip_address,
+      userAgent: row.user_agent,
+    }));
+    return ok({ sessions });
+  }
+
+  async function revokeSession(
+    principal: Principal,
+    request: RevokeSessionRequest,
+  ): Promise<Result<{ revoked: number }>> {
+    const admitted = await admittedUser(principal);
+    if (!admitted.ok) return admitted;
+
+    const sessionId = request.sessionId.trim();
+    if (!sessionId) {
+      return err({ kind: "invalid-input", field: "sessionId", message: "sessionId is required" });
+    }
+    // The user id is part of the delete so another account's session is never
+    // reachable, even when its identifier leaks.
+    const revoked = await db("session")
+      .where({ id: sessionId, user_id: admitted.value.id })
+      .delete();
+    if (revoked === 0) return err({ kind: "not-found", resource: "session", id: sessionId });
+    return ok({ revoked });
+  }
+
+  async function revokeAllSessions(principal: Principal): Promise<Result<{ revoked: number }>> {
+    const admitted = await admittedUser(principal);
+    if (!admitted.ok) return admitted;
+    return ok({ revoked: await db("session").where({ user_id: admitted.value.id }).delete() });
+  }
+
+  /**
+   * Recent authentication is measured from when the session authenticated, not
+   * from when it was last used: every admitted request moves `updated_at`, so
+   * that would let a continuously-used session, and with it a hijacked cookie,
+   * pass the gate forever. The session row is created by the sign-in that
+   * issued it, so `created_at` is that moment. The window is short enough that
+   * a hijacked cookie cannot be spent without the password.
+   */
+  async function recentAuthentication(
+    principal: Principal,
+  ): Promise<Result<RecentAuthentication>> {
+    if (principal.kind === "anonymous") {
+      return err({ kind: "forbidden", capability: "workspace.read" });
+    }
+    const session = await sessionRow(principal.userId, principal.sessionId);
+    const admitted = await admittedUser(principal);
+    if (!admitted.ok) return admitted;
+    if (!session) return err({ kind: "invalid-credentials" });
+
+    const elapsed = now().getTime() - session.created_at.getTime();
+    return ok({
+      recent: elapsed < RECENT_AUTHENTICATION_SECONDS * 1000,
+      authenticatedAt: session.created_at.toISOString(),
+      windowSeconds: RECENT_AUTHENTICATION_SECONDS,
+    });
+  }
+
+  async function changePassword(
+    principal: Principal,
+    request: ChangePasswordRequest,
+    credentials: CredentialChanger,
+  ): Promise<Result<{ changed: true; otherSessionsRevoked: number }>> {
+    // The recent-authentication gate comes first, so a stale session is told
+    // to sign in again rather than refused as a credential problem.
+    const recent = await recentAuthentication(principal);
+    if (!recent.ok) return recent;
+    const admitted = await admittedUser(principal);
+    if (!admitted.ok) return admitted;
+
+    if (!request.currentPassword) {
+      return err({
+        kind: "invalid-input",
+        field: "currentPassword",
+        message: "currentPassword is required",
+      });
+    }
+    if (request.newPassword.length < MIN_PASSWORD_LENGTH) {
+      return err({
+        kind: "invalid-input",
+        field: "newPassword",
+        message: `password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+      });
+    }
+
+    if (!recent.value.recent) return err({ kind: "reauthentication-required" });
+
+    const sessionId = principal.kind === "anonymous" ? "" : principal.sessionId;
+    // The identity library verifies the current password and replaces the
+    // hash. Every other device loses its session, so a leaked password cannot
+    // keep working after the owner changes it. A refusal there (a wrong current
+    // password) is the caller's mistake, not a server failure.
+    try {
+      await credentials.changePassword({
+        userId: admitted.value.id,
+        currentPassword: request.currentPassword,
+        newPassword: request.newPassword,
+        sessionId,
+      });
+    } catch {
+      return err({ kind: "invalid-credentials" });
+    }
+    const otherSessionsRevoked = await db("session")
+      .where({ user_id: admitted.value.id })
+      .whereNot({ id: sessionId })
+      .delete();
+    return ok({ changed: true, otherSessionsRevoked });
+  }
+
+  async function changeEmail(
+    principal: Principal,
+    request: ChangeEmailRequest,
+  ): Promise<Result<{ changed: true }>> {
+    const admitted = await admittedUser(principal);
+    if (!admitted.ok) return admitted;
+    // Changing the sign-in address has to prove ownership of the new mailbox,
+    // so it belongs to the SMTP-backed account flows (ticket 04).
+    void request;
+    return err({ kind: "email-change-unsupported" });
+  }
+
+  async function createCredentialAccount(
+    principal: Principal,
+    request: CreateCredentialAccountRequest,
+    provisioner: AccountProvisioner,
+  ): Promise<Result<{ userId: string }>> {
+    // The recent-authentication gate comes first, so a stale session is told
+    // to sign in again rather than refused as a credential problem.
+    const recent = await recentAuthentication(principal);
+    if (!recent.ok) return recent;
+    const admitted = await admittedUser(principal);
+    if (!admitted.ok) return admitted;
+    if (!isAuthorized(principal, "installation.manage")) {
+      return err({ kind: "forbidden", capability: "installation.manage" });
+    }
+
+    const name = request.name.trim();
+    const email = request.email.trim().toLowerCase();
+    if (!name) {
+      return err({ kind: "invalid-input", field: "name", message: "name is required" });
+    }
+    if (!EMAIL_PATTERN.test(email)) {
+      return err({ kind: "invalid-input", field: "email", message: "email must be a valid address" });
+    }
+    if (request.password.length < MIN_PASSWORD_LENGTH) {
+      return err({
+        kind: "invalid-input",
+        field: "password",
+        message: `password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+      });
+    }
+
+    if (!recent.value.recent) return err({ kind: "reauthentication-required" });
+
+    const created = await provisioner.createCredentialAccount({
+      name,
+      email,
+      password: request.password,
+    });
+    return ok({ userId: created.userId });
   }
 
   async function signUp(
@@ -292,6 +595,13 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
     claimSetup,
     admission,
     requireSession,
+    listSessions,
+    revokeSession,
+    revokeAllSessions,
+    recentAuthentication,
+    changePassword,
+    changeEmail,
+    createCredentialAccount,
     signUp,
     signIn,
     signOut,
@@ -300,7 +610,11 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
 }
 
 /** Principal for an admitted user, ready for shopping operations. */
-export async function principalFor(authentication: Authentication, user: AuthenticatedUser): Promise<Principal> {
+export async function principalFor(
+  authentication: Authentication,
+  user: AuthenticatedUser,
+  sessionId: string,
+): Promise<Principal> {
   const admin = await authentication.administrator(user.id);
-  return principalForUser(user.id, user.workspace, admin.ok);
+  return principalForUser(user.id, user.workspace, admin.ok, sessionId);
 }

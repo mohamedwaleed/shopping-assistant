@@ -6,11 +6,15 @@ import type { WorkspaceMembership } from "./auth/types";
  * from authenticated identity; a supplied workspaceId alone never authorizes
  * access (see docs/adr/0005 and docs/adr/0009). Workspace membership comes from
  * the database, so a principal naming another workspace is not admitted.
+ *
+ * `sessionId` names the stored session the request presented. Device and
+ * credential operations act on that session only, so a principal cannot reach
+ * another session's row and a stale one cannot authorize a change.
  */
 export type Principal =
   | { kind: "anonymous" }
-  | { kind: "workspace"; userId: string; workspaceId: string }
-  | { kind: "administrator"; userId: string; workspaceId: string };
+  | { kind: "workspace"; userId: string; workspaceId: string; sessionId: string }
+  | { kind: "administrator"; userId: string; workspaceId: string; sessionId: string };
 
 export type Capability = "catalogue.read" | "workspace.read" | "installation.manage";
 
@@ -29,8 +33,9 @@ export function principalForUser(
   userId: string,
   workspace: WorkspaceMembership,
   isInstallationAdministrator: boolean,
+  sessionId: string,
 ): Principal {
   return isInstallationAdministrator
-    ? { kind: "administrator", userId, workspaceId: workspace.workspaceId }
-    : { kind: "workspace", userId, workspaceId: workspace.workspaceId };
+    ? { kind: "administrator", userId, workspaceId: workspace.workspaceId, sessionId }
+    : { kind: "workspace", userId, workspaceId: workspace.workspaceId, sessionId };
 }

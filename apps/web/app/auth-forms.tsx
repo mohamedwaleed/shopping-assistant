@@ -14,6 +14,16 @@ export type AuthFormAction = (
   formData: FormData,
 ) => Promise<AuthFormState>;
 
+export interface AccountFormState {
+  error: string | null;
+  notice?: string;
+}
+
+export type AccountFormAction = (
+  state: AccountFormState,
+  formData: FormData,
+) => Promise<AccountFormState>;
+
 function LanguageSwitch({ lang }: { lang: Lang }) {
   const other: Lang = lang === "en" ? "nl" : "en";
   return (
@@ -179,5 +189,131 @@ export function SignOutButton({
         {dictionaries[lang].signOut}
       </button>
     </form>
+  );
+}
+
+export function PasswordForm({
+  lang,
+  action,
+}: {
+  lang: Lang;
+  action: AccountFormAction;
+}) {
+  const t = dictionaries[lang];
+  const [state, formAction, pending] = useActionState(action, { error: null });
+
+  return (
+    <form className="panel" action={formAction} aria-labelledby="password-title">
+      <input type="hidden" name="lang" value={lang} />
+      <h2 id="password-title">{t.passwordTitle}</h2>
+      <p className="muted">{t.passwordIntro}</p>
+
+      {state.error && (
+        <div className="notice notice-error" role="alert">
+          {state.error}
+        </div>
+      )}
+      {state.notice && (
+        <div className="notice notice-info" role="status">
+          {state.notice}
+        </div>
+      )}
+
+      <div className="field">
+        <label htmlFor="currentPassword">{t.currentPasswordLabel}</label>
+        <input
+          id="currentPassword"
+          name="currentPassword"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="newPassword">{t.newPasswordLabel}</label>
+        <input
+          id="newPassword"
+          name="newPassword"
+          type="password"
+          autoComplete="new-password"
+          minLength={10}
+          required
+        />
+        <span className="hint">{t.passwordHint}</span>
+      </div>
+
+      <button className="btn-submit" type="submit" disabled={pending}>
+        {t.passwordTitle}
+      </button>
+    </form>
+  );
+}
+
+export function DeviceList({
+  lang,
+  devices,
+  revokeAction,
+  revokeAllAction,
+}: {
+  lang: Lang;
+  devices: ReadonlyArray<{
+    id: string;
+    current: boolean;
+    lastActiveAt: string;
+    expiresAt: string;
+    ipAddress: string | null;
+    userAgent: string | null;
+  }>;
+  revokeAction: (formData: FormData) => Promise<void>;
+  revokeAllAction: (formData: FormData) => Promise<void>;
+}) {
+  const t = dictionaries[lang];
+  const format = (value: string) =>
+    new Intl.DateTimeFormat(lang === "nl" ? "nl-NL" : "en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+
+  return (
+    <section className="panel" aria-labelledby="devices-title">
+      <h2 id="devices-title">{t.devicesTitle}</h2>
+      {devices.length === 0 ? (
+        <p className="muted">{t.devicesEmpty}</p>
+      ) : (
+        devices.map((device) => (
+          <div className="offer-card" key={device.id}>
+            <div>
+              <strong>{device.userAgent ?? t.deviceUnknownAgent}</strong>
+              {device.current && <span className="badge-fixture">{t.deviceCurrent}</span>}
+              <div className="price-sub">
+                {t.deviceLastActive}: {format(device.lastActiveAt)}
+              </div>
+              <div className="price-sub">
+                {t.deviceExpires}: {format(device.expiresAt)}
+              </div>
+              <div className="price-sub">
+                {t.deviceIp}: {device.ipAddress ?? "—"}
+              </div>
+            </div>
+            <form action={revokeAction}>
+              <input type="hidden" name="lang" value={lang} />
+              <input type="hidden" name="sessionId" value={device.id} />
+              <button className="btn-quiet" type="submit">
+                {t.deviceSignOut}
+              </button>
+            </form>
+          </div>
+        ))
+      )}
+
+      <form action={revokeAllAction} style={{ marginTop: 16 }}>
+        <input type="hidden" name="lang" value={lang} />
+        <button className="btn-quiet" type="submit">
+          {t.signOutEverywhere}
+        </button>
+        <p className="hint">{t.signOutEverywhereHint}</p>
+      </form>
+    </section>
   );
 }

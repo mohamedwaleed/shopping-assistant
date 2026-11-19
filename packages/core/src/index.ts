@@ -10,9 +10,13 @@ export {
 export {
   createAuthentication,
   principalFor,
+  RECENT_AUTHENTICATION_SECONDS,
+  SESSION_ABSOLUTE_SECONDS,
+  SESSION_INACTIVITY_SECONDS,
   type AccountProvisioner,
   type Authentication,
   type AuthDependencies,
+  type CredentialChanger,
 } from "./auth/authentication";
 export {
   hashSetupToken,
@@ -23,8 +27,15 @@ export {
 } from "./auth/setup-token";
 export {
   type AuthenticatedUser,
-  type AuthenticationReport,
+  type ChangeEmailRequest,
+  type ChangePasswordRequest,
+  type CreateCredentialAccountRequest,
+  type DeviceList,
+  type DeviceSession,
   type InstallationAdministrator,
+  type RecentAuthentication,
+  type RevokeSessionRequest,
+  type SessionReport,
   type SetupClaim,
   type SetupClaimRequest,
   type SetupState,

@@ -67,6 +67,34 @@ export const dictionaries = {
     errorRegistrationClosed: "Public registration is closed for this installation.",
     errorInvalidInput: "Check the highlighted fields and try again.",
     errorGeneric: "Something went wrong. Try again.",
+    errorReauthenticationRequired:
+      "Sign in again first: changing credentials needs a session from the last few minutes.",
+    errorInvalidCurrentPassword: "Your current password is not correct.",
+    errorEmailChangeUnsupported:
+      "Changing your email address arrives with the account email flows. Nothing was changed.",
+    errorInvalidOrigin: "That request did not come from this installation.",
+    accountTitle: "Account and devices",
+    accountIntro:
+      "Review where you are signed in, sign devices out, and change your password.",
+    devicesTitle: "Signed-in devices",
+    devicesEmpty: "No other devices are signed in.",
+    deviceCurrent: "This device",
+    deviceLastActive: "Last active",
+    deviceExpires: "Session ends",
+    deviceIp: "Network address",
+    deviceUnknownAgent: "Unknown browser",
+    deviceSignOut: "Sign out",
+    signOutEverywhere: "Sign out everywhere",
+    signOutEverywhereHint:
+      "Every device, including this one, is signed out. You will sign in again.",
+    passwordTitle: "Change password",
+    passwordIntro:
+      "Your current password is checked, and every other device is signed out afterwards.",
+    currentPasswordLabel: "Current password",
+    newPasswordLabel: "New password",
+    passwordChangedNotice: "Your password was changed. Other devices were signed out.",
+    accountSessionsExpired: "Your session has ended. Sign in again.",
+    backToProducts: "Back to products",
   },
   nl: {
     appName: "Shopping Assistant",
@@ -133,6 +161,34 @@ export const dictionaries = {
     errorRegistrationClosed: "Openbare registratie staat uit voor deze installatie.",
     errorInvalidInput: "Controleer de gemarkeerde velden en probeer opnieuw.",
     errorGeneric: "Er ging iets mis. Probeer het opnieuw.",
+    errorReauthenticationRequired:
+      "Meld je eerst opnieuw aan: inloggegevens wijzigen vereist een sessie van de laatste paar minuten.",
+    errorInvalidCurrentPassword: "Je huidige wachtwoord is niet juist.",
+    errorEmailChangeUnsupported:
+      "Je e-mailadres wijzigen komt met de e-mailflows voor accounts. Er is niets gewijzigd.",
+    errorInvalidOrigin: "Dat verzoek kwam niet van deze installatie.",
+    accountTitle: "Account en apparaten",
+    accountIntro:
+      "Bekijk waar je bent aangemeld, meld apparaten af en wijzig je wachtwoord.",
+    devicesTitle: "Aangemelde apparaten",
+    devicesEmpty: "Er zijn geen andere apparaten aangemeld.",
+    deviceCurrent: "Dit apparaat",
+    deviceLastActive: "Laatst actief",
+    deviceExpires: "Sessie eindigt",
+    deviceIp: "Netwerkadres",
+    deviceUnknownAgent: "Onbekende browser",
+    deviceSignOut: "Afmelden",
+    signOutEverywhere: "Overal afmelden",
+    signOutEverywhereHint:
+      "Elk apparaat, ook dit, wordt afgemeld. Je meldt je daarna opnieuw aan.",
+    passwordTitle: "Wachtwoord wijzigen",
+    passwordIntro:
+      "Je huidige wachtwoord wordt gecontroleerd en elk ander apparaat wordt daarna afgemeld.",
+    currentPasswordLabel: "Huidig wachtwoord",
+    newPasswordLabel: "Nieuw wachtwoord",
+    passwordChangedNotice: "Je wachtwoord is gewijzigd. Andere apparaten zijn afgemeld.",
+    accountSessionsExpired: "Je sessie is beëindigd. Meld je opnieuw aan.",
+    backToProducts: "Terug naar producten",
   },
 } as const;
 

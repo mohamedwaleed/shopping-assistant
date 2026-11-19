@@ -13,7 +13,13 @@ export type CoreError =
   | { kind: "registration-closed" }
   /** Identity exists but the account cannot be used for access. */
   | { kind: "access-disabled" }
-  | { kind: "invalid-credentials" };
+  | { kind: "invalid-credentials" }
+  /** The session is valid but older than the recent-authentication window. */
+  | { kind: "reauthentication-required" }
+  /** Email-address changes travel through the SMTP-backed account flows. */
+  | { kind: "email-change-unsupported" }
+  /** The request named an origin the installation does not trust. */
+  | { kind: "invalid-origin" };
 
 export type Result<T> =
   | { ok: true; value: T }

@@ -36,15 +36,68 @@ export type SignOutRequest = {
 };
 
 /**
- * What a transport adapter reports after the identity library handled a
- * request. Core validates admission and workspace ownership; the adapter stays
- * responsible for credential verification and cookie mechanics.
+ * A stored session as core accepts it. The inactivity window moves with use;
+ * `createdAt` never does, so the absolute maximum still applies.
  */
-export interface AuthenticationReport {
+export interface SessionReport {
   userId: string;
+  sessionId: string;
   /** ISO timestamp after which the session must not be accepted. */
-  sessionExpiresAt: string;
+  expiresAt: string;
+  createdAt: string;
+  lastActiveAt: string;
 }
+
+/** One signed-in device, described by what the session row recorded. */
+export interface DeviceSession {
+  id: string;
+  current: boolean;
+  /** ISO timestamp of the sign-in that created the session. */
+  createdAt: string;
+  /** ISO timestamp of the last admitted use. */
+  lastActiveAt: string;
+  /** ISO timestamp after which the session must not be accepted. */
+  expiresAt: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+}
+
+export interface DeviceList {
+  sessions: DeviceSession[];
+}
+
+/**
+ * How recently the caller proved they are present. The clock starts at the
+ * sign-in that created the session and never restarts on ordinary use, so a
+ * continuously-used session does not stay recently authenticated.
+ */
+export interface RecentAuthentication {
+  recent: boolean;
+  /** ISO timestamp of the sign-in that authenticated the current session. */
+  authenticatedAt: string;
+  /** Seconds of recent authentication the installation requires. */
+  windowSeconds: number;
+}
+
+export type RevokeSessionRequest = {
+  /** Session to revoke; the stored row must belong to the caller. */
+  sessionId: string;
+};
+
+export type ChangePasswordRequest = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export type ChangeEmailRequest = {
+  newEmail: string;
+};
+
+export type CreateCredentialAccountRequest = {
+  name: string;
+  email: string;
+  password: string;
+};
 
 export interface AuthenticatedUser {
   id: string;

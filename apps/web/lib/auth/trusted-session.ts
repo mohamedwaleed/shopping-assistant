@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { Knex } from "knex";
 import {
   principalForUser,
   type AuthenticatedUser,
@@ -13,38 +12,44 @@ export interface TrustedSession {
   user: AuthenticatedUser;
   /** Workspace membership plus installation role, resolved from storage. */
   principal: Principal;
-  /** False when the stored session has passed its expiry. */
-  active: boolean;
+  /** ISO timestamp of the last admitted use of this session. */
+  lastActiveAt: string;
 }
 
 /**
  * Turn a stored session row into the trusted identity core operations need.
- * Membership is always read from the database: a caller-supplied workspace
- * identifier never reaches this function, and the admission check compares it
- * with stored membership so two workspaces stay isolated.
+ * Core accepts the stored session first, so the inactivity window and the
+ * absolute maximum are applied to storage rather than to the cookie, and the
+ * same rules govern every request. Membership is always read from the
+ * database: a caller-supplied workspace identifier never reaches this
+ * function, and the admission check compares it with stored membership so two
+ * workspaces stay isolated.
  */
 export async function resolveTrustedSession(
-  db: Knex,
   authentication: Authentication,
-  input: {
-    userId: string;
-    workspaceId: string;
-    sessionExpiresAt: Date | string;
-    sessionId: string;
-  },
+  input: { userId: string; workspaceId: string; sessionId: string },
 ): Promise<TrustedSession | null> {
+  const session = await authentication.requireSession(input.userId, input.sessionId);
+  if (!session.ok) return null;
+
   const admission = await authentication.admission({
     kind: "workspace",
     userId: input.userId,
     workspaceId: input.workspaceId,
+    sessionId: input.sessionId,
   });
   if (!admission.ok) return null;
+
   const admin = await authentication.administrator(input.userId);
-  const expiresAt = new Date(input.sessionExpiresAt);
   return {
     sessionId: input.sessionId,
     user: admission.value,
-    principal: principalForUser(admission.value.id, admission.value.workspace, admin.ok),
-    active: expiresAt.getTime() > Date.now(),
+    principal: principalForUser(
+      admission.value.id,
+      admission.value.workspace,
+      admin.ok,
+      input.sessionId,
+    ),
+    lastActiveAt: session.value.lastActiveAt,
   };
 }

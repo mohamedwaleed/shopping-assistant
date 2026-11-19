@@ -44,6 +44,8 @@ export function createAuthOptions({ db, baseURL, secret, debugLogs }: AuthOption
       updateAge: 60 * 60,
       cookieCache: { enabled: false },
     },
+    // Identity ids are UUIDs like the rest of the schema; the session id stays
+    // library-generated, so a signed cookie identifies exactly one stored row.
     advanced: { database: { generateId: "uuid" as const } },
     plugins: [nextCookies()],
   } satisfies BetterAuthOptions;

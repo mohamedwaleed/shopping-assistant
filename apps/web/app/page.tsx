@@ -94,6 +94,9 @@ export default async function Home({
             {t.workspaceLabel} · {roleLabel}
             {isAdministrator ? ` · ${t.administratorRole}` : ""}
           </div>
+          <a className="btn-quiet" href={`/account?lang=${lang}`}>
+            {t.accountTitle}
+          </a>
           <SignOutButton lang={lang} action={signOutAction} />
         </div>
       </nav>
