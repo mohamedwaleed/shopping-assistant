@@ -13,6 +13,8 @@ x-app: &app
     SETUP_TOKEN: ${SETUP_TOKEN:-development-setup-token}
     # Development-only session secret; set a generated value when exposed.
     BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-development-secret-change-me-0123456789abcdef}
+    # Encrypts stored credentials; development-only, see .env.example.
+    INSTALLATION_SECRET: ${INSTALLATION_SECRET:-development-installation-secret-change-me}
     BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
   volumes: &app-volumes
     - .:/app

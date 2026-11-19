@@ -45,6 +45,27 @@ export {
   type WorkspaceMembership,
 } from "./auth/types";
 export {
+  createMailer,
+  DIAGNOSTIC_COOLDOWN_MS,
+  failureStageFromCode,
+  INSTALLATION_SECRET_ENV,
+  MIN_INSTALLATION_SECRET_LENGTH,
+  type MailDelivery,
+  type MailDeliveryView,
+  type MailError,
+  type MailFailureStage,
+  type Mailer,
+  type MailerDependencies,
+  type MailMessage,
+  type MailSettingsView,
+  type MailTransport,
+  type SmtpConnection,
+  type SmtpSettingsInput,
+  type SmtpSettingsView,
+} from "./mail/mailer";
+export { nodemailerTransport } from "./mail/nodemailer-transport";
+export { openSecret, sealSecret } from "./mail/sealed-secret";
+export {
   type VariantOffer,
   type VariantOfferDetail,
   type VariantPrice,

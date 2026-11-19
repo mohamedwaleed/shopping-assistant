@@ -97,6 +97,11 @@ export default async function Home({
           <a className="btn-quiet" href={`/account?lang=${lang}`}>
             {t.accountTitle}
           </a>
+          {isAdministrator && (
+            <a className="btn-quiet" href={`/administration/email?lang=${lang}`}>
+              {t.navSettings}
+            </a>
+          )}
           <SignOutButton lang={lang} action={signOutAction} />
         </div>
       </nav>

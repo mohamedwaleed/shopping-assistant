@@ -15,6 +15,12 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   "email-change-unsupported": 409,
   /** The request came from another origin than the one it was sent to. */
   "invalid-origin": 403,
+  "mail-not-configured": 409,
+  // An operator environment mistake; nothing can be encrypted or decrypted.
+  "installation-secret-invalid": 500,
+  "mail-diagnostic-cooldown": 429,
+  // The upstream SMTP server failed, not this request; the stage says which.
+  "mail-delivery-failed": 502,
 };
 
 export function errorResponse(error: CoreError): Response {
