@@ -45,6 +45,14 @@ export {
   type WorkspaceMembership,
 } from "./auth/types";
 export {
+  createEmailLinkOperations,
+  EMAIL_CHANGE_SECONDS,
+  INVITATION_SECONDS,
+  PASSWORD_RESET_SECONDS,
+  type EmailLinkOperations,
+  type PasswordRecovery,
+} from "./auth/email-links";
+export {
   createMailer,
   DIAGNOSTIC_COOLDOWN_MS,
   failureStageFromCode,
@@ -71,6 +79,7 @@ export {
   type VariantPrice,
 } from "./catalogue";
 export { addMoney } from "./money";
+export { createIngestion, type IngestedPage, type IngestionDependencies, type PageFetcher, type PermittedSource, type SourcePolicy } from "./ingestion";
 export {
   createModelRegistry,
   diagnosticBounds,
@@ -108,3 +117,4 @@ export {
   type SaveModelConfiguration,
   type UsageSource,
 } from "./models/types";
+export { createBudgetRegistry, type BudgetKind, type BudgetRegistry, type BudgetReservation, type BudgetSettings, type BudgetView } from "./budgets/budget-registry";

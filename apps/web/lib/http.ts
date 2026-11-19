@@ -13,6 +13,7 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   "invalid-credentials": 401,
   "reauthentication-required": 403,
   "email-change-unsupported": 409,
+  "invalid-email-link": 400,
   /** The request came from another origin than the one it was sent to. */
   "invalid-origin": 403,
   "mail-not-configured": 409,
@@ -27,6 +28,14 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   "model-credential-missing": 409,
   "model-credential-provider-mismatch": 409,
   "provider-unavailable": 502,
+  "budget-paused": 409,
+  "background-personal-key-consent-required": 409,
+  "budget-retry-exhausted": 409,
+  "unsafe-url": 400,
+  "source-not-permitted": 403,
+  "source-fetch-failed": 502,
+  "extraction-failed": 422,
+  "identity-conflict": 409,
 };
 
 export function errorResponse(error: CoreError): Response {

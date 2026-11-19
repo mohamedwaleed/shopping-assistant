@@ -20,6 +20,8 @@ export type CoreError =
   | { kind: "reauthentication-required" }
   /** Email-address changes travel through the SMTP-backed account flows. */
   | { kind: "email-change-unsupported" }
+  /** An invitation, reset or email-confirmation link is invalid, expired or spent. */
+  | { kind: "invalid-email-link" }
   /** The request named an origin the installation does not trust. */
   | { kind: "invalid-origin" }
   /** No complete SMTP settings, or no explicit diagnostic recipient. */
@@ -45,7 +47,22 @@ export type CoreError =
       source: string;
     }
   /** The provider endpoint failed the bounded diagnostic request. */
-  | { kind: "provider-unavailable"; message: string };
+  | { kind: "provider-unavailable"; message: string }
+  /** Provider work is visibly paused until its allowance or slot is available. */
+  | { kind: "budget-paused"; reason: "allowance" | "concurrency"; budgetKind: string }
+  /** A workspace key cannot be spent by scheduled work without consent. */
+  | { kind: "background-personal-key-consent-required" }
+  | { kind: "budget-retry-exhausted"; budgetKind: string }
+  /** The URL has an unsafe scheme, credential, host or network destination. */
+  | { kind: "unsafe-url"; message: string }
+  /** No explicitly configured source policy permits this URL. */
+  | { kind: "source-not-permitted"; url: string }
+  /** Retrieval completed but was blocked, redirected unsafely, or otherwise unusable. */
+  | { kind: "source-fetch-failed"; classification: "redirect" | "challenge" | "http" | "network" }
+  /** The page did not contain a complete supported structured product offer. */
+  | { kind: "extraction-failed"; message: string }
+  /** Existing identifier evidence names a different configuration. */
+  | { kind: "identity-conflict"; identifier: string };
 
 export type Result<T> =
   | { ok: true; value: T }

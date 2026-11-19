@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+"use client";
+import { useState } from "react";
+import type { BudgetView } from "@shopping/core";
+import { dictionaries, type Lang } from "@/lib/i18n";
+
+export function BudgetSettings({ lang, canManage, initial }: { lang: Lang; canManage: boolean; initial: BudgetView }) {
+  const t = dictionaries[lang]; const [view, setView] = useState(initial); const [pending, setPending] = useState(false);
+  const [form, setForm] = useState({ interactiveCents: initial.interactiveCents, backgroundCents: initial.backgroundCents, maxInteractive: initial.maxInteractive, maxBackground: initial.maxBackground, retryLimit: initial.retryLimit, paidFallbackEnabled: initial.paidFallbackEnabled, backgroundPersonalKeyConsent: initial.backgroundPersonalKeyConsent });
+  const set = (key: keyof typeof form, value: number | boolean) => setForm({ ...form, [key]: value });
+  async function save() { setPending(true); const res = await fetch("/api/settings/budgets", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(canManage ? { ...form, scope: "installation" } : form) }); const payload = await res.json() as { budget?: BudgetView }; if (res.ok && payload.budget) setView(payload.budget); setPending(false); }
+  const reason = (value: "allowance" | "concurrency" | "personal-key-consent") => value === "allowance" ? t.pauseAllowance : value === "concurrency" ? t.pauseConcurrency : t.pausePersonalKey;
+  return <section className="panel" aria-labelledby="budgets-title"><h2 id="budgets-title">{t.budgetsTitle}</h2><p className="muted">{t.budgetsIntro}</p><div className="attr-grid">
+    <div className="field"><label htmlFor="interactive-budget">{t.interactiveAllowance}</label><input id="interactive-budget" className="input" type="number" min="0" value={form.interactiveCents} onChange={(e) => set("interactiveCents", Number(e.target.value))} /></div>
+    <div className="field"><label htmlFor="background-budget">{t.backgroundAllowance}</label><input id="background-budget" className="input" type="number" min="0" value={form.backgroundCents} onChange={(e) => set("backgroundCents", Number(e.target.value))} /></div>
+    {canManage && <><div className="field"><label htmlFor="interactive-max">{t.maximumInteractive}</label><input id="interactive-max" className="input" type="number" min="1" value={form.maxInteractive} onChange={(e) => set("maxInteractive", Number(e.target.value))} /></div><div className="field"><label htmlFor="background-max">{t.maximumBackground}</label><input id="background-max" className="input" type="number" min="1" value={form.maxBackground} onChange={(e) => set("maxBackground", Number(e.target.value))} /></div><div className="field"><label htmlFor="retry-limit">{t.retryLimit}</label><input id="retry-limit" className="input" type="number" min="0" value={form.retryLimit} onChange={(e) => set("retryLimit", Number(e.target.value))} /></div></>}
+  </div><label className="check-row"><input type="checkbox" checked={form.paidFallbackEnabled} onChange={(e) => set("paidFallbackEnabled", e.target.checked)} />{t.paidFallback}</label>{!canManage && <label className="check-row"><input type="checkbox" checked={form.backgroundPersonalKeyConsent} onChange={(e) => set("backgroundPersonalKeyConsent", e.target.checked)} />{t.backgroundConsent}</label>}
+  <p className="hint">{t.budgetUsage}: {view.usedInteractiveCents} / {view.interactiveCents} · {t.budgetReserved}: {view.reservedInteractiveCents} — {view.usedBackgroundCents} / {view.backgroundCents} · {view.reservedBackgroundCents}</p>{(["interactive", "background"] as const).map((kind) => view.pauseReasons[kind] ? <div className="notice notice-error" role="status" key={kind}>{t.budgetPaused}: {reason(view.pauseReasons[kind]!)}</div> : null)}<button type="button" className="btn-primary" disabled={pending} onClick={save}>{pending ? t.savingBudgets : t.saveBudgets}</button></section>;
+}

@@ -124,6 +124,8 @@ export interface Mailer {
     principal: Principal,
     transport: MailTransport,
   ): Promise<Result<MailDelivery>>;
+  /** Transactional delivery for account flows; SMTP must be configured. */
+  deliver(message: MailMessage, transport: MailTransport): Promise<Result<MailDelivery>>;
 }
 
 export interface MailerDependencies {
@@ -417,5 +419,26 @@ export function createMailer(deps: MailerDependencies): Mailer {
     }
   }
 
-  return { settings, saveSettings, sendDiagnostic };
+  async function deliver(message: MailMessage, transport: MailTransport): Promise<Result<MailDelivery>> {
+    const row = await installation();
+    const stored = row.smtp_settings;
+    if (!stored) return err({ kind: "mail-not-configured", missing: "smtp" });
+    const secret = installationSecret();
+    if (!secret.ok) return secret;
+    let password: string;
+    try {
+      password = openSecret(stored.passwordCiphertext, secret.value);
+    } catch {
+      return err({ kind: "mail-delivery-failed", stage: "authentication", reason: "the stored SMTP password could not be decrypted with the installation secret" });
+    }
+    try {
+      return ok(await transport.deliver({ host: stored.host, port: stored.port, secure: stored.secure, username: stored.username, password, fromAddress: stored.fromAddress, fromName: stored.fromName }, message));
+    } catch (error) {
+      const failure = error as { code?: string; message?: string; responseCode?: number };
+      const stage = failureStageFromCode(failure.code, failure.responseCode);
+      return err({ kind: "mail-delivery-failed", stage, reason: redact([failure.message, failure.code].filter(Boolean).join(" | ") || String(error), [password, stored.username, stored.host, ...(deps.redactions ?? [])]) });
+    }
+  }
+
+  return { settings, saveSettings, sendDiagnostic, deliver };
 }
