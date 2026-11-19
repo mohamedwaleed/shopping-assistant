@@ -3,6 +3,7 @@ import type { Knex } from "knex";
 import { lookup } from "node:dns/promises";
 import { err, ok, type Result } from "./errors";
 import { isAuthorized, type Principal } from "./principal";
+import { canonicalizeAttributeValue } from "./attribute-values";
 
 export interface PermittedSource {
   retailerName: string;
@@ -31,6 +32,7 @@ export interface IngestedPage {
 type StructuredProduct = {
   name: string;
   manufacturer: string | null;
+  category: string | null;
   gtin: string | null;
   mpn: string | null;
   sku: string | null;
@@ -64,7 +66,9 @@ function propertyValue(product: Record<string, unknown>): Record<string, unknown
   return Object.fromEntries(values.flatMap((item) => {
     if (!item || typeof item !== "object") return [];
     const value = item as Record<string, unknown>;
-    return typeof value.name === "string" && value.value !== undefined ? [[value.name, value.value]] : [];
+    if (typeof value.name !== "string" || value.value === undefined) return [];
+    const rawUnit = typeof value.unitCode === "string" ? value.unitCode : typeof value.unitText === "string" ? value.unitText : null;
+    return [[value.name, rawUnit ? { value: value.value, unit: rawUnit } : value.value]];
   }));
 }
 
@@ -88,13 +92,17 @@ function parseProduct(html: string): StructuredProduct | null {
       const sellerObject = offer?.seller;
       const seller = sellerObject && typeof sellerObject === "object" ? text((sellerObject as Record<string, unknown>).name) : text(sellerObject);
       const condition = String(offer?.itemCondition ?? "").toLowerCase().includes("refurbished") ? "refurbished" : "new";
-      return { name, manufacturer: brand, gtin: text(product.gtin13) ?? text(product.gtin), mpn: text(product.mpn), sku: text(product.sku) ?? text(offer?.sku), attributes: propertyValue(product), price, currency, seller, condition };
+      return { name, manufacturer: brand, category: text(product.category), gtin: text(product.gtin13) ?? text(product.gtin), mpn: text(product.mpn), sku: text(product.sku) ?? text(offer?.sku), attributes: propertyValue(product), price, currency, seller, condition };
     } catch { /* ignore malformed JSON-LD blocks */ }
   }
   return null;
 }
 
 function excerpt(html: string): string { return html.replace(/\s+/g, " ").trim().slice(0, 2_000); }
+
+function normalizedAttributeName(name: string): string {
+  return name.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
 
 export function createIngestion(db: Knex, deps: IngestionDependencies = {}) {
   const fetchPage = deps.fetch ?? fetch;
@@ -137,16 +145,56 @@ export function createIngestion(db: Knex, deps: IngestionDependencies = {}) {
       if (!retailer) [retailer] = await trx("retailers").insert({ name: permitted.retailerName, base_url: permitted.baseUrl }).returning("*");
       const identifier = product.gtin ?? product.mpn;
       let variant = identifier ? await trx("variants").where(product.gtin ? { gtin: product.gtin } : { manufacturer_part_number: product.mpn }).first() : undefined;
-      if (variant && JSON.stringify(variant.attributes ?? {}) !== JSON.stringify(product.attributes)) return err({ kind: "identity-conflict", identifier: identifier! });
+      if (variant && JSON.stringify(variant.attributes ?? {}) !== JSON.stringify(product.attributes)) {
+        for (const [rawName, value] of Object.entries(product.attributes)) {
+          await trx("source_claims").insert({
+            evidence_id: evidenceId,
+            variant_id: variant.id,
+            field: `attribute.${rawName}`,
+            raw_name: rawName,
+            value: JSON.stringify(value),
+            observed_at: observedAt,
+            mapping_status: "unresolved",
+          }).onConflict(["evidence_id", "field"]).merge({
+            value: JSON.stringify(value),
+            observed_at: observedAt,
+            mapping_status: "unresolved",
+            canonical_attribute_id: null,
+          });
+        }
+        return err({ kind: "identity-conflict", identifier: identifier! });
+      }
       let productRow = variant ? await trx("products").where({ id: variant.product_id }).first() : await trx("products").where({ name: product.name, manufacturer: product.manufacturer }).first();
-      if (!productRow) [productRow] = await trx("products").insert({ name: product.name, manufacturer: product.manufacturer }).returning("*");
-      if (!variant) [variant] = await trx("variants").insert({ product_id: productRow.id, name: product.name, gtin: product.gtin, manufacturer_part_number: product.mpn, attributes: JSON.stringify(product.attributes) }).returning("*");
+      if (!productRow) [productRow] = await trx("products").insert({ name: product.name, manufacturer: product.manufacturer, category: product.category }).returning("*");
+      const attributeRows = await trx("catalogue_attributes").select("id", "key", "value_type", "unit");
+      const synonyms = await trx("catalogue_attribute_synonyms").select("attribute_id", "synonym");
+      const byName = new Map(attributeRows.map((attribute) => [normalizedAttributeName(attribute.key), attribute]));
+      for (const synonym of synonyms) {
+        const attribute = attributeRows.find((candidate) => candidate.id === synonym.attribute_id);
+        if (attribute) byName.set(normalizedAttributeName(synonym.synonym), attribute);
+      }
+      const acceptedAttributes: Record<string, unknown> = {};
+      for (const [rawName, value] of Object.entries(product.attributes)) {
+        const attribute = byName.get(normalizedAttributeName(rawName));
+        const canonical = attribute && canonicalizeAttributeValue({ key: attribute.key, valueType: attribute.value_type, unit: attribute.unit }, value);
+        if (canonical !== null && canonical !== undefined) acceptedAttributes[attribute!.key] = canonical;
+      }
+      if (!variant) [variant] = await trx("variants").insert({ product_id: productRow.id, name: product.name, gtin: product.gtin, manufacturer_part_number: product.mpn, attributes: JSON.stringify(acceptedAttributes) }).returning("*");
       let offer = await trx("offers").where({ retailer_id: retailer.id, url: sourceUrl }).first();
       if (!offer) [offer] = await trx("offers").insert({ variant_id: variant.id, retailer_id: retailer.id, url: sourceUrl, condition: product.condition, retailer_sku: product.sku, seller_name: product.seller }).returning("*");
       await trx("price_observations").where({ offer_id: offer.id, source_kind: "retailer_page" }).del();
       await trx("price_observations").insert({ offer_id: offer.id, amount: product.price, currency: product.currency, shipping_amount: "0.00", vat_included: true, source_kind: "retailer_page", observed_at: observedAt });
       const claims = [["product.name", product.name, "product_id"], ["variant.identifiers", { gtin: product.gtin, manufacturerPartNumber: product.mpn }, "variant_id"], ["offer", { retailerSku: product.sku, seller: product.seller, price: product.price, currency: product.currency }, "offer_id"]] as const;
       for (const [field, value, target] of claims) await trx("source_claims").insert({ evidence_id: evidenceId, field, value: JSON.stringify(value), observed_at: observedAt, [target]: target === "product_id" ? productRow.id : target === "variant_id" ? variant.id : offer.id }).onConflict(["evidence_id", "field"]).merge({ value: JSON.stringify(value), observed_at: observedAt });
+      for (const [rawName, value] of Object.entries(product.attributes)) {
+        const attribute = byName.get(normalizedAttributeName(rawName));
+        const canonical = attribute && canonicalizeAttributeValue({ key: attribute.key, valueType: attribute.value_type, unit: attribute.unit }, value);
+        await trx("source_claims").insert({
+          evidence_id: evidenceId, variant_id: variant.id, field: `attribute.${rawName}`, raw_name: rawName,
+          value: JSON.stringify(value), observed_at: observedAt,
+          mapping_status: canonical === null || canonical === undefined ? "unresolved" : "accepted", canonical_attribute_id: canonical === null || canonical === undefined ? null : attribute!.id,
+        }).onConflict(["evidence_id", "field"]).merge({ value: JSON.stringify(value), observed_at: observedAt, mapping_status: canonical === null || canonical === undefined ? "unresolved" : "accepted", canonical_attribute_id: canonical === null || canonical === undefined ? null : attribute!.id });
+      }
       return ok({ variantId: variant.id, offerId: offer.id, evidenceId });
     });
   };

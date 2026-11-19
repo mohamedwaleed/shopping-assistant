@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 interface SignInBody {
   email?: unknown;
   password?: unknown;
+  secondFactorCode?: unknown;
 }
 
 /**
@@ -20,33 +21,19 @@ export async function POST(request: Request): Promise<Response> {
   const body = (await request.json().catch(() => ({}))) as SignInBody;
   const email = typeof body.email === "string" ? body.email : "";
   const password = typeof body.password === "string" ? body.password : "";
+  const secondFactorCode = typeof body.secondFactorCode === "string" ? body.secondFactorCode : "";
 
   const auth = getAuth();
   const provisioner = createAccountProvisioner(auth, getDb());
-  // The identity library writes the session cookie through Next.js cookies(),
-  // which needs an actual request scope; the session cookie is therefore
-  // issued by the identity library for this request and returned as headers.
-  let sessionHeaders: Headers | undefined;
   const result = await getCore().auth.signIn(
-    { email, password, sessionEstablished: true },
-    {
-      ...provisioner,
-      verifyCredentials: async (input) => {
-        const verified = await provisioner.verifyCredentials(input);
-        if (!verified) return null;
-        const signIn = await auth.api.signInEmail({
-          body: { email: input.email, password: input.password },
-          returnHeaders: true,
-        });
-        sessionHeaders = signIn.headers;
-        return verified;
-      },
-    },
+    { email, password, secondFactorCode, sessionEstablished: true }, provisioner,
   );
   if (!result.ok) return errorResponse(result.error);
+  // Do not issue a cookie until the core has accepted the authenticator code.
+  const signIn = await auth.api.signInEmail({ body: { email, password }, returnHeaders: true });
 
   const responseHeaders = new Headers({ "content-type": "application/json" });
-  for (const cookie of sessionHeaders?.getSetCookie() ?? []) {
+  for (const cookie of signIn.headers.getSetCookie() ?? []) {
     responseHeaders.append("set-cookie", cookie);
   }
   return new Response(JSON.stringify({ user: result.value }), {

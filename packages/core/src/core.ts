@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { Knex } from "knex";
-import {
-  getVariantOfferDetail,
-  type VariantOfferDetail,
-} from "./catalogue";
+import { getVariantOfferDetail, listAttributeReviews, reviewAttributeClaim, type AttributeReview, type VariantOfferDetail } from "./catalogue";
 import { createAuthentication, type AuthDependencies, type Authentication } from "./auth/authentication";
 import { createMailer, type Mailer, type MailerDependencies } from "./mail/mailer";
 import { createEmailLinkOperations, type EmailLinkOperations } from "./auth/email-links";
@@ -16,6 +13,7 @@ import {
 import type { Principal } from "./principal";
 import { createBudgetRegistry, type BudgetRegistry } from "./budgets/budget-registry";
 import { createIngestion, type IngestionDependencies, type IngestedPage } from "./ingestion";
+import { createChatSessions, type ChatSessions } from "./chat";
 
 export interface ShoppingCore {
   auth: Authentication;
@@ -23,12 +21,15 @@ export interface ShoppingCore {
   emailLinks: EmailLinkOperations;
   models: ModelRegistry;
   budgets: BudgetRegistry;
+  chat: ChatSessions;
   catalogue: {
     getVariantOfferDetail(
       principal: Principal,
       variantId: string,
     ): Promise<Result<VariantOfferDetail>>;
     ingestProductPage(principal: Principal, sourceUrl: string): Promise<Result<IngestedPage>>;
+    listAttributeReviews(principal: Principal): Promise<Result<AttributeReview[]>>;
+    reviewAttributeClaim(principal: Principal, claimId: string, canonicalKey: string | null): Promise<Result<void>>;
   };
 }
 
@@ -61,10 +62,13 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
       ...(deps.now ? { now: deps.now } : {}),
     }),
     budgets: createBudgetRegistry({ db: deps.db }),
+    chat: createChatSessions({ db: deps.db }),
     catalogue: {
       getVariantOfferDetail: (principal, variantId) =>
         getVariantOfferDetail(deps.db, principal, variantId),
       ingestProductPage: createIngestion(deps.db, deps.ingestion),
+      listAttributeReviews: (principal) => listAttributeReviews(deps.db, principal),
+      reviewAttributeClaim: (principal, claimId, canonicalKey) => reviewAttributeClaim(deps.db, principal, claimId, canonicalKey),
     },
   };
 }

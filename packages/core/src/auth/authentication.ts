@@ -3,6 +3,7 @@ import type { Knex } from "knex";
 import { err, ok, type Result } from "../errors";
 import { isAuthorized, principalForUser, type Principal } from "../principal";
 import { hashSetupToken, readSetupToken, setupTokenMatches } from "./setup-token";
+import { authenticatorCode, newAuthenticatorSecret, newRecoveryCodes, recoveryCodeHash, validAuthenticatorCode } from "./two-factor";
 import type {
   AuthenticatedUser,
   ChangeEmailRequest,
@@ -21,6 +22,8 @@ import type {
   SignOutRequest,
   SignUpRequest,
   WorkspaceMembership,
+  TwoFactorEnrollment,
+  TwoFactorRecoveryCodes,
 } from "./types";
 
 const UUID_PATTERN =
@@ -115,6 +118,9 @@ export interface Authentication {
     provisioner: AccountProvisioner,
   ): Promise<Result<AuthenticatedUser>>;
   signOut(request: SignOutRequest): Promise<Result<{ signedOut: true }>>;
+  beginTwoFactorEnrollment(principal: Principal): Promise<Result<TwoFactorEnrollment>>;
+  confirmTwoFactorEnrollment(principal: Principal, request: { code: string }): Promise<Result<TwoFactorRecoveryCodes>>;
+  verifySecondFactor(userId: string, code: string): Promise<Result<{ verified: true }>>;
   administrator(userId: string): Promise<Result<InstallationAdministrator>>;
 }
 
@@ -470,6 +476,8 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
     }
 
     if (!recent.value.recent) return err({ kind: "reauthentication-required" });
+    const secondFactor = await verifySecondFactor(admitted.value.id, request.secondFactorCode ?? "");
+    if (!secondFactor.ok) return secondFactor;
 
     const sessionId = principal.kind === "anonymous" ? "" : principal.sessionId;
     // The identity library verifies the current password and replaces the
@@ -574,7 +582,41 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
 
     const admitted = await authenticatedUser(verified.userId);
     if (!admitted.ok) return admitted;
+    const configuredFactor = await db("two_factor_authenticator").where({ user_id: verified.userId, enabled: true }).first();
+    if (configuredFactor && !request.secondFactorCode?.trim()) return err({ kind: "second-factor-required" });
+    const factor = await verifySecondFactor(verified.userId, request.secondFactorCode ?? "");
+    if (!factor.ok) return factor;
     return admitted;
+  }
+
+  async function beginTwoFactorEnrollment(principal: Principal): Promise<Result<TwoFactorEnrollment>> {
+    const recent = await recentAuthentication(principal);
+    if (!recent.ok) return recent;
+    if (!recent.value.recent) return err({ kind: "reauthentication-required" });
+    const admitted = await admittedUser(principal); if (!admitted.ok) return admitted;
+    const secret = newAuthenticatorSecret();
+    await db("two_factor_authenticator").insert({ user_id: admitted.value.id, secret, enabled: false, updated_at: now() }).onConflict("user_id").merge({ secret, enabled: false, updated_at: now() });
+    await db("two_factor_backup_code").where({ user_id: admitted.value.id }).delete();
+    return ok({ secret, otpauthUrl: `otpauth://totp/Shopping%20Assistant:${encodeURIComponent(admitted.value.email)}?secret=${secret}&issuer=Shopping%20Assistant&algorithm=SHA1&digits=6&period=30` });
+  }
+
+  async function confirmTwoFactorEnrollment(principal: Principal, request: { code: string }): Promise<Result<TwoFactorRecoveryCodes>> {
+    const recent = await recentAuthentication(principal); if (!recent.ok) return recent;
+    if (!recent.value.recent) return err({ kind: "reauthentication-required" });
+    const admitted = await admittedUser(principal); if (!admitted.ok) return admitted;
+    const row = await db("two_factor_authenticator").where({ user_id: admitted.value.id }).first() as { secret: string } | undefined;
+    if (!row || !validAuthenticatorCode(row.secret, request.code.trim(), now())) return err({ kind: "invalid-second-factor" });
+    const recoveryCodes = newRecoveryCodes();
+    await db.transaction(async (trx) => { await trx("two_factor_authenticator").where({ user_id: admitted.value.id }).update({ enabled: true, updated_at: now() }); await trx("two_factor_backup_code").where({ user_id: admitted.value.id }).delete(); await trx("two_factor_backup_code").insert(recoveryCodes.map((code) => ({ user_id: admitted.value.id, code_hash: recoveryCodeHash(code) }))); });
+    return ok({ recoveryCodes });
+  }
+
+  async function verifySecondFactor(userId: string, code: string): Promise<Result<{ verified: true }>> {
+    const factor = await db("two_factor_authenticator").where({ user_id: userId, enabled: true }).first() as { secret: string } | undefined;
+    if (!factor) return ok({ verified: true });
+    if (validAuthenticatorCode(factor.secret, code.trim(), now())) return ok({ verified: true });
+    const spent = await db("two_factor_backup_code").where({ user_id: userId, code_hash: recoveryCodeHash(code) }).delete().returning("id");
+    return spent.length === 1 ? ok({ verified: true }) : err({ kind: "invalid-second-factor" });
   }
 
   async function signOut(request: SignOutRequest): Promise<Result<{ signedOut: true }>> {
@@ -604,6 +646,9 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
     createCredentialAccount,
     signUp,
     signIn,
+    beginTwoFactorEnrollment,
+    confirmTwoFactorEnrollment,
+    verifySecondFactor,
     signOut,
     administrator,
   };

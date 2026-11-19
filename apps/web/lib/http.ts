@@ -11,6 +11,8 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   "registration-closed": 403,
   "access-disabled": 403,
   "invalid-credentials": 401,
+  "second-factor-required": 401,
+  "invalid-second-factor": 401,
   "reauthentication-required": 403,
   "email-change-unsupported": 409,
   "invalid-email-link": 400,

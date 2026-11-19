@@ -5,7 +5,7 @@ import {
   type ModelTarget,
   type SaveModelConfiguration,
   type UsageSource,
-} from "@shopping/core";
+} from "@shopping/core/models/types";
 
 /**
  * Translate a settings request body into a core save request. Only known fields

@@ -73,10 +73,9 @@ export default async function Home({
     <div className="app-shell" lang={lang}>
       <nav className="rail" aria-label="Main">
         <span className="brand">{t.appName}</span>
-        <span className="nav-item">
+        <a className="nav-item" href={`/chat?lang=${lang}`}>
           {t.navChat}
-          <span className="nav-badge">{t.navComingSoon}</span>
-        </span>
+        </a>
         <span className="nav-item active">{t.navProducts}</span>
         <span className="nav-item">
           {t.navCompare}
@@ -151,6 +150,15 @@ export default async function Home({
                   ),
                 )}
               </div>
+            </section>
+
+            <section className="panel">
+              <h3>Source claims</h3>
+              {detail.claims.filter((claim) => claim.field.startsWith("attribute.")).map((claim) => (
+                <p className="muted" key={`${claim.field}-${claim.sourceUrl}`}>
+                  {claim.field.replace("attribute.", "")}: {String(claim.value)} · {claim.mappingStatus === "unresolved" ? "Needs review" : "Validated"}
+                </p>
+              ))}
             </section>
 
             <section className="panel">

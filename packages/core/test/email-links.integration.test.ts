@@ -32,7 +32,7 @@ describe("email-bound account links through the core", () => {
     await db("workspace_memberships").delete(); await db("workspaces").delete(); await db("session").delete(); await db("account").delete(); await db("user").delete(); await db("verification").delete();
     messages = [];
     mailer = { deliver: async (message: { text: string }) => { messages.push(message.text); return { ok: true as const, value: { delivered: true as const, recipient: "x", messageId: "m", deliveredAt: new Date().toISOString() } }; } } as unknown as Mailer;
-    authentication = { recentAuthentication: async () => ({ ok: true as const, value: { recent: true, authenticatedAt: new Date().toISOString(), windowSeconds: 300 } }), admission: async () => ({ ok: true as const, value: { id: "admin", email: "admin@example.nl", name: "Admin", workspace: { workspaceId: adminWorkspaceId, role: "owner" as const } } }) } as unknown as Authentication;
+    authentication = { recentAuthentication: async () => ({ ok: true as const, value: { recent: true, authenticatedAt: new Date().toISOString(), windowSeconds: 300 } }), admission: async () => ({ ok: true as const, value: { id: "admin", email: "admin@example.nl", name: "Admin", workspace: { workspaceId: adminWorkspaceId, role: "owner" as const } } }), verifySecondFactor: async () => ({ ok: true as const, value: { verified: true as const } }) } as unknown as Authentication;
     links = createEmailLinkOperations({ db, auth: authentication, mail: mailer });
   });
   afterAll(async () => { await db.destroy(); });

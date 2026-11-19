@@ -25,6 +25,7 @@ export {
   setupTokenMatches,
   type SetupTokenSource,
 } from "./auth/setup-token";
+export { authenticatorCode } from "./auth/two-factor";
 export {
   type AuthenticatedUser,
   type ChangeEmailRequest,
@@ -43,6 +44,8 @@ export {
   type SignOutRequest,
   type SignUpRequest,
   type WorkspaceMembership,
+  type TwoFactorEnrollment,
+  type TwoFactorRecoveryCodes,
 } from "./auth/types";
 export {
   createEmailLinkOperations,
@@ -77,6 +80,7 @@ export {
   type VariantOffer,
   type VariantOfferDetail,
   type VariantPrice,
+  type AttributeReview,
 } from "./catalogue";
 export { addMoney } from "./money";
 export { createIngestion, type IngestedPage, type IngestionDependencies, type PageFetcher, type PermittedSource, type SourcePolicy } from "./ingestion";
@@ -118,3 +122,4 @@ export {
   type UsageSource,
 } from "./models/types";
 export { createBudgetRegistry, type BudgetKind, type BudgetRegistry, type BudgetReservation, type BudgetSettings, type BudgetView } from "./budgets/budget-registry";
+export { createChatSessions, type ChatLanguage, type ChatSessions, type SessionMessage, type SessionRequirements, type ShoppingSession } from "./chat";
