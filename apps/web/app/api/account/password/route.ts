@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 interface PasswordBody {
   currentPassword?: unknown;
   newPassword?: unknown;
+  secondFactorCode?: unknown;
 }
 
 function text(value: unknown): string {
@@ -38,6 +39,7 @@ export async function POST(request: Request): Promise<Response> {
     {
       currentPassword: text(body.currentPassword),
       newPassword: text(body.newPassword),
+      secondFactorCode: text(body.secondFactorCode),
     },
     credentials,
   );

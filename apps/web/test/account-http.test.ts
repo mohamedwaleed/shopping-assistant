@@ -5,6 +5,7 @@ import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
 import { getCore, getDb } from "@/lib/core";
 import { closeAuth, getAuth } from "@/lib/auth/session";
 import { createAccountProvisioner } from "@/lib/auth/provisioner";
+import { authenticatorCode } from "@shopping/core";
 
 // Thin HTTP contract checks over the real identity library and PostgreSQL for
 // the account surface: stored sessions, device listing and revocation, the
@@ -30,6 +31,8 @@ let passwordRoute: typeof import("../app/api/account/password/route");
 let emailRoute: typeof import("../app/api/account/email/route");
 let resetRoute: typeof import("../app/api/account/password/reset/route");
 let invitationRoute: typeof import("../app/api/invitations/route");
+let enrollTwoFactorRoute: typeof import("../app/api/account/two-factor/enroll/route");
+let confirmTwoFactorRoute: typeof import("../app/api/account/two-factor/confirm/route");
 
 function jsonRequest(url: string, body: unknown, headers: Record<string, string> = {}): Request {
   return new Request(url, {
@@ -137,6 +140,8 @@ beforeAll(async () => {
   emailRoute = await import("../app/api/account/email/route");
   resetRoute = await import("../app/api/account/password/reset/route");
   invitationRoute = await import("../app/api/invitations/route");
+  enrollTwoFactorRoute = await import("../app/api/account/two-factor/enroll/route");
+  confirmTwoFactorRoute = await import("../app/api/account/two-factor/confirm/route");
 });
 
 beforeEach(async () => {
@@ -157,6 +162,19 @@ afterAll(async () => {
   const { closeCore } = await import("@/lib/core");
   await closeCore();
   await db.destroy();
+});
+
+describe("two-factor account HTTP flow", () => {
+  it("enrolls only through the signed-in account session and returns recovery codes once", async () => {
+    await claim();
+    const cookie = await signIn(ADMIN_EMAIL, ADMIN_PASSWORD);
+    const enroll = await enrollTwoFactorRoute.POST(jsonRequest("http://localhost:3000/api/account/two-factor/enroll", {}, { cookie }));
+    expect(enroll.status).toBe(200);
+    const row = await db("two_factor_authenticator").where({ user_id: (await db("user").where({ email: ADMIN_EMAIL }).first()).id }).first();
+    const confirm = await confirmTwoFactorRoute.POST(jsonRequest("http://localhost:3000/api/account/two-factor/confirm", { code: authenticatorCode(row.secret, new Date()) }, { cookie }));
+    expect(confirm.status).toBe(200);
+    expect((await confirm.json()).recoveryCodes).toHaveLength(10);
+  });
 });
 
 describe("POST /api/sign-in issues a secure database-backed session", () => {

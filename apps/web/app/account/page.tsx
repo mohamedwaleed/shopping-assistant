@@ -5,10 +5,12 @@ import { requestIdentity } from "@/lib/auth/session";
 import { dictionaries, resolveLang } from "@/lib/i18n";
 import {
   changePasswordAction,
+  beginTwoFactorEnrollmentAction,
+  confirmTwoFactorEnrollmentAction,
   revokeAllDevicesAction,
   revokeDeviceAction,
 } from "@/app/actions";
-import { DeviceList, PasswordForm } from "@/app/auth-forms";
+import { DeviceList, PasswordForm, TwoFactorForm } from "@/app/auth-forms";
 
 /**
  * Account settings: the signed-in devices of this account and the password
@@ -57,6 +59,7 @@ export default async function Account({
           revokeAllAction={revokeAllDevicesAction}
         />
         <PasswordForm lang={lang} action={changePasswordAction} />
+        <TwoFactorForm lang={lang} beginAction={beginTwoFactorEnrollmentAction} confirmAction={confirmTwoFactorEnrollmentAction} />
       </main>
     </div>
   );

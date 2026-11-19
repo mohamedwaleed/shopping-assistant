@@ -25,6 +25,7 @@ export {
   setupTokenMatches,
   type SetupTokenSource,
 } from "./auth/setup-token";
+export { authenticatorCode } from "./auth/two-factor";
 export {
   type AuthenticatedUser,
   type ChangeEmailRequest,
@@ -43,6 +44,8 @@ export {
   type SignOutRequest,
   type SignUpRequest,
   type WorkspaceMembership,
+  type TwoFactorEnrollment,
+  type TwoFactorRecoveryCodes,
 } from "./auth/types";
 export {
   createEmailLinkOperations,
