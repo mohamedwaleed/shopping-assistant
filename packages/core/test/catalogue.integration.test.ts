@@ -7,7 +7,7 @@ import {
   DEVELOPMENT_FIXTURE_IDS,
   loadDevelopmentFixtures,
 } from "@shopping/db";
-import { createShoppingCore, type Principal } from "../src/index";
+import { createShoppingCore, createSecretCipher, type Principal } from "../src/index";
 
 // Core is the primary testing seam: read a catalogue variant through the
 // engine against real PostgreSQL, including authorization and failure shapes.
@@ -31,7 +31,15 @@ describe("catalogue reads through the core", () => {
     await db.migrate.rollback({}, true);
     await db.migrate.latest();
     await loadDevelopmentFixtures(db);
-    core = createShoppingCore({ db });
+    core = createShoppingCore({
+      db,
+      models: {
+        cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }),
+        probe: async () => {
+          throw new Error("the catalogue seam never probes a model");
+        },
+      },
+    });
   });
 
   afterAll(async () => {

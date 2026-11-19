@@ -2,7 +2,7 @@
 import type { CoreError, MailFailureStage } from "@shopping/core";
 import type { Dictionary } from "@/lib/i18n";
 
-/** User-facing message for a core error; setup and sign-in screens only. */
+/** User-facing message for a core error shown on form-driven screens. */
 export function authErrorMessage(error: CoreError, t: Dictionary): string {
   switch (error.kind) {
     case "invalid-setup-token":
@@ -17,6 +17,14 @@ export function authErrorMessage(error: CoreError, t: Dictionary): string {
       return t.errorRegistrationClosed;
     case "invalid-input":
       return t.errorInvalidInput;
+    case "model-not-configured":
+      return t.errorModelNotConfigured;
+    case "model-credential-missing":
+      return t.errorModelCredentialMissing;
+    case "model-credential-provider-mismatch":
+      return t.errorModelCredentialProviderMismatch;
+    case "provider-unavailable":
+      return t.errorProviderUnavailable;
     default:
       return t.errorGeneric;
   }

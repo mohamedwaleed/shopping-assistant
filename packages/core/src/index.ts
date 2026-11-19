@@ -48,8 +48,6 @@ export {
   createMailer,
   DIAGNOSTIC_COOLDOWN_MS,
   failureStageFromCode,
-  INSTALLATION_SECRET_ENV,
-  MIN_INSTALLATION_SECRET_LENGTH,
   type MailDelivery,
   type MailDeliveryView,
   type MailError,
@@ -71,3 +69,40 @@ export {
   type VariantPrice,
 } from "./catalogue";
 export { addMoney } from "./money";
+export {
+  createModelRegistry,
+  diagnosticBounds,
+  type ModelRegistry,
+  type ModelRegistryDependencies,
+} from "./models/model-registry";
+export {
+  createSecretCipher,
+  maskSecret,
+  SECRET_ENCRYPTION,
+  type SecretCipher,
+} from "./models/secret-cipher";
+export {
+  INSTALLATION_SECRET_ENV,
+  MINIMUM_INSTALLATION_SECRET_LENGTH,
+} from "./installation-secret";
+export {
+  DEFAULT_DIAGNOSTIC_BOUNDS,
+  MAX_DIAGNOSTIC_CALLS,
+  MAX_DIAGNOSTIC_OUTPUT_TOKENS,
+  MODEL_PROVIDERS,
+  type CapabilityReport,
+  type CapabilityState,
+  type DiagnosticBounds,
+  type EffectiveModelConfigurationView,
+  type ModelConfigurationView,
+  type ModelConfigurationViewResult,
+  type ModelCredentialSummary,
+  type ModelProbe,
+  type ModelProbeRequest,
+  type ModelProvider,
+  type ModelRole,
+  type ModelTarget,
+  type ResolvedModel,
+  type SaveModelConfiguration,
+  type UsageSource,
+} from "./models/types";

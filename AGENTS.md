@@ -24,6 +24,17 @@ changing code. Product spec: `.scratch/shopping-assistant/spec.md`; tickets:
   `postgres://postgres:postgres@localhost:54329/shopping_assistant_test`
   (`DATABASE_URL_TEST` overrides).
 
+## Model access
+
+- `packages/core` owns the model registry (`src/models/`): installation
+  default, workspace override, usage source, typed errors, encrypted
+  credentials and the diagnostic bounds. It never imports a provider SDK.
+- `apps/web/lib/models/ai-sdk-probe.ts` is the only place the Vercel AI SDK is
+  imported. Versions are pinned (ADR 0012) and asserted by a test; capability
+  checks run against `apps/web/test/support/provider-fixtures.ts`, a loopback
+  server speaking the providers' wire protocols. Live checks are env-gated and
+  skipped by default.
+
 ## Conventions
 
 - Tests at agreed seams: core engine boundary first, thin HTTP contract

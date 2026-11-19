@@ -29,7 +29,23 @@ export type CoreError =
   /** A diagnostic send is still cooling down after the previous attempt. */
   | { kind: "mail-diagnostic-cooldown"; retryAfterSeconds: number }
   /** SMTP connection, authentication or delivery failed; see the mailer contract. */
-  | { kind: "mail-delivery-failed"; stage: MailFailureStage; reason: string };
+  | { kind: "mail-delivery-failed"; stage: MailFailureStage; reason: string }
+  /** No model serves this role; configuration is required, no fallback exists. */
+  | { kind: "model-not-configured"; role: string }
+  /** The selected usage source has no stored credential for this provider. */
+  | { kind: "model-credential-missing"; provider: string; source: string }
+  /**
+   * The stored credential belongs to another provider than the resolved model,
+   * so using it would send a key to an endpoint it was never issued for.
+   */
+  | {
+      kind: "model-credential-provider-mismatch";
+      provider: string;
+      credentialProvider: string;
+      source: string;
+    }
+  /** The provider endpoint failed the bounded diagnostic request. */
+  | { kind: "provider-unavailable"; message: string };
 
 export type Result<T> =
   | { ok: true; value: T }

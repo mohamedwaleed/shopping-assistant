@@ -21,6 +21,12 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   "mail-diagnostic-cooldown": 429,
   // The upstream SMTP server failed, not this request; the stage says which.
   "mail-delivery-failed": 502,
+  // Configuration problems are conflicts with the installation's state, not
+  // server faults: the caller must configure a model or credential.
+  "model-not-configured": 409,
+  "model-credential-missing": 409,
+  "model-credential-provider-mismatch": 409,
+  "provider-unavailable": 502,
 };
 
 export function errorResponse(error: CoreError): Response {
