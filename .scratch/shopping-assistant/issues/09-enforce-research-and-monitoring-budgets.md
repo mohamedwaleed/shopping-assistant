@@ -4,12 +4,12 @@
 
 **Blocked by:** 08 — Connect models through Vercel AI SDK provider adapters (GitHub #9)
 
-**Status:** ready-for-agent
+**Status:** implemented
 
-- [ ] Installation ceilings cannot be bypassed by workspace overrides; interactive and background allowances are separate.
-- [ ] Coordinate concurrent reservations, usage and bounded retries; disclose conservative cost estimates where exact pre-call pricing is unavailable.
-- [ ] Require personal-key background consent and explicit paid/provider fallback; expose usage and pause reasons in settings/test execution.
-- [ ] Prove limits on simultaneous work, cancellation/retries and absence of silent paid-key fallback.
+- [x] Installation ceilings cannot be bypassed by workspace overrides; interactive and background allowances are separate.
+- [x] Coordinate concurrent reservations, usage and bounded retries; disclose conservative cost estimates where exact pre-call pricing is unavailable.
+- [x] Require personal-key background consent and explicit paid/provider fallback; expose usage and pause reasons in settings/test execution.
+- [x] Prove limits on simultaneous work, cancellation/retries and absence of silent paid-key fallback.
 
 ## Delivery constraints
 

@@ -220,6 +220,53 @@ export const dictionaries = {
     errorProviderUnavailable: "The provider rejected or could not complete the diagnostic request.",
     errorForbiddenAdmin: "Only the installation administrator can change these settings.",
     modelsSectionUnavailable: "Model settings are unavailable until INSTALLATION_SECRET is configured.",
+    budgetsTitle: "Research and monitoring budgets",
+    budgetsIntro:
+      "Allowances for provider work. Interactive research answers you now; background monitoring runs on schedules nobody is waiting for. They are separate pools, so exhausting one never consumes the other.",
+    budgetPoolInteractive: "Interactive research",
+    budgetPoolBackground: "Background monitoring",
+    budgetCeiling: "Installation ceiling",
+    budgetWorkspaceOverride: "This workspace's allowance",
+    budgetEffective: "Applies now",
+    budgetCalls: "model calls",
+    budgetTokens: "tokens",
+    budgetCents: "cost, in cents",
+    budgetUsage: "Used this window",
+    budgetWindowEnds: "Window ends",
+    budgetInFlight: "in progress",
+    budgetPaused: "Paused",
+    budgetActive: "Within allowance",
+    budgetClampedNotice:
+      "This workspace asked for more than the installation ceiling allows, so the ceiling applies.",
+    budgetCeilingNote:
+      "A workspace allowance can only lower these numbers; it never raises them above the installation ceiling.",
+    budgetConsentTitle: "Background work on your own key",
+    budgetConsentHint:
+      "Your own provider key is only used for background monitoring when you allow it here. Without it, background work pauses rather than spending your key while you are not watching.",
+    budgetConsentAllow: "Allow background monitoring on my own key",
+    budgetFallbackTitle: "Paid provider fallback",
+    budgetFallbackNotEnabled:
+      "Not enabled. When an allowance runs out, work pauses; nothing switches to another provider or account.",
+    budgetFallbackMayRequest:
+      "This workspace may ask for a paid fallback, but it stays off until it is enabled explicitly.",
+    budgetEstimateTitle: "How usage is counted",
+    budgetEstimateBasis: "Conservative estimates",
+    budgetEstimateCeilings: "Hard limits",
+    budgetSave: "Save allowances",
+    budgetSaving: "Saving…",
+    budgetSaved: "Allowances saved.",
+    budgetPauseCalls: "The call allowance is spent.",
+    budgetPauseTokens: "The token allowance is spent.",
+    budgetPauseSpend: "The spending allowance is spent.",
+    budgetSectionUnavailable: "Budget settings are unavailable until INSTALLATION_SECRET is configured.",
+    budgetContinue: "Explicit continuation",
+    budgetContinueHint:
+      "A paused allowance resumes when the window rolls over or an administrator raises the ceiling. Nothing continues by itself.",
+    errorBudgetExhausted: "The allowance for this work is spent. It stays paused until it is raised.",
+    errorBudgetConsentRequired:
+      "Background monitoring needs your explicit consent to use your own provider key.",
+    errorPaidFallbackNotEnabled: "A paid provider fallback is not enabled for this workspace.",
+    errorBudgetRetryExhausted: "This work has already used its allowed retries.",
   },
   nl: {
     appName: "Shopping Assistant",
@@ -447,6 +494,56 @@ export const dictionaries = {
       "Alleen de installatiebeheerder kan deze instellingen wijzigen.",
     modelsSectionUnavailable:
       "Modelinstellingen zijn niet beschikbaar totdat INSTALLATION_SECRET is ingesteld.",
+    budgetsTitle: "Budgetten voor onderzoek en monitoring",
+    budgetsIntro:
+      "Tegoeden voor werk bij de provider. Interactief onderzoek beantwoordt jouw vraag nu; achtergrondmonitoring draait volgens schema's waar niemand op wacht. Het zijn aparte potjes, dus het ene leegmaken verbruikt het andere nooit.",
+    budgetPoolInteractive: "Interactief onderzoek",
+    budgetPoolBackground: "Achtergrondmonitoring",
+    budgetCeiling: "Plafond van de installatie",
+    budgetWorkspaceOverride: "Tegoed van deze werkruimte",
+    budgetEffective: "Geldt nu",
+    budgetCalls: "modelaanroepen",
+    budgetTokens: "tokens",
+    budgetCents: "kosten, in centen",
+    budgetUsage: "Gebruikt in dit venster",
+    budgetWindowEnds: "Venster eindigt",
+    budgetInFlight: "loopt",
+    budgetPaused: "Gepauzeerd",
+    budgetActive: "Binnen tegoed",
+    budgetClampedNotice:
+      "Deze werkruimte vroeg meer dan het plafond van de installatie toestaat, dus het plafond geldt.",
+    budgetCeilingNote:
+      "Een tegoed van een werkruimte kan deze getallen alleen verlagen; het verhoogt ze nooit boven het plafond van de installatie.",
+    budgetConsentTitle: "Achtergrondwerk met je eigen sleutel",
+    budgetConsentHint:
+      "Je eigen providersleutel wordt alleen voor achtergrondmonitoring gebruikt als je dat hier toestaat. Zonder toestemming pauzeert achtergrondwerk in plaats van je sleutel te gebruiken terwijl je niet meekijkt.",
+    budgetConsentAllow: "Achtergrondmonitoring met mijn eigen sleutel toestaan",
+    budgetFallbackTitle: "Terugval op een betaalde provider",
+    budgetFallbackNotEnabled:
+      "Niet ingeschakeld. Als een tegoed op is, pauzeert het werk; er wordt niets naar een andere provider of account overgezet.",
+    budgetFallbackMayRequest:
+      "Deze werkruimte mag om een betaalde terugval vragen, maar die blijft uit tot hij expliciet wordt ingeschakeld.",
+    budgetEstimateTitle: "Hoe gebruik wordt geteld",
+    budgetEstimateBasis: "Conservatieve schattingen",
+    budgetEstimateCeilings: "Harde grenzen",
+    budgetSave: "Tegoeden opslaan",
+    budgetSaving: "Opslaan…",
+    budgetSaved: "Tegoeden opgeslagen.",
+    budgetPauseCalls: "Het tegoed voor modelaanroepen is op.",
+    budgetPauseTokens: "Het tokentegoed is op.",
+    budgetPauseSpend: "Het bestedingstegoed is op.",
+    budgetSectionUnavailable:
+      "Budgetinstellingen zijn niet beschikbaar totdat INSTALLATION_SECRET is ingesteld.",
+    budgetContinue: "Expliciete voortzetting",
+    budgetContinueHint:
+      "Een gepauzeerd tegoed hervat wanneer het venster rolt of een beheerder het plafond verhoogt. Niets gaat vanzelf verder.",
+    errorBudgetExhausted:
+      "Het tegoed voor dit werk is op. Het blijft gepauzeerd tot het wordt verhoogd.",
+    errorBudgetConsentRequired:
+      "Achtergrondmonitoring heeft je expliciete toestemming nodig om je eigen providersleutel te gebruiken.",
+    errorPaidFallbackNotEnabled:
+      "Een betaalde terugval op een provider is niet ingeschakeld voor deze werkruimte.",
+    errorBudgetRetryExhausted: "Dit werk heeft zijn toegestane nieuwe pogingen al gebruikt.",
   },
 } as const;
 

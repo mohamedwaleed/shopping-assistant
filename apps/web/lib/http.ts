@@ -27,6 +27,13 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   "model-credential-missing": 409,
   "model-credential-provider-mismatch": 409,
   "provider-unavailable": 502,
+  // A spent allowance is not a server fault: the work is paused until the
+  // window rolls over or an administrator raises the ceiling.
+  "budget-exhausted": 429,
+  "budget-consent-required": 409,
+  "paid-fallback-not-enabled": 409,
+  "budget-reservation-invalid": 409,
+  "budget-retry-exhausted": 429,
 };
 
 export function errorResponse(error: CoreError): Response {

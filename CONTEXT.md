@@ -79,3 +79,19 @@ _Avoid_: Invitation, password
 **Invitation**:
 An administrator-issued, email-bound, single-use grant that lets one person create an account and their own private workspace without sharing another shopper’s information. Public registration stays closed.
 _Avoid_: Setup token
+
+**Budget allowance**:
+A windowed pool of provider work (model calls, tokens, cost) for one workspace and one budget pool. The installation sets the ceiling; a workspace may hold a lower override, never a higher one.
+_Avoid_: Quota, credit
+
+**Budget pool**:
+One of two allowances that never share units: **interactive** (research a shopper is waiting for) and **background** (scheduled monitoring). Exhausting one leaves the other untouched.
+_Avoid_: Interactive budget, background budget (say budget pool)
+
+**Budget reservation**:
+The row taken before a provider call. It holds allowance until the call is settled (what the provider charged) or released (the call never left). Concurrent callers are serialized on it, so an allowance is never overspent.
+_Avoid_: Counter, meter
+
+**Budget pause**:
+The visible state of a spent allowance: which pool, which unit, the limit and the amount used. Work pauses; it never switches to another provider, model or account.
+_Avoid_: Silent fallback, throttle

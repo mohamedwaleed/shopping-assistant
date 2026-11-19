@@ -560,6 +560,38 @@ a {
   color: var(--success);
 }
 
+/* Two pools side by side, so the separation is visible, not just described. */
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.budget-card {
+  background: var(--soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.budget-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.budget-card h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.budget-card .field {
+  margin-top: 10px;
+}
+
 .cap-unsupported {
   background: var(--soft);
   color: var(--warning);

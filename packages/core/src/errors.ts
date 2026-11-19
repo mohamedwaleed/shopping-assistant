@@ -45,7 +45,20 @@ export type CoreError =
       source: string;
     }
   /** The provider endpoint failed the bounded diagnostic request. */
-  | { kind: "provider-unavailable"; message: string };
+  | { kind: "provider-unavailable"; message: string }
+  /**
+   * The allowance for this work is spent. Affected work pauses visibly; it
+   * never falls back to another account or provider that would keep spending.
+   */
+  | { kind: "budget-exhausted"; pool: string; reason: string; unit?: string; limit?: number; used?: number }
+  /** Background work on a personal key requires the shopper's explicit consent. */
+  | { kind: "budget-consent-required"; pool: string }
+  /** A paid provider fallback was not explicitly enabled, so it is not used. */
+  | { kind: "paid-fallback-not-enabled"; pool: string }
+  /** The reservation was already settled or released, or expired. */
+  | { kind: "budget-reservation-invalid"; reservationId: string; state: string }
+  /** Bounded retries: the same unit of work has already spent its attempts. */
+  | { kind: "budget-retry-exhausted"; attempts: number };
 
 export type Result<T> =
   | { ok: true; value: T }

@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { redirect } from "next/navigation";
-import { createSecretCipher, type ModelConfigurationViewResult } from "@shopping/core";
+import {
+  createSecretCipher,
+  type BudgetUsageView,
+  type ModelConfigurationViewResult,
+} from "@shopping/core";
 import { getCore } from "@/lib/core";
 import { dictionaries, resolveLang } from "@/lib/i18n";
 import { requestIdentity } from "@/lib/auth/session";
 import { signOutAction } from "@/app/actions";
 import { SignOutButton } from "@/app/auth-forms";
 import { ModelSettingsForm } from "@/app/model-settings";
+import { BudgetSettings } from "@/app/budget-settings";
 
 const EMPTY_VIEW: ModelConfigurationViewResult = {
   installation: { defaultModel: null, extractionModel: null, usageSource: null, credential: null },
@@ -35,11 +40,16 @@ export default async function Settings({
   // The installation secret is configuration, not code: without it the
   // section explains the missing prerequisite instead of failing the page.
   let view: ModelConfigurationViewResult = EMPTY_VIEW;
+  let budgets: BudgetUsageView | null = null;
   let available = true;
   try {
     createSecretCipher({ key: process.env.INSTALLATION_SECRET ?? "" });
-    const result = await getCore().models.read(principal);
-    if (result.ok) view = result.value;
+    const [models, usage] = await Promise.all([
+      getCore().models.read(principal),
+      getCore().budgets.read(principal),
+    ]);
+    if (models.ok) view = models.value;
+    if (usage.ok) budgets = usage.value;
   } catch {
     available = false;
   }
@@ -79,12 +89,17 @@ export default async function Settings({
         </div>
 
         {available ? (
-          <ModelSettingsForm
-            lang={lang}
-            canManage={isAdministrator}
-            view={view}
-            bounds={view.diagnostics.bounds}
-          />
+          <>
+            <ModelSettingsForm
+              lang={lang}
+              canManage={isAdministrator}
+              view={view}
+              bounds={view.diagnostics.bounds}
+            />
+            {budgets && (
+              <BudgetSettings lang={lang} canManage={isAdministrator} view={budgets} />
+            )}
+          </>
         ) : (
           <div className="error-panel" role="alert">
             {t.modelsSectionUnavailable}
