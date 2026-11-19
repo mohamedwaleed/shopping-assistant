@@ -4,12 +4,16 @@
 
 **Blocked by:** 01 — Run a catalogue-to-screen walking skeleton (GitHub #2)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Verify a Knex-backed Better Auth adapter and the required atomic/transaction behavior; reconcile schema requirements with Knex migrations.
-- [ ] An installation-held one-time token atomically creates the first administrator and workspace, disables setup and works without SMTP.
-- [ ] Email/password sign-in/out and invitation-only admission enforce trusted workspace authorization in core and HTTP, including direct-call and two-workspace tests.
-- [ ] Deliver responsive English/Dutch Studio setup/sign-in screens without asserting email verification from operator provisioning.
+- [x] Verify a Knex-backed Better Auth adapter and the required atomic/transaction behavior; reconcile schema requirements with Knex migrations.
+- [x] An installation-held one-time token atomically creates the first administrator and workspace, disables setup and works without SMTP.
+- [x] Email/password sign-in/out and invitation-only admission enforce trusted workspace authorization in core and HTTP, including direct-call and two-workspace tests.
+- [x] Deliver responsive English/Dutch Studio setup/sign-in screens without asserting email verification from operator provisioning.
+
+**Integration commit:** 11fc88b (PR #37)
+
+**Verification note:** behaviour confirmed on the running app and in the suite: the one-time setup claim created the first administrator and private workspace and then stopped working, email/password sign-in and sign-out were exercised against real PostgreSQL, and the bilingual setup/sign-in screens render in both languages. The Knex-backed identity adapter and its transaction behaviour are covered by `apps/web/test/knex-auth-adapter.test.ts`.
 
 ## Delivery constraints
 
