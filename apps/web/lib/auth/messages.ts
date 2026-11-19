@@ -21,6 +21,8 @@ export function authErrorMessage(error: CoreError, t: Dictionary): string {
       return t.errorModelNotConfigured;
     case "model-credential-missing":
       return t.errorModelCredentialMissing;
+    case "model-credential-provider-mismatch":
+      return t.errorModelCredentialProviderMismatch;
     case "provider-unavailable":
       return t.errorProviderUnavailable;
     default:

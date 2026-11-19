@@ -215,6 +215,8 @@ export const dictionaries = {
       "No model is configured for this role. Configure one in settings; nothing falls back automatically.",
     errorModelCredentialMissing:
       "The selected usage source has no stored key for this provider.",
+    errorModelCredentialProviderMismatch:
+      "The stored key belongs to another provider than the configured model. Store a key for this provider.",
     errorProviderUnavailable: "The provider rejected or could not complete the diagnostic request.",
     errorForbiddenAdmin: "Only the installation administrator can change these settings.",
     modelsSectionUnavailable: "Model settings are unavailable until INSTALLATION_SECRET is configured.",
@@ -437,6 +439,8 @@ export const dictionaries = {
       "Er is geen model ingesteld voor deze rol. Stel er een in bij de instellingen; er wordt niets automatisch vervangen.",
     errorModelCredentialMissing:
       "De gekozen gebruiksbron heeft geen opgeslagen sleutel voor deze provider.",
+    errorModelCredentialProviderMismatch:
+      "De opgeslagen sleutel hoort bij een andere provider dan het ingestelde model. Sla een sleutel voor deze provider op.",
     errorProviderUnavailable:
       "De provider weigerde het diagnoseverzoek of kon het niet afronden.",
     errorForbiddenAdmin:

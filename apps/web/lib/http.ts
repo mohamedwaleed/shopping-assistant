@@ -25,6 +25,7 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   // server faults: the caller must configure a model or credential.
   "model-not-configured": 409,
   "model-credential-missing": 409,
+  "model-credential-provider-mismatch": 409,
   "provider-unavailable": 502,
 };
 

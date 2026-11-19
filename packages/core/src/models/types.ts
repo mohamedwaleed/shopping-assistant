@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import type { Result } from "../errors";
 
 /**
  * Vercel AI SDK providers this installation supports, pinned in
@@ -92,8 +93,14 @@ export interface ModelProbeRequest {
   bounds: DiagnosticBounds;
 }
 
-/** The AI SDK adapter implements this; core owns the bounds and the record. */
-export type ModelProbe = (request: ModelProbeRequest) => Promise<CapabilityReport>;
+/**
+ * The AI SDK adapter implements this; core owns the bounds and the record. A
+ * refused request is a typed error, never a thrown exception: a provider that
+ * cannot be probed is configuration feedback, not a server fault.
+ */
+export type ModelProbe = (
+  request: ModelProbeRequest,
+) => Promise<Result<CapabilityReport>>;
 
 export interface ModelConfigurationViewResult {
   installation: ModelConfigurationView;

@@ -17,7 +17,10 @@ import type { AddressInfo } from "node:net";
 export type FixtureMode =
   | "complete"
   | "no-tools"
+  /** Answers prose, like an endpoint with no structured-output support. */
   | "no-structured-output"
+  /** Answers valid JSON of another shape, ignoring the requested schema. */
+  | "no-structured-schema"
   | "no-streaming"
   | "unauthorized"
   | "unreachable";
@@ -43,6 +46,7 @@ const MODELS: Record<string, FixtureMode> = {
   "fixture-model-complete": "complete",
   "fixture-model-no-tools": "no-tools",
   "fixture-model-no-structured": "no-structured-output",
+  "fixture-model-json-prose": "no-structured-schema",
   "fixture-model-no-streaming": "no-streaming",
   "fixture-model-unauthorized": "unauthorized",
   "fixture-model-unreachable": "unreachable",
@@ -52,9 +56,22 @@ export const FIXTURE_MODEL_IDS = Object.keys(MODELS);
 
 const TOOL_CALL_MARKER = "Call the capability_probe tool";
 const TOOL_RESULT_PREFIX = "fixture-tool-result:";
-const STRUCTURED_MARKER = "Reply with JSON only";
+const STRUCTURED_MARKER = "Report the probe value";
 const STREAM_TEXT = "fixture stream ok";
 const STREAM_CHUNKS = [STREAM_TEXT.slice(0, 7), STREAM_TEXT.slice(7)];
+
+/**
+ * The schema-conforming answer to the structured-output probe. The shape is
+ * enforced by the SDK on the client side; this is what a provider that honours
+ * the response format returns.
+ */
+const STRUCTURED_ANSWER = { answer: "fixture structured ok" };
+/**
+ * Well-formed JSON of the wrong shape. An endpoint that answers this ignores
+ * the requested schema while still producing JSON, which is exactly the case a
+ * `JSON.parse` check would wrongly accept.
+ */
+const STRUCTURED_NONCONFORMING = { prose: "fixture structured ok" };
 
 interface ToolSpec {
   name: string;
@@ -122,7 +139,7 @@ function toolSpecs(tools: unknown): ToolSpec[] {
 /**
  * Decide what a single request should produce. The diagnostic tool prompt asks
  * for a tool call; the follow-up carries the tool result; the structured prompt
- * asks for JSON; anything else is a plain text prompt.
+ * asks for the schema-bound object; anything else is a plain text prompt.
  */
 interface Reply {
   kind: "tool-call" | "final" | "structured" | "text";
@@ -130,8 +147,36 @@ interface Reply {
   text: string;
 }
 
+/**
+ * How the request asked for structured output, in the wire protocol of the
+ * provider that received it. The structured probe only counts as passed when
+ * the endpoint was actually asked for a schema (or, at minimum, JSON mode).
+ */
+type StructuredRequest = "json-schema" | "json-mode" | null;
+
+function structuredRequestIn(
+  path: string,
+  body: Record<string, unknown>,
+): StructuredRequest {
+  const format =
+    path === "/openai/v1/responses"
+      ? (body.text as { format?: { type?: string } } | undefined)?.format
+      : (body.response_format as { type?: string } | undefined);
+  if (format?.type === "json_schema") return "json-schema";
+  if (format?.type === "json_object") return "json-mode";
+  // Anthropic without native structured outputs carries the schema as a forced
+  // `json` tool (`tool_choice: any`), which is schema enforcement all the same.
+  const forced = body.tool_choice as { type?: string } | undefined;
+  const tools = body.tools as Array<{ name?: string; input_schema?: unknown }> | undefined;
+  if (forced?.type === "any" && tools?.some((entry) => entry.name === "json" && entry.input_schema)) {
+    return "json-schema";
+  }
+  return null;
+}
+
 function replyFor(
   mode: FixtureMode,
+  path: string,
   request: Record<string, unknown>,
   prompt: string,
   tools: ToolSpec[],
@@ -142,8 +187,16 @@ function replyFor(
   if (prompt.includes(TOOL_RESULT_PREFIX)) {
     return { kind: "final", text: "fixture tool ok" };
   }
-  if (prompt.includes(STRUCTURED_MARKER) && mode !== "no-structured-output") {
-    return { kind: "structured", text: JSON.stringify({ answer: "fixture structured ok" }) };
+  if (prompt.includes(STRUCTURED_MARKER)) {
+    // An endpoint without structured output answers prose, and an endpoint that
+    // accepts the response format but ignores the schema answers JSON of the
+    // wrong shape. Only the conforming answer may be recorded as supported.
+    if (mode === "no-structured-output") {
+      return { kind: "structured", text: "fixture structured ok" };
+    }
+    const payload =
+      mode === "no-structured-schema" ? STRUCTURED_NONCONFORMING : STRUCTURED_ANSWER;
+    return { kind: "structured", text: JSON.stringify(payload) };
   }
   void request;
   return { kind: "text", text: "fixture text ok" };
@@ -186,7 +239,7 @@ function openAiResponsesPayload(reply: Reply): unknown {
           id: "fc_fixture",
           call_id: "call_fixture",
           name: reply.toolName,
-          arguments: JSON.stringify({ value: "fixture" }),
+          arguments: reply.text || JSON.stringify({ value: "fixture" }),
           status: "completed",
         },
       ],
@@ -205,6 +258,8 @@ function openAiResponsesPayload(reply: Reply): unknown {
         id: "msg_fixture",
         role: "assistant",
         status: "completed",
+        // The SDK reads a schema-bound answer from the final-answer phase.
+        ...(reply.kind === "structured" ? { phase: "final_answer" } : {}),
         content: [{ type: "output_text", text: reply.text, annotations: [] }],
       },
     ],
@@ -236,13 +291,13 @@ function openAiResponsesEvents(reply: Reply): string[] {
       type: "response.function_call_arguments.delta",
       item_id: "fc_fixture",
       output_index: 0,
-      delta: JSON.stringify({ value: "fixture" }),
+      delta: reply.text || JSON.stringify({ value: "fixture" }),
     });
     push({
       type: "response.function_call_arguments.done",
       item_id: "fc_fixture",
       output_index: 0,
-      arguments: JSON.stringify({ value: "fixture" }),
+      arguments: reply.text || JSON.stringify({ value: "fixture" }),
     });
     push({
       type: "response.output_item.done",
@@ -252,7 +307,7 @@ function openAiResponsesEvents(reply: Reply): string[] {
         id: "fc_fixture",
         call_id: "call_fixture",
         name: reply.toolName,
-        arguments: JSON.stringify({ value: "fixture" }),
+        arguments: reply.text || JSON.stringify({ value: "fixture" }),
         status: "completed",
       },
     });
@@ -318,7 +373,7 @@ function chatCompletionPayload(reply: Reply): unknown {
             {
               id: "call_fixture",
               type: "function",
-              function: { name: reply.toolName, arguments: JSON.stringify({ value: "fixture" }) },
+              function: { name: reply.toolName, arguments: reply.text || JSON.stringify({ value: "fixture" }) },
             },
           ],
         }
@@ -481,7 +536,7 @@ export async function startProviderFixtures(): Promise<ProviderFixture> {
       }
 
       const prompt = promptOf(body);
-      const reply = replyFor(mode, body, prompt, toolSpecs(body.tools));
+      const reply = replyFor(mode, path, body, prompt, toolSpecs(body.tools));
       const stream = streamRequested(body);
 
       if (path === "/openai/v1/responses") {
@@ -533,4 +588,15 @@ export function credentialsSeen(requests: CapturedRequest[]): string[] {
       (value): value is string => Boolean(value),
     ),
   );
+}
+
+/**
+ * How each request asked for structured output, in that provider's wire
+ * protocol. Tests assert this rather than trusting the reply alone: a probe
+ * that never sends a response format cannot prove the endpoint honours one.
+ */
+export function structuredRequests(requests: CapturedRequest[]): StructuredRequest[] {
+  return requests
+    .map((request) => structuredRequestIn(request.path, request.body))
+    .filter((format): format is Exclude<StructuredRequest, null> => format !== null);
 }

@@ -62,12 +62,14 @@ describe.skipIf(liveTargets.length === 0)("live provider smoke checks", () => {
   it.each(liveTargets)(
     "reaches a real $label endpoint within the diagnostic bounds",
     async ({ target, apiKey }) => {
-      const report = await createAiSdkProbe()({
+      const result = await createAiSdkProbe()({
         target,
         provider: target.provider,
         apiKey,
         bounds: BOUNDS,
       });
+      if (!result.ok) throw new Error(`probe refused: ${result.error.kind}`);
+      const report = result.value;
 
       // A reachable endpoint must at least answer the text probe; the other
       // capabilities are reported as observed rather than assumed.

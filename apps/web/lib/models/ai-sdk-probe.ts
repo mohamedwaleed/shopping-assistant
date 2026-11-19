@@ -1,14 +1,26 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { generateText, jsonSchema, stepCountIs, streamText, tool, type ToolSet } from "ai";
+import {
+  generateText,
+  jsonSchema,
+  NoObjectGeneratedError,
+  Output,
+  stepCountIs,
+  streamText,
+  tool,
+  type ToolSet,
+} from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import type {
-  CapabilityReport,
-  CapabilityState,
-  ModelProbe,
-  ModelProbeRequest,
-  ModelTarget,
+import {
+  err,
+  ok,
+  type CapabilityReport,
+  type CapabilityState,
+  type ModelProbe,
+  type ModelProbeRequest,
+  type ModelTarget,
+  type Result,
 } from "@shopping/core";
 
 /**
@@ -29,8 +41,20 @@ export const DIAGNOSTIC_TIMEOUT_MS = 15_000;
 const TOOL_PROBE_PROMPT =
   "Capability probe. Call the capability_probe tool with value \"fixture\" and nothing else.";
 const STRUCTURED_PROBE_PROMPT =
-  'Capability probe. Reply with JSON only, exactly {"answer":"fixture structured ok"}.';
+  "Capability probe. Report the probe value through the required structured output.";
 const TEXT_PROBE_PROMPT = "Capability probe. Reply with the word ok.";
+
+/**
+ * The schema the structured-output check enforces. `answer` is a required
+ * string, so an endpoint that only emits JSON-shaped prose, or a different
+ * shape, fails validation instead of passing.
+ */
+const STRUCTURED_PROBE_SCHEMA = jsonSchema<{ answer: string }>({
+  type: "object",
+  properties: { answer: { type: "string" } },
+  required: ["answer"],
+  additionalProperties: false,
+});
 
 /** The typed tool whose execution proves the endpoint honours tool calls. */
 function probeTools(): ToolSet {
@@ -66,11 +90,12 @@ function languageModel(target: ModelTarget, apiKey: string) {
       return provider(target.modelId);
     }
     case "compatible": {
-      if (!target.endpoint) throw new Error("a compatible endpoint requires a base URL");
+      // Guarded before the switch: a compatible target always has an endpoint.
+      const endpoint = target.endpoint!;
       const provider = createOpenAICompatible({
         name: "compatible",
         apiKey,
-        baseURL: target.endpoint,
+        baseURL: endpoint,
       });
       return provider(target.modelId);
     }
@@ -96,12 +121,24 @@ function callOptions(bounds: ModelProbeRequest["bounds"]) {
 }
 
 export function createAiSdkProbe(): ModelProbe {
-  return async (request: ModelProbeRequest): Promise<CapabilityReport> => {
+  return async (request: ModelProbeRequest): Promise<Result<CapabilityReport>> => {
     const { target, provider, apiKey, bounds } = request;
+    // A stored key belongs to one provider. Handing it to another provider's
+    // endpoint would leak it, so the adapter refuses instead of calling.
     if (provider !== target.provider) {
-      throw new Error(
-        `the stored credential belongs to ${provider}, not to the configured ${target.provider} model`,
-      );
+      return err({
+        kind: "model-credential-provider-mismatch",
+        provider: target.provider,
+        credentialProvider: provider,
+        source: "probe",
+      });
+    }
+    if (target.provider === "compatible" && !target.endpoint) {
+      return err({
+        kind: "invalid-input",
+        field: "endpoint",
+        message: "a compatible endpoint requires a base URL",
+      });
     }
     const capabilities: Record<keyof CapabilityReport["capabilities"], CapabilityState> = {
       text: "unsupported",
@@ -157,18 +194,27 @@ export function createAiSdkProbe(): ModelProbe {
       }
     }
 
-    // 3. Structured output: JSON that validates against the schema. Providers
-    //    that ignore the schema return prose, which fails validation.
+    // 3. Structured output: the SDK must send the response format (schema or
+    //    JSON mode, per provider) and the reply must validate against the
+    //    schema. JSON-shaped prose, or JSON of another shape, fails here.
     if (!error && reserve()) {
       try {
         const result = await generateText({
           model,
+          output: Output.object({ schema: STRUCTURED_PROBE_SCHEMA }),
           prompt: STRUCTURED_PROBE_PROMPT,
           ...callOptions(bounds),
         });
-        if (validStructured(result.text)) capabilities.structuredOutput = "supported";
+        const structured = result.output;
+        if (structured && typeof structured.answer === "string") {
+          capabilities.structuredOutput = "supported";
+        }
       } catch (cause) {
-        error = { kind: "provider-unavailable", message: messageOf(cause) };
+        // A schema violation is an observation about the endpoint, not a failed
+        // diagnostic: the capability stays unsupported and the run continues.
+        if (!NoObjectGeneratedError.isInstance(cause)) {
+          error = { kind: "provider-unavailable", message: messageOf(cause) };
+        }
       }
     }
 
@@ -187,7 +233,7 @@ export function createAiSdkProbe(): ModelProbe {
       }
     }
 
-    return {
+    return ok({
       provider: target.provider,
       modelId: target.modelId,
       ...(target.endpoint ? { endpoint: target.endpoint } : {}),
@@ -195,19 +241,6 @@ export function createAiSdkProbe(): ModelProbe {
       bounds,
       capabilities,
       ...(error ? { error } : {}),
-    };
+    });
   };
-}
-
-function validStructured(text: string): boolean {
-  try {
-    const parsed: unknown = JSON.parse(text);
-    return (
-      typeof parsed === "object" &&
-      parsed !== null &&
-      typeof (parsed as { answer?: unknown }).answer === "string"
-    );
-  } catch {
-    return false;
-  }
 }

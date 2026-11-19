@@ -42,6 +42,5 @@ function usageSourceFrom(value: unknown): UsageSource {
   return value === "workspace" ? "workspace" : "installation";
 }
 
-export function providerOptions(): ReadonlyArray<ModelProvider> {
-  return MODEL_PROVIDERS;
-}
+/** The providers the settings form offers; core owns the supported list. */
+export const PROVIDER_OPTIONS: ReadonlyArray<ModelProvider> = MODEL_PROVIDERS;

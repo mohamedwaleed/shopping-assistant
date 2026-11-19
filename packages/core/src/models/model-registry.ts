@@ -174,6 +174,25 @@ function viewOf(
   };
 }
 
+/**
+ * Precedence is field-level, not row-level: a workspace row overrides only the
+ * fields it sets and falls back to the installation default for the rest. A
+ * workspace that sets just an extraction override therefore keeps serving the
+ * installation's default model rather than disabling it.
+ */
+function effectiveSettings(
+  installation: StoredSettings,
+  workspace: StoredSettings | null,
+): StoredSettings {
+  if (!workspace) return installation;
+  return {
+    defaultModel: workspace.defaultModel ?? installation.defaultModel,
+    extractionModel: workspace.extractionModel ?? installation.extractionModel,
+    usageSource: workspace.usageSource ?? installation.usageSource,
+    capability: workspace.capability,
+  };
+}
+
 export function createModelRegistry(deps: ModelRegistryDependencies): ModelRegistry {
   const { db, cipher, probe } = deps;
   const now = deps.now ?? (() => new Date());
@@ -459,16 +478,16 @@ export function createModelRegistry(deps: ModelRegistryDependencies): ModelRegis
     const workspaceView = workspace
       ? viewOf(workspace, summaryOf(workspaceCredential, "workspace"))
       : null;
-    const effectiveSettings = workspace ?? installation;
+    const settings = effectiveSettings(installation, workspace);
     const effectiveCredential =
-      effectiveSettings.usageSource === "workspace" ? workspaceCredential : installationCredential;
-    const effective = effectiveSettings.defaultModel
+      settings.usageSource === "workspace" ? workspaceCredential : installationCredential;
+    const effective = settings.defaultModel
       ? {
           ...viewOf(
-            effectiveSettings,
+            settings,
             summaryOf(
               effectiveCredential,
-              effectiveSettings.usageSource === "workspace" ? "workspace" : "installation",
+              settings.usageSource === "workspace" ? "workspace" : "installation",
             ),
           ),
           source: workspace ? ("workspace" as const) : ("installation" as const),
@@ -479,7 +498,7 @@ export function createModelRegistry(deps: ModelRegistryDependencies): ModelRegis
       installation: installationView,
       workspace: workspaceView,
       effective,
-      capability: (workspace ?? installation).capability,
+      capability: settings.capability,
       diagnostics: {
         bounds: DEFAULT_DIAGNOSTIC_BOUNDS,
         limits: {
@@ -499,7 +518,7 @@ export function createModelRegistry(deps: ModelRegistryDependencies): ModelRegis
 
     const workspace = await readWorkspaceSettings(workspaceId.value);
     const installation = await readSettings();
-    const settings = workspace ?? installation;
+    const settings = effectiveSettings(installation, workspace);
     const source: "installation" | "workspace" = workspace ? "workspace" : "installation";
 
     const target =
@@ -515,6 +534,17 @@ export function createModelRegistry(deps: ModelRegistryDependencies): ModelRegis
     );
     if (!credential) {
       return err({ kind: "model-credential-missing", provider: target.provider, source: usageSource });
+    }
+    // A key is issued for one provider. Handing it to another provider's
+    // endpoint would leak it somewhere it was never issued for, so a mismatch is
+    // refused here rather than discovered by the adapter.
+    if (credential.provider !== target.provider) {
+      return err({
+        kind: "model-credential-provider-mismatch",
+        provider: target.provider,
+        credentialProvider: credential.provider,
+        source: usageSource,
+      });
     }
 
     return ok({
@@ -561,7 +591,7 @@ export function createModelRegistry(deps: ModelRegistryDependencies): ModelRegis
     const target = await resolve(principal);
     if (!target.ok) return target;
 
-    const report = await probe({
+    const probed = await probe({
       target: {
         provider: target.value.provider,
         modelId: target.value.modelId,
@@ -571,6 +601,10 @@ export function createModelRegistry(deps: ModelRegistryDependencies): ModelRegis
       apiKey: target.value.apiKey,
       bounds,
     });
+    // A refused probe is reported as the typed error it is; nothing is recorded
+    // for a diagnostic that never ran.
+    if (!probed.ok) return probed;
+    const report = probed.value;
 
     // The recorded report is scoped to whoever ran it: a workspace diagnostic
     // never overwrites the installation's result.

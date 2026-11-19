@@ -15,6 +15,7 @@ import type {
 } from "@shopping/core";
 import { dictionaries, type Dictionary, type Lang } from "@/lib/i18n";
 import { formatObservedAt } from "@/lib/format";
+import { PROVIDER_OPTIONS } from "@/lib/models/settings-request";
 
 type Scope = "installation" | "workspace";
 
@@ -41,6 +42,18 @@ function formToTarget(form: FormTarget): ModelTarget | null {
     modelId,
     ...(endpoint ? { endpoint } : {}),
   };
+}
+
+/** The label for a provider option; the list itself comes from core. */
+function providerLabel(provider: ModelProvider, t: Dictionary): string {
+  switch (provider) {
+    case "openai":
+      return t.providerOpenai;
+    case "anthropic":
+      return t.providerAnthropic;
+    case "compatible":
+      return t.providerCompatible;
+  }
 }
 
 function capabilityLabel(state: CapabilityState, t: Dictionary): string {
@@ -217,9 +230,11 @@ export function ModelSettingsForm({
             setDefaultTarget({ ...defaultTarget, provider: event.target.value as ModelProvider })
           }
         >
-          <option value="openai">{t.providerOpenai}</option>
-          <option value="anthropic">{t.providerAnthropic}</option>
-          <option value="compatible">{t.providerCompatible}</option>
+          {PROVIDER_OPTIONS.map((provider) => (
+            <option key={provider} value={provider}>
+              {providerLabel(provider, t)}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -322,9 +337,11 @@ export function ModelSettingsForm({
                 })
               }
             >
-              <option value="openai">{t.providerOpenai}</option>
-              <option value="anthropic">{t.providerAnthropic}</option>
-              <option value="compatible">{t.providerCompatible}</option>
+              {PROVIDER_OPTIONS.map((provider) => (
+                <option key={provider} value={provider}>
+                  {providerLabel(provider, t)}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -411,6 +428,8 @@ function errorMessage(kind: string | undefined, t: Dictionary): string {
       return t.errorModelNotConfigured;
     case "model-credential-missing":
       return t.errorModelCredentialMissing;
+    case "model-credential-provider-mismatch":
+      return t.errorModelCredentialProviderMismatch;
     case "provider-unavailable":
       return t.errorProviderUnavailable;
     case "invalid-input":

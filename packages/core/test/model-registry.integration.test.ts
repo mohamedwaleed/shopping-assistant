@@ -7,10 +7,12 @@ import {
   createSecretCipher,
   DEFAULT_DIAGNOSTIC_BOUNDS,
   diagnosticBounds,
+  err,
+  ok,
   type CapabilityReport,
+  type CoreError,
   type ModelRegistry,
   type ModelProbeRequest,
-  type ModelTarget,
   type Principal,
 } from "../src/index";
 
@@ -54,27 +56,36 @@ async function seedUsers(db: Knex): Promise<void> {
   ]);
 }
 
-/** Records every capability test the registry ran instead of calling a model. */
+/**
+ * Records every capability test the registry ran instead of calling a model.
+ * `probed` keeps the whole request so a test can prove which credential was
+ * offered, not just which target.
+ */
 function fakeProbe() {
-  const probed: ModelTarget[] = [];
+  const probed: ModelProbeRequest[] = [];
   const reports: CapabilityReport[] = [];
+  const refusals: CoreError[] = [];
   return {
     probed,
     reports,
     respondWith(report: CapabilityReport) {
       reports.push(report);
     },
+    refuseWith(error: CoreError) {
+      refusals.push(error);
+    },
     probe: async ({ target, bounds }: ModelProbeRequest) => {
-      probed.push(target);
-      return (
-        reports.shift() ?? {
-          provider: target.provider,
-          modelId: target.modelId,
-          testedAt: "2026-11-18T10:00:00.000Z",
-          bounds,
-          capabilities: { text: "supported", tools: "supported", structuredOutput: "supported", streaming: "supported" },
-        }
-      );
+      probed.push({ target, provider: target.provider, apiKey: "redacted", bounds });
+      const refusal = refusals.shift();
+      if (refusal) return err(refusal);
+      const report = reports.shift() ?? {
+        provider: target.provider,
+        modelId: target.modelId,
+        testedAt: "2026-11-18T10:00:00.000Z",
+        bounds,
+        capabilities: { text: "supported", tools: "supported", structuredOutput: "supported", streaming: "supported" },
+      };
+      return ok(report);
     },
   };
 }
@@ -186,6 +197,9 @@ describe("model registry through the core", () => {
     });
 
     it("exposes model, usage-source and extraction overrides", async () => {
+      // A key is stored against the provider it was issued for: the default
+      // model's provider. An extraction override on another provider has no
+      // matching key and is refused rather than borrowing the wrong one.
       await registry.saveInstallation(administrator, {
         defaultModel: { provider: "openai", modelId: "gpt-5-mini" },
         usageSource: "installation",
@@ -202,15 +216,20 @@ describe("model registry through the core", () => {
         modelId: "claude-sonnet-4-5",
       });
 
-      const resolved = await registry.resolve(administrator, "extraction");
-      expect(resolved.ok).toBe(true);
-      if (!resolved.ok) return;
-      expect(resolved.value).toMatchObject({
-        provider: "anthropic",
-        modelId: "claude-sonnet-4-5",
-        source: "installation",
-        usageSource: "installation",
-        apiKey: "sk-installation-openai-key",
+      expect(await registry.resolve(administrator, "extraction")).toEqual({
+        ok: false,
+        error: {
+          kind: "model-credential-provider-mismatch",
+          provider: "anthropic",
+          credentialProvider: "openai",
+          source: "installation",
+        },
+      });
+
+      // The default model still resolves, because its key matches it.
+      expect(await registry.resolve(administrator)).toMatchObject({
+        ok: true,
+        value: { provider: "openai", modelId: "gpt-5-mini", apiKey: "sk-installation-openai-key" },
       });
 
       // Without an extraction override the default model serves extraction.
@@ -362,6 +381,61 @@ describe("model registry through the core", () => {
         },
       });
     });
+
+    it("overrides only the fields the workspace sets, falling back for the rest", async () => {
+      // The workspace sets an extraction override and nothing else: the default
+      // model must still come from the installation, not become unconfigured.
+      const saved = await registry.saveWorkspace(shopper, {
+        defaultModel: null,
+        usageSource: "installation",
+        extractionOverride: { provider: "openai", modelId: "gpt-5.1-mini" },
+        apiKey: null,
+      });
+      expect(saved.ok).toBe(true);
+
+      expect(await registry.resolve(shopper)).toMatchObject({
+        ok: true,
+        value: {
+          role: "default",
+          provider: "openai",
+          modelId: "gpt-5-mini",
+          usageSource: "installation",
+          apiKey: "sk-installation-openai-key",
+        },
+      });
+      expect(await registry.resolve(shopper, "extraction")).toMatchObject({
+        ok: true,
+        value: { role: "extraction", modelId: "gpt-5.1-mini" },
+      });
+
+      // The workspace row still reports exactly what it set.
+      const read = await registry.read(shopper);
+      expect(read.ok).toBe(true);
+      if (!read.ok) return;
+      expect(read.value.workspace?.defaultModel).toBeNull();
+      expect(read.value.workspace?.extractionModel).toEqual({
+        provider: "openai",
+        modelId: "gpt-5.1-mini",
+      });
+      // The effective view is the merged one.
+      expect(read.value.effective?.defaultModel?.modelId).toBe("gpt-5-mini");
+      expect(read.value.effective?.extractionModel?.modelId).toBe("gpt-5.1-mini");
+      expect(read.value.effective?.source).toBe("workspace");
+    });
+
+    it("inherits the installation usage source when the workspace does not set one", async () => {
+      await db("workspace_model_settings")
+        .insert({
+          workspace_id: SHOPPER_WORKSPACE,
+          default_model: null,
+          extraction_model: JSON.stringify({ provider: "openai", modelId: "gpt-5.1-mini" }),
+          usage_source: null,
+        });
+      expect(await registry.resolve(shopper)).toMatchObject({
+        ok: true,
+        value: { modelId: "gpt-5-mini", usageSource: "installation" },
+      });
+    });
   });
 
   describe("credential ownership", () => {
@@ -390,6 +464,82 @@ describe("model registry through the core", () => {
       expect(await registry.resolve(administrator)).toMatchObject({
         ok: true,
         value: { provider: "openai", apiKey: "sk-installation-openai-key" },
+      });
+    });
+
+    it("refuses an extraction override on another provider than the stored key", async () => {
+      await registry.saveInstallation(administrator, {
+        defaultModel: { provider: "openai", modelId: "gpt-5-mini" },
+        usageSource: "installation",
+        extractionOverride: { provider: "anthropic", modelId: "claude-sonnet-4-5" },
+        apiKey: "sk-installation-openai-key",
+      });
+
+      // The openai key must never reach the anthropic endpoint.
+      expect(await registry.resolve(administrator, "extraction")).toEqual({
+        ok: false,
+        error: {
+          kind: "model-credential-provider-mismatch",
+          provider: "anthropic",
+          credentialProvider: "openai",
+          source: "installation",
+        },
+      });
+
+      // A capability test resolves the default role, which does match the key,
+      // so the guard never blocks a legitimate diagnostic.
+      expect(await registry.testConnection(administrator, {})).toMatchObject({
+        ok: true,
+        value: { provider: "openai", modelId: "gpt-5-mini" },
+      });
+      expect(probe.probed.map((request) => request.provider)).toEqual(["openai"]);
+    });
+
+    it("resolves a target whose provider matches the stored credential", async () => {
+      await registry.saveInstallation(administrator, {
+        defaultModel: { provider: "anthropic", modelId: "claude-sonnet-4-5" },
+        usageSource: "installation",
+        extractionOverride: null,
+        apiKey: "sk-ant-installation-key",
+      });
+
+      expect(await registry.resolve(administrator)).toMatchObject({
+        ok: true,
+        value: {
+          provider: "anthropic",
+          modelId: "claude-sonnet-4-5",
+          apiKey: "sk-ant-installation-key",
+        },
+      });
+    });
+
+    it("refuses a workspace credential that belongs to another provider", async () => {
+      await registry.saveInstallation(administrator, {
+        defaultModel: { provider: "openai", modelId: "gpt-5-mini" },
+        usageSource: "installation",
+        extractionOverride: null,
+        apiKey: "sk-installation-openai-key",
+      });
+      // The workspace's own key is openai, but it points its default at a
+      // compatible endpoint without supplying a key for it.
+      await registry.saveWorkspace(shopper, {
+        defaultModel: { provider: "openai", modelId: "gpt-5.1-mini" },
+        usageSource: "workspace",
+        extractionOverride: null,
+        apiKey: "fixture-workspace-openai-key",
+      });
+      await db("workspace_model_settings").where({ workspace_id: SHOPPER_WORKSPACE }).update({
+        default_model: JSON.stringify(compatibleTarget),
+      });
+
+      expect(await registry.resolve(shopper)).toEqual({
+        ok: false,
+        error: {
+          kind: "model-credential-provider-mismatch",
+          provider: "compatible",
+          credentialProvider: "openai",
+          source: "workspace",
+        },
       });
     });
   });
@@ -433,9 +583,14 @@ describe("model registry through the core", () => {
       expect(result.value.bounds).toEqual({ maxCalls: 3, maxOutputTokens: 32 });
       expect(probe.probed).toEqual([
         {
+          target: {
+            provider: "compatible",
+            modelId: compatibleTarget.modelId,
+            endpoint: compatibleTarget.endpoint,
+          },
           provider: "compatible",
-          modelId: compatibleTarget.modelId,
-          endpoint: compatibleTarget.endpoint,
+          apiKey: "redacted",
+          bounds: { maxCalls: 3, maxOutputTokens: 32 },
         },
       ]);
 
@@ -507,6 +662,36 @@ describe("model registry through the core", () => {
         capabilities: { tools: "unsupported" },
         error: { kind: "provider-unavailable" },
       });
+    });
+
+    it("returns a probe refusal as a typed error and records nothing", async () => {
+      await registry.saveInstallation(administrator, {
+        defaultModel: compatibleTarget,
+        usageSource: "installation",
+        extractionOverride: null,
+        apiKey: "fixture-local-key",
+      });
+      probe.refuseWith({
+        kind: "model-credential-provider-mismatch",
+        provider: "compatible",
+        credentialProvider: "openai",
+        source: "probe",
+      });
+
+      // The adapter's refusal is surfaced, never thrown past the registry.
+      expect(await registry.testConnection(administrator, {})).toEqual({
+        ok: false,
+        error: {
+          kind: "model-credential-provider-mismatch",
+          provider: "compatible",
+          credentialProvider: "openai",
+          source: "probe",
+        },
+      });
+      const read = await registry.read(administrator);
+      expect(read.ok).toBe(true);
+      if (!read.ok) return;
+      expect(read.value.capability).toBeNull();
     });
   });
 });

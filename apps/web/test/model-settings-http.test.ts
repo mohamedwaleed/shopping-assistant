@@ -2,7 +2,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Knex } from "knex";
 import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
-import { getDb } from "@/lib/core";
+import { getCore, getDb } from "@/lib/core";
+import { errorResponse } from "@/lib/http";
+import { settingsPrincipal } from "@/lib/models/request";
 import { closeAuth, getAuth } from "@/lib/auth/session";
 import { createAccountProvisioner } from "@/lib/auth/provisioner";
 import { startProviderFixtures, type ProviderFixture } from "./support/provider-fixtures";
@@ -363,6 +365,52 @@ describe("model settings over HTTP", () => {
     );
     expect(res.status).toBe(409);
     expect((await res.json()).error).toEqual({ kind: "model-not-configured", role: "default" });
+    expect(fixtures.requests).toEqual([]);
+  });
+
+  it("surfaces the provider-mismatch guard as a typed 409 error", async () => {
+    const cookie = await claimAdministrator();
+    // The key is openai's, but extraction is overridden onto an Anthropic
+    // model: resolving that role must refuse rather than borrow the key.
+    const saved = await setupRoute.PUT(
+      jsonRequest(
+        "http://localhost/api/settings/models",
+        {
+          defaultModel: { provider: "openai", modelId: "gpt-5-mini" },
+          usageSource: "installation",
+          extractionModel: { provider: "anthropic", modelId: "claude-sonnet-4-5" },
+          apiKey: INSTALLATION_KEY,
+        },
+        { cookie },
+      ),
+    );
+    expect(saved.status).toBe(200);
+
+    const principal = await settingsPrincipal(
+      new Request("http://localhost/api/settings/models", { headers: { cookie } }),
+    );
+    expect(principal).not.toBeNull();
+    const resolved = await getCore().models.resolve(principal!, "extraction");
+    expect(resolved).toEqual({
+      ok: false,
+      error: {
+        kind: "model-credential-provider-mismatch",
+        provider: "anthropic",
+        credentialProvider: "openai",
+        source: "installation",
+      },
+    });
+
+    // The error kind maps to a conflict the browser can render, not a 500.
+    expect(
+      errorResponse({
+        kind: "model-credential-provider-mismatch",
+        provider: "anthropic",
+        credentialProvider: "openai",
+        source: "installation",
+      }).status,
+    ).toBe(409);
+    // Nothing was ever sent: the openai key never reached the Anthropic model.
     expect(fixtures.requests).toEqual([]);
   });
 

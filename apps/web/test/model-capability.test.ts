@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import type { CapabilityReport } from "@shopping/core";
 import {
   createAiSdkProbe,
   MODEL_ADAPTER_PINS,
@@ -7,6 +8,7 @@ import {
 import {
   credentialsSeen,
   startProviderFixtures,
+  structuredRequests,
   type ProviderFixture,
 } from "./support/provider-fixtures";
 
@@ -22,13 +24,24 @@ const BOUNDS = { maxCalls: 4, maxOutputTokens: 32 };
 let fixtures: ProviderFixture;
 let probe: ReturnType<typeof createAiSdkProbe>;
 
+type ProbeTarget =
+  | ReturnType<typeof openAiTarget>
+  | ReturnType<typeof anthropicTarget>
+  | ReturnType<typeof compatibleTarget>;
+
+/** A refused probe is a typed error, not a thrown exception (defect 4). */
+function expectReport(result: Awaited<ReturnType<ReturnType<typeof createAiSdkProbe>>>): CapabilityReport {
+  if (!result.ok) throw new Error(`probe refused: ${result.error.kind}`);
+  return result.value;
+}
+
 /** The provider a fixture key belongs to; the adapter refuses a mismatch. */
-function probeWith(
-  target: ReturnType<typeof openAiTarget> | ReturnType<typeof anthropicTarget> | ReturnType<typeof compatibleTarget>,
+async function probeWith(
+  target: ProbeTarget,
   apiKey: string,
   bounds = BOUNDS,
-) {
-  return probe({ target, provider: target.provider, apiKey, bounds });
+): Promise<CapabilityReport> {
+  return expectReport(await probe({ target, provider: target.provider, apiKey, bounds }));
 }
 
 beforeAll(async () => {
@@ -96,6 +109,10 @@ describe("OpenAI API-key adapter", () => {
     });
     expect(report.error).toBeUndefined();
 
+    // Structured output is proven against a schema the SDK sent, not against a
+    // prompt that merely asked for JSON.
+    expect(structuredRequests(fixtures.requests)).toEqual(["json-schema"]);
+
     // The credential travelled in the Authorization header only, never the body.
     expect(fixtures.requests.length).toBeGreaterThan(0);
     expect(fixtures.requests.every((request) => request.authorization === `Bearer ${OPENAI_KEY}`)).toBe(true);
@@ -117,6 +134,8 @@ describe("Anthropic API-key adapter", () => {
     expect(fixtures.requests.every((request) => request.path === "/anthropic/v1/messages")).toBe(true);
     expect(fixtures.requests.every((request) => request.apiKey === ANTHROPIC_KEY)).toBe(true);
     expect(JSON.stringify(fixtures.requests.map((request) => request.body))).not.toContain(ANTHROPIC_KEY);
+    // Forced `json` tool with the probe schema: the reply was constrained.
+    expect(structuredRequests(fixtures.requests)).toEqual(["json-schema"]);
   });
 });
 
@@ -130,6 +149,9 @@ describe("compatible or local endpoint", () => {
       streaming: "supported",
     });
     expect(fixtures.requests.every((request) => request.path === "/compatible/v1/chat/completions")).toBe(true);
+    // The openai-compatible provider defaults to JSON mode, which is still a
+    // response format the endpoint has to honour.
+    expect(structuredRequests(fixtures.requests)).toEqual(["json-mode"]);
   });
 
   it("does not trust a compatibility label when tools are ignored", async () => {
@@ -145,6 +167,19 @@ describe("compatible or local endpoint", () => {
       structuredOutput: "unsupported",
       streaming: "supported",
     });
+  });
+
+  it("does not accept JSON-shaped prose in place of the requested schema", async () => {
+    // The fixture answers valid JSON of the wrong shape: the old JSON.parse
+    // check would have recorded this as supported.
+    const report = await probeWith(compatibleTarget("fixture-model-json-prose"), LOCAL_KEY, BOUNDS);
+    expect(report.capabilities).toMatchObject({
+      text: "supported",
+      structuredOutput: "unsupported",
+      streaming: "supported",
+    });
+    // A schema violation is an observation, not a failed diagnostic.
+    expect(report.error).toBeUndefined();
   });
 
   it("does not trust a compatibility label when the endpoint cannot stream", async () => {
@@ -184,15 +219,41 @@ describe("diagnostic bounds and failures", () => {
     expect(JSON.stringify(report)).not.toContain(LOCAL_KEY);
   });
 
-  it("refuses a credential that belongs to another provider", async () => {
-    await expect(
-      probe({
-        target: openAiTarget(),
-        provider: "anthropic",
-        apiKey: ANTHROPIC_KEY,
-        bounds: BOUNDS,
-      }),
-    ).rejects.toThrow(/belongs to anthropic/);
+  it("refuses a credential that belongs to another provider as a typed error", async () => {
+    const result = await probe({
+      target: openAiTarget(),
+      provider: "anthropic",
+      apiKey: ANTHROPIC_KEY,
+      bounds: BOUNDS,
+    });
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        kind: "model-credential-provider-mismatch",
+        provider: "openai",
+        credentialProvider: "anthropic",
+        source: "probe",
+      },
+    });
+    // Nothing was sent: the key never left the process.
+    expect(fixtures.requests).toEqual([]);
+  });
+
+  it("refuses a compatible endpoint without a base URL as a typed error", async () => {
+    const result = await probe({
+      target: { provider: "compatible", modelId: "fixture-model-complete" },
+      provider: "compatible",
+      apiKey: LOCAL_KEY,
+      bounds: BOUNDS,
+    });
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        kind: "invalid-input",
+        field: "endpoint",
+        message: "a compatible endpoint requires a base URL",
+      },
+    });
     expect(fixtures.requests).toEqual([]);
   });
 
