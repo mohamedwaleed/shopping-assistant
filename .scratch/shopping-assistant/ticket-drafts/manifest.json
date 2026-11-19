@@ -160,9 +160,7 @@
     {
       "number": 10,
       "title": "Ingest a product page with inspectable evidence",
-      "blocked_by": [
-        7
-      ],
+      "blocked_by": [],
       "delivers": "Submit a permitted product URL and inspect its persisted product, variant, offer and claims.",
       "acceptance": [
         "Bound fetching, validate source policy/network destinations and classify redirects/challenges/errors, including HTTP 200 challenge pages.",
