@@ -162,8 +162,8 @@ describe("protected SMTP settings and diagnostic delivery", () => {
     await db.destroy();
   });
 
-  function mailer(secret = SECRET) {
-    return createMailer({ db, installationSecret: secret });
+  function mailer(secret = SECRET, now?: () => Date) {
+    return createMailer({ db, installationSecret: secret, ...(now ? { now } : {}) });
   }
 
   /** A clock the test moves by hand, so a cooldown never means sleeping. */
@@ -351,7 +351,7 @@ describe("protected SMTP settings and diagnostic delivery", () => {
     expect(await send.sendDiagnostic(admin, transport())).toMatchObject({ ok: true });
 
     // The cooldown is persisted, so a fresh mailer cannot bypass it either.
-    const tooSoon = await mailer().sendDiagnostic(admin, transport());
+    const tooSoon = await mailer(SECRET, time.now).sendDiagnostic(admin, transport());
     expect(tooSoon).toEqual({
       ok: false,
       error: { kind: "mail-diagnostic-cooldown", retryAfterSeconds: 30 },
