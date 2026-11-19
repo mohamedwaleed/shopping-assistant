@@ -24,6 +24,9 @@ export type AccountFormAction = (
   formData: FormData,
 ) => Promise<AccountFormState>;
 
+export interface TwoFactorFormState { error: string | null; secret?: string; recoveryCodes?: string[]; }
+export type TwoFactorFormAction = (state: TwoFactorFormState, formData: FormData) => Promise<TwoFactorFormState>;
+
 function LanguageSwitch({ lang }: { lang: Lang }) {
   const other: Lang = lang === "en" ? "nl" : "en";
   return (
@@ -319,4 +322,21 @@ export function DeviceList({
       </form>
     </section>
   );
+}
+
+export function TwoFactorForm({ lang, beginAction, confirmAction }: { lang: Lang; beginAction: TwoFactorFormAction; confirmAction: TwoFactorFormAction }) {
+  const t = dictionaries[lang];
+  const [begin, beginFormAction, beginning] = useActionState(beginAction, { error: null });
+  const [confirm, confirmFormAction, confirming] = useActionState(confirmAction, { error: null });
+  const state = confirm.recoveryCodes ? confirm : begin;
+  return <section className="panel" aria-labelledby="two-factor-title">
+    <h2 id="two-factor-title">{t.twoFactorTitle}</h2><p className="muted">{t.twoFactorIntro}</p>
+    {state.error && <div className="notice notice-error" role="alert">{state.error}</div>}
+    {!begin.secret && !confirm.recoveryCodes && <form action={beginFormAction}><input type="hidden" name="lang" value={lang} /><button className="btn-submit" type="submit" disabled={beginning}>{t.twoFactorBegin}</button></form>}
+    {begin.secret && !confirm.recoveryCodes && <form action={confirmFormAction}>
+      <input type="hidden" name="lang" value={lang} /><div className="field"><label htmlFor="authenticatorSecret">{t.twoFactorSecret}</label><input id="authenticatorSecret" value={begin.secret} readOnly /></div>
+      <p className="hint">{t.twoFactorSetupHint}</p><div className="field"><label htmlFor="code">{t.twoFactorCodeLabel}</label><input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" required /></div>
+      <button className="btn-submit" type="submit" disabled={confirming}>{t.twoFactorConfirm}</button></form>}
+    {confirm.recoveryCodes && <div className="notice notice-info" role="status"><strong>{t.twoFactorRecoveryTitle}</strong><p>{t.twoFactorRecoveryHint}</p><ul>{confirm.recoveryCodes.map((code) => <li key={code}><code>{code}</code></li>)}</ul></div>}
+  </section>;
 }

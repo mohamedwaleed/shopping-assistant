@@ -12,6 +12,7 @@ import { applySetCookies, SESSION_COOKIE_NAMES } from "@/lib/auth/cookies";
 import { accountErrorMessage, authErrorMessage, emailErrorMessage } from "@/lib/auth/messages";
 import { dictionaries, resolveLang } from "@/lib/i18n";
 import type { AccountFormState, AuthFormState } from "@/app/auth-forms";
+import type { TwoFactorFormState } from "@/app/auth-forms";
 import type { EmailSettingsState } from "@/app/administration/email/email-form";
 
 function text(formData: FormData, field: string): string {
@@ -156,6 +157,32 @@ export async function changePasswordAction(
 
   if (!result.ok) return { error: accountErrorMessage(result.error, t) };
   return { error: null, notice: t.passwordChangedNotice };
+}
+
+/** Begin authenticator enrollment; the core enforces a recent session. */
+export async function beginTwoFactorEnrollmentAction(
+  _previous: TwoFactorFormState,
+  formData: FormData,
+): Promise<TwoFactorFormState> {
+  const lang = resolveLang(text(formData, "lang"));
+  const identity = await requestIdentity();
+  if (!identity) return { error: dictionaries[lang].accountSessionsExpired };
+  const result = await getCore().auth.beginTwoFactorEnrollment(identity.trusted.principal);
+  if (!result.ok) return { error: accountErrorMessage(result.error, dictionaries[lang]) };
+  return { error: null, secret: result.value.secret };
+}
+
+/** Confirm the code and display each generated recovery code exactly once. */
+export async function confirmTwoFactorEnrollmentAction(
+  _previous: TwoFactorFormState,
+  formData: FormData,
+): Promise<TwoFactorFormState> {
+  const lang = resolveLang(text(formData, "lang"));
+  const identity = await requestIdentity();
+  if (!identity) return { error: dictionaries[lang].accountSessionsExpired };
+  const result = await getCore().auth.confirmTwoFactorEnrollment(identity.trusted.principal, { code: text(formData, "code") });
+  if (!result.ok) return { error: accountErrorMessage(result.error, dictionaries[lang]) };
+  return { error: null, recoveryCodes: result.value.recoveryCodes };
 }
 
 export async function saveEmailSettingsAction(
