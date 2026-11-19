@@ -35,7 +35,10 @@ const MIN_PASSWORD_LENGTH = 10;
  */
 export const SESSION_INACTIVITY_SECONDS = 7 * 24 * 60 * 60;
 export const SESSION_ABSOLUTE_SECONDS = 30 * 24 * 60 * 60;
-/** Password changes and credential creation need a session used this recently. */
+/**
+ * Password changes and credential creation need a session authenticated this
+ * recently, counted from the sign-in that created it.
+ */
 export const RECENT_AUTHENTICATION_SECONDS = 5 * 60;
 
 export interface AuthDependencies {
@@ -413,15 +416,16 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
   }
 
   /**
-   * Recent authentication is measured from the stored session, so it is the
-   * same fact a direct caller and the HTTP boundary see. The window is short
-   * enough that a hijacked cookie cannot be spent without the password.
+   * Recent authentication is measured from when the session authenticated, not
+   * from when it was last used: every admitted request moves `updated_at`, so
+   * that would let a continuously-used session, and with it a hijacked cookie,
+   * pass the gate forever. The session row is created by the sign-in that
+   * issued it, so `created_at` is that moment. The window is short enough that
+   * a hijacked cookie cannot be spent without the password.
    */
   async function recentAuthentication(
     principal: Principal,
   ): Promise<Result<RecentAuthentication>> {
-    // Read the session first: admitting the caller is itself a use, and this
-    // measurement has to describe the use that came before it.
     if (principal.kind === "anonymous") {
       return err({ kind: "forbidden", capability: "workspace.read" });
     }
@@ -430,10 +434,10 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
     if (!admitted.ok) return admitted;
     if (!session) return err({ kind: "invalid-credentials" });
 
-    const elapsed = now().getTime() - session.updated_at.getTime();
+    const elapsed = now().getTime() - session.created_at.getTime();
     return ok({
       recent: elapsed < RECENT_AUTHENTICATION_SECONDS * 1000,
-      authenticatedAt: session.updated_at.toISOString(),
+      authenticatedAt: session.created_at.toISOString(),
       windowSeconds: RECENT_AUTHENTICATION_SECONDS,
     });
   }
@@ -443,8 +447,8 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
     request: ChangePasswordRequest,
     credentials: CredentialChanger,
   ): Promise<Result<{ changed: true; otherSessionsRevoked: number }>> {
-    // Recent authentication is read before the caller is admitted, because
-    // admitting them is itself a use of the session.
+    // The recent-authentication gate comes first, so a stale session is told
+    // to sign in again rather than refused as a credential problem.
     const recent = await recentAuthentication(principal);
     if (!recent.ok) return recent;
     const admitted = await admittedUser(principal);
@@ -506,8 +510,8 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
     request: CreateCredentialAccountRequest,
     provisioner: AccountProvisioner,
   ): Promise<Result<{ userId: string }>> {
-    // Recent authentication is read before the caller is admitted, because
-    // admitting them is itself a use of the session.
+    // The recent-authentication gate comes first, so a stale session is told
+    // to sign in again rather than refused as a credential problem.
     const recent = await recentAuthentication(principal);
     if (!recent.ok) return recent;
     const admitted = await admittedUser(principal);

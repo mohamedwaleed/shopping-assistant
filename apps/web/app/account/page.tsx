@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 import { getCore } from "@/lib/core";
 import { requestIdentity } from "@/lib/auth/session";
 import { dictionaries, resolveLang } from "@/lib/i18n";
-import { changePasswordAction, revokeDeviceAction } from "@/app/actions";
+import {
+  changePasswordAction,
+  revokeAllDevicesAction,
+  revokeDeviceAction,
+} from "@/app/actions";
 import { DeviceList, PasswordForm } from "@/app/auth-forms";
 
 /**
@@ -46,7 +50,12 @@ export default async function Account({
         </div>
         <p className="muted">{t.accountIntro}</p>
 
-        <DeviceList lang={lang} devices={sessions} revokeAction={revokeDeviceAction} />
+        <DeviceList
+          lang={lang}
+          devices={sessions}
+          revokeAction={revokeDeviceAction}
+          revokeAllAction={revokeAllDevicesAction}
+        />
         <PasswordForm lang={lang} action={changePasswordAction} />
       </main>
     </div>

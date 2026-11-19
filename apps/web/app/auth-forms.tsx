@@ -254,17 +254,19 @@ export function DeviceList({
   lang,
   devices,
   revokeAction,
+  revokeAllAction,
 }: {
   lang: Lang;
   devices: ReadonlyArray<{
     id: string;
     current: boolean;
-    lastActiveAt: string | null;
+    lastActiveAt: string;
     expiresAt: string;
     ipAddress: string | null;
     userAgent: string | null;
   }>;
   revokeAction: (formData: FormData) => Promise<void>;
+  revokeAllAction: (formData: FormData) => Promise<void>;
 }) {
   const t = dictionaries[lang];
   const format = (value: string) =>
@@ -285,8 +287,7 @@ export function DeviceList({
               <strong>{device.userAgent ?? t.deviceUnknownAgent}</strong>
               {device.current && <span className="badge-fixture">{t.deviceCurrent}</span>}
               <div className="price-sub">
-                {t.deviceLastActive}:{" "}
-                {device.lastActiveAt ? format(device.lastActiveAt) : "—"}
+                {t.deviceLastActive}: {format(device.lastActiveAt)}
               </div>
               <div className="price-sub">
                 {t.deviceExpires}: {format(device.expiresAt)}
@@ -306,9 +307,8 @@ export function DeviceList({
         ))
       )}
 
-      <form action={revokeAction} style={{ marginTop: 16 }}>
+      <form action={revokeAllAction} style={{ marginTop: 16 }}>
         <input type="hidden" name="lang" value={lang} />
-        <input type="hidden" name="sessionId" value="" />
         <button className="btn-quiet" type="submit">
           {t.signOutEverywhere}
         </button>

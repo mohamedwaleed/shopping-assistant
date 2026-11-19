@@ -423,20 +423,58 @@ describe("devices, sessions and password changes through the core", () => {
         },
       });
 
-      // Another request inside the window is still recent activity.
+      // Ordinary use inside the window does not restart the clock: the
+      // measurement is the sign-in, not the latest request.
       advance(RECENT_AUTHENTICATION_SECONDS * 1000 - 3000);
       await auth.requireSession(ada.userId, ada.sessionId);
       advance(1000);
       expect(await auth.recentAuthentication(ada.principal)).toMatchObject({
         ok: true,
-        value: { recent: true },
+        value: { recent: true, authenticatedAt: "2026-11-18T09:00:00.000Z" },
       });
 
+      // Past the window the session is still valid, but not recently
+      // authenticated.
       advance(RECENT_AUTHENTICATION_SECONDS * 1000 + 3000);
       expect(await auth.recentAuthentication(ada.principal)).toMatchObject({
         ok: true,
-        value: { recent: false },
+        value: { recent: false, authenticatedAt: "2026-11-18T09:00:00.000Z" },
       });
+    });
+
+    it("does not count a continuously-used session as recently authenticated", async () => {
+      const ada = await person("ada@example.nl", "Ada's workspace");
+      const credentials = {
+        changePassword: async () => {
+          throw new Error("must not run");
+        },
+        changeEmail: async () => {
+          throw new Error("must not run");
+        },
+      };
+
+      // A request every day for ten days: the session stays alive, but it was
+      // authenticated at sign-in and never again.
+      for (let day = 1; day <= 10; day += 1) {
+        advance(DAY_MS);
+        expect((await auth.requireSession(ada.userId, ada.sessionId)).ok).toBe(true);
+      }
+      expect((await stored(ada.sessionId)).updated_at.toISOString()).toBe(clock.toISOString());
+      expect(await auth.recentAuthentication(ada.principal)).toEqual({
+        ok: true,
+        value: {
+          recent: false,
+          authenticatedAt: "2026-11-18T09:00:00.000Z",
+          windowSeconds: RECENT_AUTHENTICATION_SECONDS,
+        },
+      });
+      expect(
+        await auth.changePassword(
+          ada.principal,
+          { currentPassword: "current-passphrase", newPassword: "next-passphrase-1" },
+          credentials,
+        ),
+      ).toEqual({ ok: false, error: { kind: "reauthentication-required" } });
     });
 
     it("changes the password only after recent authentication", async () => {

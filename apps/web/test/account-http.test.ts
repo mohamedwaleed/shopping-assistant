@@ -169,6 +169,10 @@ describe("POST /api/sign-in issues a secure database-backed session", () => {
     expect(cookie).toMatch(/HttpOnly/i);
     expect(cookie).toMatch(/SameSite=Lax/i);
     expect(cookie).toMatch(/Path=\//);
+    // Secure follows the deployment protocol: this suite talks plain HTTP, so
+    // the production flag is asserted on the app's own cookie options in
+    // cookies.test.ts rather than invented here.
+    expect(cookie).not.toMatch(/; Secure/i);
 
     // The session is a stored row, so the cookie alone is never the authority:
     // deleting it makes the same cookie useless (see the next test).

@@ -54,8 +54,8 @@ export interface DeviceSession {
   current: boolean;
   /** ISO timestamp of the sign-in that created the session. */
   createdAt: string;
-  /** ISO timestamp of the last admitted use; null for an unused session. */
-  lastActiveAt: string | null;
+  /** ISO timestamp of the last admitted use. */
+  lastActiveAt: string;
   /** ISO timestamp after which the session must not be accepted. */
   expiresAt: string;
   ipAddress: string | null;
@@ -66,10 +66,14 @@ export interface DeviceList {
   sessions: DeviceSession[];
 }
 
-/** How recently the caller proved they are present, in seconds. */
+/**
+ * How recently the caller proved they are present. The clock starts at the
+ * sign-in that created the session and never restarts on ordinary use, so a
+ * continuously-used session does not stay recently authenticated.
+ */
 export interface RecentAuthentication {
   recent: boolean;
-  /** ISO timestamp of the last admitted use of the current session. */
+  /** ISO timestamp of the sign-in that authenticated the current session. */
   authenticatedAt: string;
   /** Seconds of recent authentication the installation requires. */
   windowSeconds: number;
