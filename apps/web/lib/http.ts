@@ -27,6 +27,9 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   "model-credential-missing": 409,
   "model-credential-provider-mismatch": 409,
   "provider-unavailable": 502,
+  "budget-paused": 409,
+  "background-personal-key-consent-required": 409,
+  "budget-retry-exhausted": 409,
 };
 
 export function errorResponse(error: CoreError): Response {

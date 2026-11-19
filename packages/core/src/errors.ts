@@ -45,7 +45,12 @@ export type CoreError =
       source: string;
     }
   /** The provider endpoint failed the bounded diagnostic request. */
-  | { kind: "provider-unavailable"; message: string };
+  | { kind: "provider-unavailable"; message: string }
+  /** Provider work is visibly paused until its allowance or slot is available. */
+  | { kind: "budget-paused"; reason: "allowance" | "concurrency"; budgetKind: string }
+  /** A workspace key cannot be spent by scheduled work without consent. */
+  | { kind: "background-personal-key-consent-required" }
+  | { kind: "budget-retry-exhausted"; budgetKind: string };
 
 export type Result<T> =
   | { ok: true; value: T }

@@ -13,11 +13,13 @@ import {
   type ModelRegistryDependencies,
 } from "./models/model-registry";
 import type { Principal } from "./principal";
+import { createBudgetRegistry, type BudgetRegistry } from "./budgets/budget-registry";
 
 export interface ShoppingCore {
   auth: Authentication;
   mail: Mailer;
   models: ModelRegistry;
+  budgets: BudgetRegistry;
   catalogue: {
     getVariantOfferDetail(
       principal: Principal,
@@ -51,6 +53,7 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
       probe: deps.models.probe,
       ...(deps.now ? { now: deps.now } : {}),
     }),
+    budgets: createBudgetRegistry({ db: deps.db }),
     catalogue: {
       getVariantOfferDetail: (principal, variantId) =>
         getVariantOfferDetail(deps.db, principal, variantId),
