@@ -139,20 +139,71 @@ describe("catalogue page ingestion through the core", () => {
     const second = await core.catalogue.ingestProductPage(shopper, "https://shop.example.test/products/sound-1");
     expect(first).toEqual(second);
     if (!first.ok) return;
-    expect(await db("source_claims").where({ evidence_id: first.value.evidenceId }).count("* as count").first()).toMatchObject({ count: "3" });
+    expect(await db("source_claims").where({ evidence_id: first.value.evidenceId }).count("* as count").first()).toMatchObject({ count: "4" });
     expect(await db("offers").where({ id: first.value.offerId }).first()).toMatchObject({ retailer_sku: "LOCAL-1", seller_name: "Marketplace seller" });
     const detail = await core.catalogue.getVariantOfferDetail(anonymous, first.value.variantId);
     expect(detail.ok && detail.value.offers[0]?.currentPrice?.amount).toBe("99.95");
     expect(detail.ok && detail.value.claims).toContainEqual(expect.objectContaining({ field: "offer", sourceUrl: "https://shop.example.test/products/sound-1" }));
   });
 
+  it("keeps unfamiliar claims unresolved and lets only an administrator validate a canonical mapping", async () => {
+    const unknown = createShoppingCore({ db, ingestion: { sourcePolicy: permitted, resolve: async () => ["203.0.113.10"], fetch: async () => new Response(PAGE.replace("1234567890123", "2345678901234").replace('name":"colour","value":"blue', 'name":"mystery power","value":"90')), now: () => new Date("2026-11-19T10:00:00Z") }, models: { cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }), probe: async () => { throw new Error("unused"); } } });
+    const result = await unknown.catalogue.ingestProductPage(shopper, "https://shop.example.test/products/unknown-attribute");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const before = await core.catalogue.getVariantOfferDetail(anonymous, result.value.variantId);
+    expect(before.ok && before.value.variant.attributes).not.toHaveProperty("mystery power");
+    expect(before.ok && before.value.claims).toContainEqual(expect.objectContaining({
+      field: "attribute.mystery power", mappingStatus: "unresolved",
+    }));
+
+    const denied = await core.catalogue.listAttributeReviews(shopper);
+    expect(denied).toEqual({ ok: false, error: { kind: "forbidden", capability: "installation.manage" } });
+    const queue = await core.catalogue.listAttributeReviews({ kind: "administrator", userId: "admin", workspaceId: "workspace", sessionId: "session" });
+    expect(queue.ok).toBe(true);
+    if (!queue.ok) return;
+    const claim = queue.value.find((item) => item.rawName === "mystery power");
+    expect(claim).toBeDefined();
+    if (!claim) return;
+
+    expect(await core.catalogue.reviewAttributeClaim(shopper, claim.id, "power_w")).toEqual({
+      ok: false, error: { kind: "forbidden", capability: "installation.manage" },
+    });
+    expect(await db("source_claims").where({ id: claim.id }).first()).toMatchObject({ mapping_status: "unresolved" });
+    const attribute = await db("catalogue_attributes").where({ key: "power_w" }).first();
+    await db("attribute_assessments").insert({ variant_id: result.value.variantId, attribute_id: attribute.id });
+    expect(await core.catalogue.reviewAttributeClaim({ kind: "administrator", userId: "admin", workspaceId: "workspace", sessionId: "session" }, claim.id, "power_w")).toMatchObject({ ok: true });
+    expect(await db("attribute_assessments").where({ variant_id: result.value.variantId }).first()).toMatchObject({ invalidated_at: expect.any(Date) });
+    const after = await core.catalogue.getVariantOfferDetail(anonymous, result.value.variantId);
+    expect(after.ok && after.value.variant.attributes).toMatchObject({ power_w: 90 });
+  });
+
+  it("normalizes supported units across categories without excluding unfamiliar attributes", async () => {
+    const monitor = PAGE.replace("Acme Sound 1", "Acme Monitor 2").replace("1234567890123", "3456789012345").replace('name":"colour","value":"blue', 'name":"screen size","value":"68.58","unitText":"cm').replace('"@type":"Product",', '"@type":"Product","category":"Monitors",');
+    const kitchen = PAGE.replace("Acme Sound 1", "Acme Kettle 3").replace("1234567890123", "4567890123456").replace('name":"colour","value":"blue', 'name":"watt","value":"1.8","unitCode":"kW').replace('"@type":"Product",', '"@type":"Product","category":"Kitchen",');
+    const source = createShoppingCore({ db, ingestion: { sourcePolicy: permitted, resolve: async () => ["203.0.113.10"], fetch: async (url) => new Response(url.includes("monitor") ? monitor : kitchen), now: () => new Date("2026-11-19T10:00:00Z") }, models: { cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }), probe: async () => { throw new Error("unused"); } } });
+    const monitorResult = await source.catalogue.ingestProductPage(shopper, "https://shop.example.test/products/monitor");
+    const kitchenResult = await source.catalogue.ingestProductPage(shopper, "https://shop.example.test/products/kitchen");
+    expect(monitorResult.ok && kitchenResult.ok).toBe(true);
+    if (!monitorResult.ok || !kitchenResult.ok) return;
+    const monitorDetail = await source.catalogue.getVariantOfferDetail(anonymous, monitorResult.value.variantId);
+    const kitchenDetail = await source.catalogue.getVariantOfferDetail(anonymous, kitchenResult.value.variantId);
+    expect(monitorDetail.ok && monitorDetail.value.variant.product.category).toBe("Monitors");
+    expect(monitorDetail.ok && monitorDetail.value.variant.attributes).toMatchObject({ screen_size_inch: 27 });
+    expect(kitchenDetail.ok && kitchenDetail.value.variant.product.category).toBe("Kitchen");
+    expect(kitchenDetail.ok && kitchenDetail.value.variant.attributes).toMatchObject({ power_w: 1800 });
+  });
+
   it("rejects unsafe URLs, HTTP-200 challenge pages and conflicting configurations without replacing the observation", async () => {
+    const before = await db("price_observations").count("* as count").first();
     await expect(core.catalogue.ingestProductPage(shopper, "http://127.0.0.1/private")).resolves.toMatchObject({ error: { kind: "unsafe-url" } });
     const challenge = createShoppingCore({ db, ingestion: { sourcePolicy: permitted, resolve: async () => ["203.0.113.10"], fetch: async () => new Response("captcha verify you are human") }, models: { cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }), probe: async () => { throw new Error("unused"); } } });
     await expect(challenge.catalogue.ingestProductPage(shopper, "https://shop.example.test/challenge")).resolves.toMatchObject({ error: { kind: "source-fetch-failed", classification: "challenge" } });
     const conflictingPage = PAGE.replace('value":"blue', 'value":"red');
     const conflicting = createShoppingCore({ db, ingestion: { sourcePolicy: permitted, resolve: async () => ["203.0.113.10"], fetch: async () => new Response(conflictingPage) }, models: { cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }), probe: async () => { throw new Error("unused"); } } });
     await expect(conflicting.catalogue.ingestProductPage(shopper, "https://shop.example.test/products/other-listing")).resolves.toMatchObject({ error: { kind: "identity-conflict" } });
-    expect(await db("price_observations").count("* as count").first()).toMatchObject({ count: "1" });
+    expect(await core.catalogue.listAttributeReviews({ kind: "administrator", userId: "admin", workspaceId: "workspace", sessionId: "session" })).toMatchObject({ value: expect.arrayContaining([expect.objectContaining({ rawName: "colour", value: "red" })]) });
+    expect(await db("price_observations").count("* as count").first()).toMatchObject({ count: before?.count });
   });
 });

@@ -80,6 +80,7 @@ export {
   type VariantOffer,
   type VariantOfferDetail,
   type VariantPrice,
+  type AttributeReview,
 } from "./catalogue";
 export { addMoney } from "./money";
 export { createIngestion, type IngestedPage, type IngestionDependencies, type PageFetcher, type PermittedSource, type SourcePolicy } from "./ingestion";

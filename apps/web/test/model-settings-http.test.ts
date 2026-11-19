@@ -31,6 +31,7 @@ let budgetTestRoute: typeof import("../app/api/settings/budgets/test/route");
 let claimRoute: typeof import("../app/api/setup/claim/route");
 let signInRoute: typeof import("../app/api/sign-in/route");
 let ingestRoute: typeof import("../app/api/catalogue/ingest/route");
+let attributeReviewRoute: typeof import("../app/api/administration/attributes/route");
 
 function jsonRequest(url: string, body: unknown, headers: Record<string, string> = {}): Request {
   return new Request(url, {
@@ -104,6 +105,7 @@ beforeAll(async () => {
   claimRoute = await import("../app/api/setup/claim/route");
   signInRoute = await import("../app/api/sign-in/route");
   ingestRoute = await import("../app/api/catalogue/ingest/route");
+  attributeReviewRoute = await import("../app/api/administration/attributes/route");
 });
 
 beforeEach(async () => {
@@ -178,6 +180,16 @@ describe("model settings over HTTP", () => {
     );
     expect(response.status).toBe(400);
     expect((await response.json()).error.kind).toBe("unsafe-url");
+  });
+  it("keeps attribute review administration-only at the HTTP boundary", async () => {
+    const adminCookie = await claimAdministrator();
+    const shopper = await provisionShopper("attribute-shopper@example.nl", "shopper-passphrase-1", "Attribute workspace");
+    const shopperCookie = await signIn("attribute-shopper@example.nl", "shopper-passphrase-1");
+    expect((await attributeReviewRoute.GET(new Request("http://localhost/api/administration/attributes", { headers: { cookie: shopperCookie } }))).status).toBe(403);
+    const allowed = await attributeReviewRoute.GET(new Request("http://localhost/api/administration/attributes", { headers: { cookie: adminCookie } }));
+    expect(allowed.status).toBe(200);
+    expect(await allowed.json()).toEqual([]);
+    expect(shopper.workspaceId).toBeTruthy();
   });
   it("requires a session", async () => {
     const res = await setupRoute.GET(new Request("http://localhost/api/settings/models"));
