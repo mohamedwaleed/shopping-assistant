@@ -79,6 +79,7 @@ export {
   type VariantPrice,
 } from "./catalogue";
 export { addMoney } from "./money";
+export { createIngestion, type IngestedPage, type IngestionDependencies, type PageFetcher, type PermittedSource, type SourcePolicy } from "./ingestion";
 export {
   createModelRegistry,
   diagnosticBounds,

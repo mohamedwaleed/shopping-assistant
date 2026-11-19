@@ -52,7 +52,17 @@ export type CoreError =
   | { kind: "budget-paused"; reason: "allowance" | "concurrency"; budgetKind: string }
   /** A workspace key cannot be spent by scheduled work without consent. */
   | { kind: "background-personal-key-consent-required" }
-  | { kind: "budget-retry-exhausted"; budgetKind: string };
+  | { kind: "budget-retry-exhausted"; budgetKind: string }
+  /** The URL has an unsafe scheme, credential, host or network destination. */
+  | { kind: "unsafe-url"; message: string }
+  /** No explicitly configured source policy permits this URL. */
+  | { kind: "source-not-permitted"; url: string }
+  /** Retrieval completed but was blocked, redirected unsafely, or otherwise unusable. */
+  | { kind: "source-fetch-failed"; classification: "redirect" | "challenge" | "http" | "network" }
+  /** The page did not contain a complete supported structured product offer. */
+  | { kind: "extraction-failed"; message: string }
+  /** Existing identifier evidence names a different configuration. */
+  | { kind: "identity-conflict"; identifier: string };
 
 export type Result<T> =
   | { ok: true; value: T }

@@ -31,6 +31,11 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   "budget-paused": 409,
   "background-personal-key-consent-required": 409,
   "budget-retry-exhausted": 409,
+  "unsafe-url": 400,
+  "source-not-permitted": 403,
+  "source-fetch-failed": 502,
+  "extraction-failed": 422,
+  "identity-conflict": 409,
 };
 
 export function errorResponse(error: CoreError): Response {
