@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { getCore } from "@/lib/core";
+import { nodemailerTransport } from "@shopping/core/mail-transport";
 import { requestIdentity } from "@/lib/auth/session";
 import { sameOriginRejected } from "@/lib/csrf";
 import { errorResponse } from "@/lib/http";
@@ -19,9 +20,10 @@ export async function POST(request: Request): Promise<Response> {
   if (!identity) return errorResponse({ kind: "forbidden", capability: "workspace.read" });
 
   const body = (await request.json().catch(() => ({}))) as { newEmail?: unknown };
-  const result = await getCore().auth.changeEmail(identity.trusted.principal, {
+  const result = await getCore().emailLinks.requestEmailChange(identity.trusted.principal, {
     newEmail: typeof body.newEmail === "string" ? body.newEmail : "",
-  });
+    linkBaseUrl: `${new URL(request.url).origin}/confirm-email`,
+  }, nodemailerTransport());
   if (!result.ok) return errorResponse(result.error);
   return Response.json(result.value);
 }
