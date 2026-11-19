@@ -480,6 +480,8 @@ a {
 
 .email-failure code {
   font-size: 12.5px;
+}
+
 /* Settings: model registry controls (Studio, Electric blue). */
 .scope-tabs {
   display: inline-flex;
