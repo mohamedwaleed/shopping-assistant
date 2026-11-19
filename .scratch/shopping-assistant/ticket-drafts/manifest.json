@@ -105,7 +105,9 @@
         "Password reset alone cannot bypass the second factor; document separate recovery and test incorrect/replayed codes across responsive account screens."
       ],
       "draft": "06-add-optional-authenticator-two-factor-authentication.md",
-      "status": "ready"
+      "status": "done",
+      "commit": "2c2aa26",
+      "pr": 45
     },
     {
       "number": 7,
@@ -191,7 +193,9 @@
         "Test mixed categories, units, contradictory variants and unauthorized/non-destructive correction through details and administration."
       ],
       "draft": "11-normalize-attributes-and-review-conflicting-claims.md",
-      "status": "ready"
+      "status": "done",
+      "commit": "2c2aa26",
+      "pr": 45
     },
     {
       "number": 12,
@@ -207,7 +211,9 @@
         "Responsive search/empty/error states work without model/embedding services; check behavior and representative PostgreSQL query performance."
       ],
       "draft": "12-search-catalogue-identifiers-filters-and-bilingual-text.md",
-      "status": "ready"
+      "status": "done",
+      "commit": "2c2aa26",
+      "pr": 45
     },
     {
       "number": 13,
