@@ -105,7 +105,9 @@
         "Password reset alone cannot bypass the second factor; document separate recovery and test incorrect/replayed codes across responsive account screens."
       ],
       "draft": "06-add-optional-authenticator-two-factor-authentication.md",
-      "status": "ready"
+      "status": "done",
+      "commit": "2c2aa26",
+      "pr": 45
     },
     {
       "number": 7,
@@ -191,7 +193,9 @@
         "Test mixed categories, units, contradictory variants and unauthorized/non-destructive correction through details and administration."
       ],
       "draft": "11-normalize-attributes-and-review-conflicting-claims.md",
-      "status": "ready"
+      "status": "done",
+      "commit": "2c2aa26",
+      "pr": 45
     },
     {
       "number": 12,
@@ -276,7 +280,9 @@
         "Verify a real request through the SDK runtime using deterministic model/provider fixtures, including streaming tool results, malformed output, cancellation/error display and persistence; a static mocked chat transcript is not completion."
       ],
       "draft": "16-stream-persistent-bilingual-chat-with-vercel-ai-sdk.md",
-      "status": "ready"
+      "status": "done",
+      "commit": "2c2aa26",
+      "pr": 45
     },
     {
       "number": 17,
