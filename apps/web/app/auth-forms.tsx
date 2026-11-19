@@ -59,7 +59,6 @@ export function SetupForm({ lang, action }: { lang: Lang; action: AuthFormAction
           <input id="token" name="token" type="password" autoComplete="off" required />
           <span className="hint">{t.setupTokenHint}</span>
         </div>
-
         <div className="field">
           <label htmlFor="name">{t.nameLabel}</label>
           <input id="name" name="name" type="text" autoComplete="name" required />
@@ -133,6 +132,10 @@ export function SignInForm({ lang, action }: { lang: Lang; action: AuthFormActio
             autoComplete="current-password"
             required
           />
+        </div>
+        <div className="field">
+          <label htmlFor="secondFactorCode">Authenticator or recovery code (if enabled)</label>
+          <input id="secondFactorCode" name="secondFactorCode" type="text" inputMode="numeric" autoComplete="one-time-code" />
         </div>
 
         <button className="btn-submit" type="submit" disabled={pending}>

@@ -19,9 +19,10 @@ export async function POST(request: Request): Promise<Response> {
   const identity = await requestIdentity(request);
   if (!identity) return errorResponse({ kind: "forbidden", capability: "workspace.read" });
 
-  const body = (await request.json().catch(() => ({}))) as { newEmail?: unknown };
+  const body = (await request.json().catch(() => ({}))) as { newEmail?: unknown; secondFactorCode?: unknown };
   const result = await getCore().emailLinks.requestEmailChange(identity.trusted.principal, {
     newEmail: typeof body.newEmail === "string" ? body.newEmail : "",
+    secondFactorCode: typeof body.secondFactorCode === "string" ? body.secondFactorCode : "",
     linkBaseUrl: `${new URL(request.url).origin}/confirm-email`,
   }, nodemailerTransport());
   if (!result.ok) return errorResponse(result.error);

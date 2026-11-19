@@ -29,7 +29,16 @@ export type SignInRequest = {
   email: string;
   password: string;
   sessionEstablished: boolean;
+  secondFactorCode?: string;
 };
+
+export interface TwoFactorEnrollment {
+  /** Enter this base32 secret in an authenticator app; it is not persisted in recovery-code responses. */
+  secret: string;
+  otpauthUrl: string;
+}
+
+export interface TwoFactorRecoveryCodes { recoveryCodes: string[]; }
 
 export type SignOutRequest = {
   sessionRevoked: boolean;
@@ -87,6 +96,7 @@ export type RevokeSessionRequest = {
 export type ChangePasswordRequest = {
   currentPassword: string;
   newPassword: string;
+  secondFactorCode?: string;
 };
 
 export type ChangeEmailRequest = {

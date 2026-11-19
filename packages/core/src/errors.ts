@@ -16,6 +16,10 @@ export type CoreError =
   /** Identity exists but the account cannot be used for access. */
   | { kind: "access-disabled" }
   | { kind: "invalid-credentials" }
+  /** A password is correct but this account still needs its authenticator or recovery code. */
+  | { kind: "second-factor-required" }
+  /** An authenticator or recovery code was incorrect, expired, or already used. */
+  | { kind: "invalid-second-factor" }
   /** The session is valid but older than the recent-authentication window. */
   | { kind: "reauthentication-required" }
   /** Email-address changes travel through the SMTP-backed account flows. */

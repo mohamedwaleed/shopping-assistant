@@ -26,7 +26,7 @@ export interface EmailLinkOperations {
   acceptInvitation(input: { email: string; token: string; name: string; password: string; workspaceName: string }, provisioner: AccountProvisioner): Promise<Result<{ userId: string; workspaceId: string }>>;
   requestPasswordReset(input: { email: string; linkBaseUrl: string }, transport: MailTransport): Promise<Result<{ delivered: true }>>;
   resetPassword(input: { email: string; token: string; newPassword: string }, recovery: PasswordRecovery): Promise<Result<{ changed: true; sessionsRevoked: number }>>;
-  requestEmailChange(principal: Principal, input: { newEmail: string; linkBaseUrl: string }, transport: MailTransport): Promise<Result<{ delivered: true }>>;
+  requestEmailChange(principal: Principal, input: { newEmail: string; linkBaseUrl: string; secondFactorCode?: string }, transport: MailTransport): Promise<Result<{ delivered: true }>>;
   confirmEmailChange(input: { email: string; token: string }): Promise<Result<{ changed: true }>>;
 }
 
@@ -81,6 +81,10 @@ export function createEmailLinkOperations(input: { db: Knex; auth: Authenticatio
       if (!spent || request.newPassword.length < 10) return err({ kind: "invalid-email-link" });
       const user = await input.db("user").where({ email }).first();
       if (!user) return err({ kind: "invalid-email-link" });
+      // A reset link proves mailbox access, not possession of the enrolled
+      // authenticator. It therefore never turns off or bypasses two-factor.
+      const factor = await input.db("two_factor_authenticator").where({ user_id: user.id, enabled: true }).first();
+      if (factor) return err({ kind: "second-factor-required" });
       await recovery.setPassword({ userId: user.id, newPassword: request.newPassword });
       return ok({ changed: true, sessionsRevoked: await input.db("session").where({ user_id: user.id }).delete() });
     },
@@ -90,6 +94,8 @@ export function createEmailLinkOperations(input: { db: Knex; auth: Authenticatio
       if (!recent.value.recent) return err({ kind: "reauthentication-required" });
       const admitted = await input.auth.admission(principal);
       if (!admitted.ok) return admitted;
+      const factor = await input.auth.verifySecondFactor(admitted.value.id, request.secondFactorCode ?? "");
+      if (!factor.ok) return factor;
       return send("email-change", request.newEmail, request.linkBaseUrl, transport, "Confirm your new Shopping Assistant email address", `${admitted.value.id}.`);
     },
     async confirmEmailChange(request) {

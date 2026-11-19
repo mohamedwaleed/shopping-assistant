@@ -74,24 +74,15 @@ export async function signInAction(
     {
       email: text(formData, "email"),
       password: text(formData, "password"),
+      secondFactorCode: text(formData, "secondFactorCode"),
       sessionEstablished: true,
     },
-    {
-      ...provisioner,
-      verifyCredentials: async (input) => {
-        const verified = await provisioner.verifyCredentials(input);
-        if (!verified) return null;
-        const signIn = await auth.api.signInEmail({
-          body: { email: input.email, password: input.password },
-          returnHeaders: true,
-        });
-        await applySetCookies(signIn.headers);
-        return verified;
-      },
-    },
+    provisioner,
   );
 
   if (!result.ok) return { error: authErrorMessage(result.error, t) };
+  const signIn = await auth.api.signInEmail({ body: { email: text(formData, "email"), password: text(formData, "password") }, returnHeaders: true });
+  await applySetCookies(signIn.headers);
   redirect(`/?lang=${lang}`);
 }
 
