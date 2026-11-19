@@ -45,7 +45,17 @@ export type CoreError =
       source: string;
     }
   /** The provider endpoint failed the bounded diagnostic request. */
-  | { kind: "provider-unavailable"; message: string };
+  | { kind: "provider-unavailable"; message: string }
+  /** The URL has an unsafe scheme, credential, host or network destination. */
+  | { kind: "unsafe-url"; message: string }
+  /** No explicitly configured source policy permits this URL. */
+  | { kind: "source-not-permitted"; url: string }
+  /** Retrieval completed but was blocked, redirected unsafely, or otherwise unusable. */
+  | { kind: "source-fetch-failed"; classification: "redirect" | "challenge" | "http" | "network" }
+  /** The page did not contain a complete supported structured product offer. */
+  | { kind: "extraction-failed"; message: string }
+  /** Existing identifier evidence names a different configuration. */
+  | { kind: "identity-conflict"; identifier: string };
 
 export type Result<T> =
   | { ok: true; value: T }

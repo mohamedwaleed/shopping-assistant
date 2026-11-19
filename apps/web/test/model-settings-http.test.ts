@@ -28,6 +28,7 @@ let testRoute: typeof import("../app/api/settings/models/test/route");
 let workspaceRoute: typeof import("../app/api/settings/models/workspace/route");
 let claimRoute: typeof import("../app/api/setup/claim/route");
 let signInRoute: typeof import("../app/api/sign-in/route");
+let ingestRoute: typeof import("../app/api/catalogue/ingest/route");
 
 function jsonRequest(url: string, body: unknown, headers: Record<string, string> = {}): Request {
   return new Request(url, {
@@ -98,6 +99,7 @@ beforeAll(async () => {
   workspaceRoute = await import("../app/api/settings/models/workspace/route");
   claimRoute = await import("../app/api/setup/claim/route");
   signInRoute = await import("../app/api/sign-in/route");
+  ingestRoute = await import("../app/api/catalogue/ingest/route");
 });
 
 beforeEach(async () => {
@@ -148,6 +150,15 @@ async function claimAdministrator(): Promise<string> {
 }
 
 describe("model settings over HTTP", () => {
+  it("maps a submitted unsafe catalogue URL to a core 400 without fetching it", async () => {
+    const cookie = await claimAdministrator();
+    const response = await ingestRoute.POST(
+      jsonRequest("http://localhost/api/catalogue/ingest", { url: "http://127.0.0.1/private" }, { cookie }),
+    );
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.kind).toBe("unsafe-url");
+  });
+
   it("requires a session", async () => {
     const res = await setupRoute.GET(new Request("http://localhost/api/settings/models"));
     expect(res.status).toBe(403);

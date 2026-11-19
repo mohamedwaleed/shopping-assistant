@@ -13,6 +13,7 @@ import {
   type ModelRegistryDependencies,
 } from "./models/model-registry";
 import type { Principal } from "./principal";
+import { createIngestion, type IngestionDependencies, type IngestedPage } from "./ingestion";
 
 export interface ShoppingCore {
   auth: Authentication;
@@ -23,6 +24,7 @@ export interface ShoppingCore {
       principal: Principal,
       variantId: string,
     ): Promise<Result<VariantOfferDetail>>;
+    ingestProductPage(principal: Principal, sourceUrl: string): Promise<Result<IngestedPage>>;
   };
 }
 
@@ -30,7 +32,7 @@ type CoreDependencies = {
   db: Knex;
   models: Pick<ModelRegistryDependencies, "cipher" | "probe">;
 } & Partial<AuthDependencies> &
-  Partial<MailerDependencies>;
+  Partial<MailerDependencies> & { ingestion?: IngestionDependencies };
 
 /** Core owns shopping operations and authorization; adapters stay thin. */
 export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
@@ -54,6 +56,7 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
     catalogue: {
       getVariantOfferDetail: (principal, variantId) =>
         getVariantOfferDetail(deps.db, principal, variantId),
+      ingestProductPage: createIngestion(deps.db, deps.ingestion),
     },
   };
 }

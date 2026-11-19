@@ -27,6 +27,11 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   "model-credential-missing": 409,
   "model-credential-provider-mismatch": 409,
   "provider-unavailable": 502,
+  "unsafe-url": 400,
+  "source-not-permitted": 403,
+  "source-fetch-failed": 502,
+  "extraction-failed": 422,
+  "identity-conflict": 409,
 };
 
 export function errorResponse(error: CoreError): Response {
