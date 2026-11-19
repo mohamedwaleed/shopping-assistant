@@ -211,9 +211,7 @@
         "Responsive search/empty/error states work without model/embedding services; check behavior and representative PostgreSQL query performance."
       ],
       "draft": "12-search-catalogue-identifiers-filters-and-bilingual-text.md",
-      "status": "done",
-      "commit": "2c2aa26",
-      "pr": 45
+      "status": "ready"
     },
     {
       "number": 13,
@@ -282,7 +280,9 @@
         "Verify a real request through the SDK runtime using deterministic model/provider fixtures, including streaming tool results, malformed output, cancellation/error display and persistence; a static mocked chat transcript is not completion."
       ],
       "draft": "16-stream-persistent-bilingual-chat-with-vercel-ai-sdk.md",
-      "status": "ready"
+      "status": "done",
+      "commit": "2c2aa26",
+      "pr": 45
     },
     {
       "number": 17,
