@@ -87,7 +87,9 @@
         "Email-address changes require recent authentication and confirmation of the new address before switching account identity; unavailable email cannot report a completed change."
       ],
       "draft": "05-invite-shoppers-and-recover-passwords.md",
-      "status": "ready"
+      "status": "done",
+      "commit": "5eab407",
+      "pr": 42
     },
     {
       "number": 6,
@@ -155,7 +157,9 @@
         "Prove limits on simultaneous work, cancellation/retries and absence of silent paid-key fallback."
       ],
       "draft": "09-enforce-research-and-monitoring-budgets.md",
-      "status": "ready"
+      "status": "done",
+      "commit": "e1f9098",
+      "pr": 42
     },
     {
       "number": 10,
@@ -169,7 +173,9 @@
         "Details/core/HTTP checks prove idempotence, unsafe-URL rejection, variant conflicts and failed extraction never overwriting valid observations."
       ],
       "draft": "10-ingest-a-product-page-with-inspectable-evidence.md",
-      "status": "ready"
+      "status": "done",
+      "commit": "e1b083d",
+      "pr": 42
     },
     {
       "number": 11,
