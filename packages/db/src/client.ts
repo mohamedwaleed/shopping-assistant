@@ -6,6 +6,7 @@ import * as smtpSettings from "./migrations/20261118010000_smtp_settings";
 import * as modelRegistry from "./migrations/20261118030000_model_registry";
 import * as providerBudgets from "./migrations/20261119003000_provider_budgets";
 import * as pageIngestion from "./migrations/20261119010000_page_ingestion";
+import * as shoppingChat from "./migrations/20261119040000_shopping_chat";
 
 interface MigrationModule {
   up: (db: Knex) => Promise<void>;
@@ -20,6 +21,7 @@ const ORDERED_MIGRATIONS: ReadonlyArray<[string, MigrationModule]> = [
   ["20261118030000_model_registry", modelRegistry],
   ["20261119003000_provider_budgets", providerBudgets],
   ["20261119010000_page_ingestion", pageIngestion],
+  ["20261119040000_shopping_chat", shoppingChat],
 ];
 
 /** One Knex instance per process; callers own pool lifecycle via destroy(). */

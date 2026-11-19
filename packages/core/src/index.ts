@@ -118,3 +118,4 @@ export {
   type UsageSource,
 } from "./models/types";
 export { createBudgetRegistry, type BudgetKind, type BudgetRegistry, type BudgetReservation, type BudgetSettings, type BudgetView } from "./budgets/budget-registry";
+export { createChatSessions, type ChatLanguage, type ChatSessions, type SessionMessage, type SessionRequirements, type ShoppingSession } from "./chat";

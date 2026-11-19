@@ -16,6 +16,7 @@ import {
 import type { Principal } from "./principal";
 import { createBudgetRegistry, type BudgetRegistry } from "./budgets/budget-registry";
 import { createIngestion, type IngestionDependencies, type IngestedPage } from "./ingestion";
+import { createChatSessions, type ChatSessions } from "./chat";
 
 export interface ShoppingCore {
   auth: Authentication;
@@ -23,6 +24,7 @@ export interface ShoppingCore {
   emailLinks: EmailLinkOperations;
   models: ModelRegistry;
   budgets: BudgetRegistry;
+  chat: ChatSessions;
   catalogue: {
     getVariantOfferDetail(
       principal: Principal,
@@ -61,6 +63,7 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
       ...(deps.now ? { now: deps.now } : {}),
     }),
     budgets: createBudgetRegistry({ db: deps.db }),
+    chat: createChatSessions({ db: deps.db }),
     catalogue: {
       getVariantOfferDetail: (principal, variantId) =>
         getVariantOfferDetail(deps.db, principal, variantId),
