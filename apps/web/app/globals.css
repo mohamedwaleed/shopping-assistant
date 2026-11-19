@@ -207,6 +207,22 @@ a {
   color: var(--error);
 }
 
+.chat-layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 18px; }
+.session-list { display: flex; flex-direction: column; gap: 8px; }
+.session { text-align: left; border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 10px; padding: 9px 10px; font: inherit; cursor: pointer; }
+.session.active { background: var(--blue-surface); border-color: var(--primary); }
+.chat-panel { min-height: 580px; display: flex; flex-direction: column; }
+.chat-messages { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+.chat-message { border-radius: 10px; padding: 10px 12px; background: var(--soft); max-width: 85%; }
+.chat-message.user { align-self: flex-end; background: var(--blue-surface); }
+.chat-message p { margin: 4px 0 0; white-space: pre-wrap; }
+.tool-state { color: var(--success); font-size: 13px; }
+.chat-form { border-top: 1px solid var(--border); padding-top: 14px; display: grid; gap: 8px; }
+.chat-form label { font-size: 13px; font-weight: 600; }
+.chat-form textarea { min-height: 76px; resize: vertical; font: inherit; color: var(--text); background: var(--soft); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.chat-form div { display: flex; gap: 8px; }
+@media (max-width: 760px) { .chat-layout { grid-template-columns: 1fr; } .session-list { flex-direction: row; overflow-x: auto; } .session { white-space: nowrap; } }
+
 @media (max-width: 760px) {
   .app-shell {
     grid-template-columns: 1fr;

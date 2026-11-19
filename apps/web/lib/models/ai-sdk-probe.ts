@@ -22,6 +22,7 @@ import {
   type ModelTarget,
   type Result,
 } from "@shopping/core";
+import type { LanguageModel } from "ai";
 
 /**
  * AI SDK packages this adapter is verified against (docs/adr/0012). Pinned so a
@@ -72,7 +73,8 @@ function probeTools(): ToolSet {
   };
 }
 
-function languageModel(target: ModelTarget, apiKey: string) {
+/** Shared server-only provider adapter; core supplies the resolved, authorized target. */
+export function languageModel(target: ModelTarget, apiKey: string): LanguageModel {
   switch (target.provider) {
     case "openai": {
       const provider = createOpenAI({

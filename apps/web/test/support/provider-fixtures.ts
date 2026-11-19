@@ -181,6 +181,9 @@ function replyFor(
   prompt: string,
   tools: ToolSpec[],
 ): Reply {
+  if (prompt.includes("Call the requirements_update tool") && tools.length > 0) {
+    return { kind: "tool-call", toolName: tools.find((tool) => tool.name === "requirements_update")?.name ?? tools[0]!.name, text: "" };
+  }
   if (prompt.includes(TOOL_CALL_MARKER) && mode !== "no-tools" && tools.length > 0) {
     return { kind: "tool-call", toolName: tools[0]!.name, text: "" };
   }
@@ -239,7 +242,7 @@ function openAiResponsesPayload(reply: Reply): unknown {
           id: "fc_fixture",
           call_id: "call_fixture",
           name: reply.toolName,
-          arguments: reply.text || JSON.stringify({ value: "fixture" }),
+          arguments: reply.text || JSON.stringify(reply.toolName === "requirements_update" ? { mustHaves: ["under €1000"], preferences: ["quiet"], assumptions: ["delivery in the Netherlands"], questions: ["What screen size?"], revisionNote: "fixture extraction" } : { value: "fixture" }),
           status: "completed",
         },
       ],
@@ -297,7 +300,7 @@ function openAiResponsesEvents(reply: Reply): string[] {
       type: "response.function_call_arguments.done",
       item_id: "fc_fixture",
       output_index: 0,
-      arguments: reply.text || JSON.stringify({ value: "fixture" }),
+      arguments: reply.text || JSON.stringify(reply.toolName === "requirements_update" ? { mustHaves: ["under €1000"], preferences: ["quiet"], assumptions: ["delivery in the Netherlands"], questions: ["What screen size?"], revisionNote: "fixture extraction" } : { value: "fixture" }),
     });
     push({
       type: "response.output_item.done",
@@ -373,7 +376,7 @@ function chatCompletionPayload(reply: Reply): unknown {
             {
               id: "call_fixture",
               type: "function",
-              function: { name: reply.toolName, arguments: reply.text || JSON.stringify({ value: "fixture" }) },
+              function: { name: reply.toolName, arguments: reply.text || JSON.stringify(reply.toolName === "requirements_update" ? { mustHaves: ["under €1000"], preferences: ["quiet"], assumptions: ["delivery in the Netherlands"], questions: ["What screen size?"], revisionNote: "fixture extraction" } : { value: "fixture" }) },
             },
           ],
         }
@@ -423,7 +426,7 @@ function chatCompletionEvents(reply: Reply): string[] {
     );
     events.push(
       chunk(
-        { tool_calls: [{ index: 0, function: { arguments: JSON.stringify({ value: "fixture" }) } }] },
+        { tool_calls: [{ index: 0, function: { arguments: JSON.stringify(reply.toolName === "requirements_update" ? { mustHaves: ["under €1000"], preferences: ["quiet"], assumptions: ["delivery in the Netherlands"], questions: ["What screen size?"], revisionNote: "fixture extraction" } : { value: "fixture" }) } }] },
         null,
       ),
     );

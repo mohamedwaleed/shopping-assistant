@@ -73,10 +73,9 @@ export default async function Home({
     <div className="app-shell" lang={lang}>
       <nav className="rail" aria-label="Main">
         <span className="brand">{t.appName}</span>
-        <span className="nav-item">
+        <a className="nav-item" href={`/chat?lang=${lang}`}>
           {t.navChat}
-          <span className="nav-badge">{t.navComingSoon}</span>
-        </span>
+        </a>
         <span className="nav-item active">{t.navProducts}</span>
         <span className="nav-item">
           {t.navCompare}
