@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { redirect } from "next/navigation";
 import {
+  CLAUDE_PLAN_ROUTES,
+  CHATGPT_PLAN_ENTITLEMENT,
   createSecretCipher,
   planAccessView,
-  CLAUDE_PLAN_ROUTES,
+  type BudgetView,
+  type ChatGPTPlanView,
   type ModelConfigurationViewResult,
 } from "@shopping/core";
 import { getCore } from "@/lib/core";
@@ -13,6 +16,8 @@ import { signOutAction } from "@/app/actions";
 import { SignOutButton } from "@/app/auth-forms";
 import { ModelSettingsForm } from "@/app/model-settings";
 import { PlanAccessPanel } from "@/app/plan-access";
+import { ChatGPTPlanSettings } from "@/app/chatgpt-plan-settings";
+import { BudgetSettings } from "@/app/budget-settings";
 
 const EMPTY_VIEW: ModelConfigurationViewResult = {
   installation: { defaultModel: null, extractionModel: null, usageSource: null, credential: null },
@@ -22,6 +27,23 @@ const EMPTY_VIEW: ModelConfigurationViewResult = {
   diagnostics: { bounds: { maxCalls: 4, maxOutputTokens: 64 }, limits: { maxCalls: 8, maxOutputTokens: 512 } },
   planAccess: planAccessView(CLAUDE_PLAN_ROUTES),
 };
+/** Shown when the connection cannot be read; nothing is invented for it. */
+const EMPTY_PLAN: ChatGPTPlanView = {
+  status: "disconnected",
+  eligibility: "disconnected",
+  usageSource: "api-key",
+  account: null,
+  selectedModel: null,
+  models: [],
+  plan: { state: "available", reason: null, message: null, retryAfterSeconds: null },
+  expiresAt: null,
+  scopes: [],
+  lastCheckedAt: null,
+  apiKey: { configured: false, provider: null, modelId: null, source: null },
+  entitlement: CHATGPT_PLAN_ENTITLEMENT,
+  events: [],
+};
+const EMPTY_BUDGET: BudgetView = { interactiveCents: 0, backgroundCents: 0, maxInteractive: 1, maxBackground: 1, retryLimit: 0, paidFallbackEnabled: false, usedInteractiveCents: 0, usedBackgroundCents: 0, reservedInteractiveCents: 0, reservedBackgroundCents: 0, backgroundPersonalKeyConsent: false, pauseReasons: {} };
 
 export default async function Settings({
   searchParams,
@@ -43,10 +65,16 @@ export default async function Settings({
   // section explains the missing prerequisite instead of failing the page.
   let view: ModelConfigurationViewResult = EMPTY_VIEW;
   let available = true;
+  let budget = EMPTY_BUDGET;
+  let plan = EMPTY_PLAN;
   try {
     createSecretCipher({ key: process.env.INSTALLATION_SECRET ?? "" });
     const result = await getCore().models.read(principal);
     if (result.ok) view = result.value;
+    const budgetResult = await getCore().budgets.read(principal);
+    if (budgetResult.ok) budget = budgetResult.value;
+    const planResult = await getCore().chatgptPlan.read(principal);
+    if (planResult.ok) plan = planResult.value;
   } catch {
     available = false;
   }
@@ -96,6 +124,8 @@ export default async function Settings({
             {/* Separate panel, not part of the API-key form: plan access is a
                 published-terms question, not a credential to configure. */}
             <PlanAccessPanel lang={lang} planAccess={view.planAccess} />
+            <ChatGPTPlanSettings lang={lang} initial={plan} />
+            <BudgetSettings lang={lang} canManage={isAdministrator} initial={budget} />
           </>
         ) : (
           <div className="error-panel" role="alert">

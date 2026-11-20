@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Knex } from "knex";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import { createDb, DEFAULT_TEST_DATABASE_URL, migrateFresh } from "@shopping/db";
 import {
   createAuthentication,
   principalForUser,
@@ -50,8 +50,7 @@ describe("devices, sessions and password changes through the core", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.rollback({}, true);
-    await db.migrate.latest();
+    await migrateFresh(db);
   });
 
   beforeEach(async () => {
@@ -439,6 +438,31 @@ describe("devices, sessions and password changes through the core", () => {
       expect(await auth.recentAuthentication(ada.principal)).toMatchObject({
         ok: true,
         value: { recent: false, authenticatedAt: "2026-11-18T09:00:00.000Z" },
+      });
+    });
+
+    it("measures the window from the sign-in that created the session, not from provisioning", async () => {
+      const ada = await person("ada@example.nl", "Ada's workspace");
+
+      // A session created before its user's identity rows finished being
+      // provisioned carries a later sign-in time. The invitation acceptance
+      // screen depends on this: it signs the new shopper in immediately, and
+      // the email-change form must not report a stale session right after.
+      const signInAt = new Date(clock.getTime() + 2000);
+      await db("session")
+        .where({ id: ada.sessionId })
+        .update({ created_at: signInAt, updated_at: signInAt });
+      clock = signInAt;
+
+      expect(await auth.recentAuthentication(ada.principal)).toMatchObject({
+        ok: true,
+        value: { recent: true, authenticatedAt: signInAt.toISOString() },
+      });
+
+      advance(RECENT_AUTHENTICATION_SECONDS * 1000 + 3000);
+      expect(await auth.recentAuthentication(ada.principal)).toMatchObject({
+        ok: true,
+        value: { recent: false, authenticatedAt: signInAt.toISOString() },
       });
     });
 

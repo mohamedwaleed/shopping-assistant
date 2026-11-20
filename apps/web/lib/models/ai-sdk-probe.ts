@@ -17,11 +17,16 @@ import {
   ok,
   type CapabilityReport,
   type CapabilityState,
+  type ChatGPTPlanExercise,
+  type ChatGPTPlanExerciseFn,
+  type ChatGPTPlanExerciseResult,
+  type CoreError,
   type ModelProbe,
   type ModelProbeRequest,
   type ModelTarget,
   type Result,
 } from "@shopping/core";
+import type { LanguageModel, ModelMessage } from "ai";
 
 /**
  * AI SDK packages this adapter is verified against (docs/adr/0012). Pinned so a
@@ -72,7 +77,8 @@ function probeTools(): ToolSet {
   };
 }
 
-function languageModel(target: ModelTarget, apiKey: string) {
+/** Shared server-only provider adapter; core supplies the resolved, authorized target. */
+export function languageModel(target: ModelTarget, apiKey: string): LanguageModel {
   switch (target.provider) {
     case "openai": {
       const provider = createOpenAI({
@@ -244,3 +250,237 @@ export function createAiSdkProbe(): ModelProbe {
     });
   };
 }
+
+/**
+ * The documented public Responses endpoint for ChatGPT plan usage. The plan
+ * flow must use this route, not ChatGPT's internal endpoints.
+ */
+export const PLAN_RESPONSES_BASE_URL = "https://api.openai.com/v1";
+
+/**
+ * Optional endpoint override for the plan route. A self-hosted installation may
+ * need to reach the provider through an egress proxy, and the test suite points
+ * it at a loopback fixture; it is installation configuration, never a request
+ * parameter.
+ */
+export const CHATGPT_PLAN_ENDPOINT_ENV = "CHATGPT_PLAN_RESPONSES_BASE_URL";
+
+/** Namespace the shopping tools travel in; the plan route rejects bare tools. */
+export const PLAN_TOOL_NAMESPACE = "shopping";
+
+/** Tool calls the plan route accepts per request; a runaway loop is refused. */
+export const PLAN_MAX_STEPS = 3;
+
+export interface ChatGPTPlanAdapterOptions {
+  /** Endpoint base URL; overridable only so loopback fixtures can stand in. */
+  baseUrl?: string;
+}
+
+/**
+ * ChatGPT plan usage through the pinned AI SDK OpenAI adapter (docs/adr/0013).
+ *
+ * The plan route is the Responses API with its own documented requirements, and
+ * the adapter satisfies them explicitly instead of relying on provider
+ * defaults: `store: false`, `stream: true`, the conversation supplied as an
+ * `input` array, a developer instruction rather than a system input item, no
+ * output-token bound (the plan route rejects `max_output_tokens`), and function
+ * tools declared inside a namespace item rather than as bare top-level tools.
+ * It returns observed facts — whether the stream reached `response.completed`,
+ * which tools the model called and which the SDK executed — so a text-only
+ * reply is never reported as a working tool step.
+ */
+export function createChatGPTPlanExercise(
+  options: ChatGPTPlanAdapterOptions = {},
+): ChatGPTPlanExerciseFn {
+  return async (request: ChatGPTPlanExercise): Promise<Result<ChatGPTPlanExerciseResult>> => {
+    const { connection, prompt } = request;
+    if (!connection.modelId.trim()) {
+      return err({
+        kind: "invalid-input",
+        field: "modelId",
+        message: "a ChatGPT plan request needs a model from the account's own list",
+      });
+    }
+    if (!connection.accessToken.trim()) {
+      return err({ kind: "chatgpt-plan-disconnected" });
+    }
+
+    // The account's OAuth access token is the bearer credential; it is never
+    // combined with, or replaced by, a stored API key.
+    const provider = createOpenAI({
+      apiKey: connection.accessToken,
+      baseURL: options.baseUrl ?? PLAN_RESPONSES_BASE_URL,
+    });
+
+    const executed: string[] = [];
+    const tools: ToolSet = {};
+    for (const name of request.tools) {
+      tools[name] = tool({
+        description: `Shopping tool ${name}.`,
+        inputSchema: PLAN_TOOL_SCHEMAS[name] ?? PLAN_FALLBACK_SCHEMA,
+        // The plan route accepts function tools only inside a namespace, so
+        // every shopping tool declares one rather than travelling as a bare
+        // top-level function.
+        providerOptions: {
+          openai: { namespace: PLAN_TOOL_NAMESPACE_OPTION },
+        },
+        execute: async (input: unknown) => {
+          // Executing the tool is the proof: a schema that is accepted but
+          // ignored never reaches this point.
+          executed.push(name);
+          return { accepted: true, input };
+        },
+      });
+    }
+
+    // A plan request without history is a single prompt; with history the whole
+    // conversation travels as messages, because the route rejects
+    // `previous_response_id` and stores nothing.
+    const promptInput = planPrompt(prompt, request.messages);
+    // Every plan call carries the same documented requirements and bounds.
+    const callOptions = {
+      model: provider(connection.modelId),
+      instructions: PLAN_INSTRUCTIONS,
+      tools,
+      stopWhen: stepCountIs(PLAN_MAX_STEPS),
+      // One attempt: a retry would repeat a request the route already refused.
+      maxRetries: 0,
+      timeout: DIAGNOSTIC_TIMEOUT_MS,
+      providerOptions: {
+        openai: {
+          // Required by the plan route on every HTTP inference request.
+          store: false,
+          systemMessageMode: "developer" as const,
+          // No output-token bound is set: `max_output_tokens` is rejected.
+        },
+      },
+    };
+    let streamError: unknown = null;
+    // A stream that ends without output carries its provider error here; reading
+    // only the text would lose the provider's own error code.
+    const onError = ({ error }: { error: unknown }) => {
+      streamError = error;
+    };
+    try {
+      const result =
+        "messages" in promptInput
+          ? streamText({ ...callOptions, messages: promptInput.messages, onError })
+          : streamText({ ...callOptions, prompt: promptInput.prompt, onError });
+      // Only a consumed stream reaches `response.completed`. A stream that ends
+      // without it — an allowance exhausted mid-stream, an interrupted
+      // connection — is a failed request, never a short answer.
+      const [text, calls, usage, finishReason] = await Promise.all([
+        result.text,
+        result.toolCalls,
+        result.usage,
+        result.finishReason,
+      ]);
+      if (streamError) return err(planFailure(streamError));
+      if (finishReason === "error") {
+        return err({ kind: "chatgpt-plan-request-failed", code: null, status: 502 });
+      }
+      return ok({
+        completed: true,
+        text,
+        toolCalls: calls.map((call) => call.toolName),
+        toolsExecuted: [...executed],
+        usage: {
+          inputTokens: usage.inputTokens ?? null,
+          outputTokens: usage.outputTokens ?? null,
+        },
+      });
+    } catch (cause) {
+      return err(planFailure(streamError ?? cause));
+    }
+  };
+}
+
+/**
+ * The `input` array for one plan request: the history the caller already holds,
+ * followed by the shopper's current turn. Nothing is stored at the provider
+ * (`store: false`), so this array *is* the conversation.
+ */
+function planPrompt(
+  prompt: string,
+  history?: Array<{ role: "user" | "assistant"; content: string }>,
+): { prompt: string } | { messages: ModelMessage[] } {
+  if (!history || history.length === 0) return { prompt };
+  return {
+    messages: [
+      ...history.map((message) => ({ role: message.role, content: message.content })),
+      // The current turn is the last input item, so a history never replaces it.
+      { role: "user" as const, content: prompt },
+    ],
+  };
+}
+
+const PLAN_INSTRUCTIONS =
+  "You are a bilingual (English/Dutch) shopping assistant for shoppers in the Netherlands. " +
+  "Call the requirements_update tool when the shopper describes or revises buying needs.";
+
+/**
+ * The plan route rejects bare top-level function tools; it accepts them grouped
+ * in a namespace. The pinned adapter declares the namespace per tool, which the
+ * SDK groups into one `type: "namespace"` entry on the wire.
+ */
+const PLAN_TOOL_NAMESPACE_OPTION = {
+  name: PLAN_TOOL_NAMESPACE,
+  description: "Shopping tools available to this conversation.",
+};
+
+/**
+ * The plan route's structured errors carry a stable `error.code`. It is
+ * preserved verbatim so the recovery action (pause, reauthorize, drop the
+ * unsupported input) is chosen from the provider's own code rather than a
+ * guess.
+ */
+function planFailure(cause: unknown): CoreError {
+  const status =
+    typeof (cause as { statusCode?: unknown }).statusCode === "number"
+      ? (cause as { statusCode: number }).statusCode
+      : 502;
+  const body = (cause as { responseBody?: unknown }).responseBody;
+  let code: string | null = null;
+  if (typeof body === "string") {
+    try {
+      const parsed = JSON.parse(body) as { error?: { code?: unknown }; code?: unknown };
+      const value = parsed.error?.code ?? parsed.code;
+      if (typeof value === "string") code = value;
+    } catch {
+      code = null;
+    }
+  }
+  if (code === null && typeof (cause as { code?: unknown }).code === "string") {
+    code = (cause as { code: string }).code;
+  }
+  return { kind: "chatgpt-plan-request-failed", code, status };
+}
+
+const PLAN_FALLBACK_SCHEMA = jsonSchema<Record<string, unknown>>({
+  type: "object",
+  properties: {},
+  additionalProperties: true,
+});
+
+const PLAN_REQUIREMENTS_SCHEMA = jsonSchema<{
+  mustHaves: string[];
+  preferences: string[];
+  assumptions: string[];
+  questions: string[];
+  revisionNote: string;
+}>({
+  type: "object",
+  properties: {
+    mustHaves: { type: "array", items: { type: "string" } },
+    preferences: { type: "array", items: { type: "string" } },
+    assumptions: { type: "array", items: { type: "string" } },
+    questions: { type: "array", items: { type: "string" } },
+    revisionNote: { type: "string" },
+  },
+  required: ["mustHaves", "preferences", "assumptions", "questions", "revisionNote"],
+  additionalProperties: false,
+});
+
+const PLAN_TOOL_SCHEMAS: Record<string, ReturnType<typeof jsonSchema>> = {
+  requirements_update: PLAN_REQUIREMENTS_SCHEMA,
+};

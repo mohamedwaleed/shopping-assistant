@@ -27,6 +27,8 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./mail-transport": "./src/mail/nodemailer-transport.ts"
+    "./mail-transport": "./src/mail/nodemailer-transport.ts",
+    "./models/types": "./src/models/types.ts",
+    "./test-support/source-fixtures": "./test/support/source-fixtures.ts"
   }
 }

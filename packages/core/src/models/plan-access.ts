@@ -6,7 +6,7 @@
  *
  * The answer today is no: Anthropic permits subscription credentials only in
  * its own applications and forbids third-party apps from routing requests
- * through plan credentials or holding Claude.ai tokens (docs/adr/0013). This
+ * through plan credentials or holding Claude.ai tokens (docs/adr/0015). This
  * module exists so settings can say that plainly, and so that a future
  * permitted route has exactly one place to be declared — with the evidence
  * that makes `supported` claimable.
@@ -154,7 +154,7 @@ export function planAccessView(routes: readonly PlanAccessRoute[]): PlanAccessVi
   };
 }
 
-/** ISO date the guidance below was last fetched and read (docs/adr/0013). */
+/** ISO date the guidance below was last fetched and read (docs/adr/0015). */
 export const PLAN_ACCESS_CHECKED_AT = "2026-02-27";
 
 export const PLAN_ACCESS_SOURCES: readonly PlanAccessSource[] = [
@@ -187,7 +187,7 @@ export const PLAN_ACCESS_SOURCES: readonly PlanAccessSource[] = [
  * its evidence changes nothing: `planAccessView` will refuse the claim.
  *
  * A future permitted route is declared by replacing the entry's state, reason
- * and evidence together — the follow-up condition is in docs/adr/0013.
+ * and evidence together — the follow-up condition is in docs/adr/0015.
  */
 export const CLAUDE_PLAN_ROUTES: readonly PlanAccessRoute[] = [
   {

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Knex } from "knex";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import { createDb, DEFAULT_TEST_DATABASE_URL, migrateFresh } from "@shopping/db";
 import { getCore, getDb } from "@/lib/core";
 import { closeAuth, getAuth } from "@/lib/auth/session";
 import { createAccountProvisioner } from "@/lib/auth/provisioner";
+import { authenticatorCode } from "@shopping/core";
 
 // Thin HTTP contract checks over the real identity library and PostgreSQL for
 // the account surface: stored sessions, device listing and revocation, the
@@ -28,6 +29,10 @@ let sessionsRoute: typeof import("../app/api/account/sessions/route");
 let revokeRoute: typeof import("../app/api/account/sessions/revoke/route");
 let passwordRoute: typeof import("../app/api/account/password/route");
 let emailRoute: typeof import("../app/api/account/email/route");
+let resetRoute: typeof import("../app/api/account/password/reset/route");
+let invitationRoute: typeof import("../app/api/invitations/route");
+let enrollTwoFactorRoute: typeof import("../app/api/account/two-factor/enroll/route");
+let confirmTwoFactorRoute: typeof import("../app/api/account/two-factor/confirm/route");
 
 function jsonRequest(url: string, body: unknown, headers: Record<string, string> = {}): Request {
   return new Request(url, {
@@ -118,10 +123,12 @@ beforeAll(async () => {
   process.env.BETTER_AUTH_URL = "http://localhost:3000";
   process.env.BETTER_AUTH_SECRET = "account-surface-test-secret-0123456789ab";
   process.env.SETUP_TOKEN = TOKEN;
+  // A configured installation secret lets these checks reach the mailer's own
+  // "no SMTP settings" refusal rather than failing on a missing secret.
+  process.env.INSTALLATION_SECRET = "account-surface-installation-secret-0123";
 
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.rollback({}, true);
-  await db.migrate.latest();
+  await migrateFresh(db);
   // Touch the shared pool now, so it is opened against the test database.
   await getDb().raw("select 1");
 
@@ -133,6 +140,10 @@ beforeAll(async () => {
   revokeRoute = await import("../app/api/account/sessions/revoke/route");
   passwordRoute = await import("../app/api/account/password/route");
   emailRoute = await import("../app/api/account/email/route");
+  resetRoute = await import("../app/api/account/password/reset/route");
+  invitationRoute = await import("../app/api/invitations/route");
+  enrollTwoFactorRoute = await import("../app/api/account/two-factor/enroll/route");
+  confirmTwoFactorRoute = await import("../app/api/account/two-factor/confirm/route");
 });
 
 beforeEach(async () => {
@@ -145,6 +156,10 @@ beforeEach(async () => {
     setup_completed_at: null,
     setup_token_hash: null,
     setup_administrator_user_id: null,
+    // These checks describe an installation that has not configured SMTP yet;
+    // another suite sharing the database may have left working settings.
+    smtp_settings: null,
+    mail_delivery: null,
   });
 });
 
@@ -153,6 +168,19 @@ afterAll(async () => {
   const { closeCore } = await import("@/lib/core");
   await closeCore();
   await db.destroy();
+});
+
+describe("two-factor account HTTP flow", () => {
+  it("enrolls only through the signed-in account session and returns recovery codes once", async () => {
+    await claim();
+    const cookie = await signIn(ADMIN_EMAIL, ADMIN_PASSWORD);
+    const enroll = await enrollTwoFactorRoute.POST(jsonRequest("http://localhost:3000/api/account/two-factor/enroll", {}, { cookie }));
+    expect(enroll.status).toBe(200);
+    const row = await db("two_factor_authenticator").where({ user_id: (await db("user").where({ email: ADMIN_EMAIL }).first()).id }).first();
+    const confirm = await confirmTwoFactorRoute.POST(jsonRequest("http://localhost:3000/api/account/two-factor/confirm", { code: authenticatorCode(row.secret, new Date()) }, { cookie }));
+    expect(confirm.status).toBe(200);
+    expect((await confirm.json()).recoveryCodes).toHaveLength(10);
+  });
 });
 
 describe("POST /api/sign-in issues a secure database-backed session", () => {
@@ -443,7 +471,7 @@ describe("POST /api/account/password", () => {
 });
 
 describe("POST /api/account/email", () => {
-  it("refuses email changes until the SMTP-backed flows own them", async () => {
+  it("does not change the identity when SMTP delivery is unavailable", async () => {
     await claim();
     const cookie = await signIn(ADMIN_EMAIL, ADMIN_PASSWORD);
 
@@ -455,7 +483,7 @@ describe("POST /api/account/email", () => {
       ),
     );
     expect(res.status).toBe(409);
-    expect((await res.json()).error.kind).toBe("email-change-unsupported");
+    expect((await res.json()).error.kind).toBe("mail-not-configured");
 
     const stored = await db("user").where({ email: ADMIN_EMAIL }).first();
     expect(stored).toBeDefined();
@@ -511,5 +539,28 @@ describe("recent authentication over HTTP", () => {
       ok: true,
       value: { recent: true, windowSeconds: 300 },
     });
+  });
+});
+
+describe("email-link HTTP contracts", () => {
+  it("keeps reset requests non-enumerating when SMTP is unavailable", async () => {
+    await claim();
+    const known = await resetRoute.POST(jsonRequest("http://localhost:3000/api/account/password/reset", { email: ADMIN_EMAIL }));
+    const unknown = await resetRoute.POST(jsonRequest("http://localhost:3000/api/account/password/reset", { email: "nobody@example.nl" }));
+    expect(known.status).toBe(409);
+    expect(unknown.status).toBe(known.status);
+    expect((await known.json()).error).toEqual((await unknown.json()).error);
+  });
+
+  it("requires an authenticated administrator to issue invitations and does not switch email when SMTP is unavailable", async () => {
+    const forbidden = await invitationRoute.POST(jsonRequest("http://localhost:3000/api/invitations", { email: "shopper@example.nl" }));
+    expect(forbidden.status).toBe(403);
+
+    await claim();
+    const cookie = await signIn(ADMIN_EMAIL, ADMIN_PASSWORD);
+    const change = await emailRoute.POST(jsonRequest("http://localhost:3000/api/account/email", { newEmail: "new@example.nl" }, { cookie }));
+    expect(change.status).toBe(409);
+    expect((await db("user").where({ email: ADMIN_EMAIL }).first())).toBeDefined();
+    expect((await db("user").where({ email: "new@example.nl" }).first())).toBeUndefined();
   });
 });

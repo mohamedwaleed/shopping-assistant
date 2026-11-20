@@ -2,7 +2,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { SMTPServer } from "smtp-server";
 import type { Knex } from "knex";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import { createDb, DEFAULT_TEST_DATABASE_URL, migrateFresh } from "@shopping/db";
 import { nodemailerTransport } from "../src/mail/nodemailer-transport";
 import {
   createAuthentication,
@@ -100,8 +100,7 @@ describe("protected SMTP settings and diagnostic delivery", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.rollback({}, true);
-    await db.migrate.latest();
+    await migrateFresh(db);
     inbox = await startTestInbox();
   });
 
@@ -162,8 +161,8 @@ describe("protected SMTP settings and diagnostic delivery", () => {
     await db.destroy();
   });
 
-  function mailer(secret = SECRET) {
-    return createMailer({ db, installationSecret: secret });
+  function mailer(secret = SECRET, now?: () => Date) {
+    return createMailer({ db, installationSecret: secret, ...(now ? { now } : {}) });
   }
 
   /** A clock the test moves by hand, so a cooldown never means sleeping. */

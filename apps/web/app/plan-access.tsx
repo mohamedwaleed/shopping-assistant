@@ -9,7 +9,7 @@ import type {
 import { dictionaries, type Dictionary, type Lang } from "@/lib/i18n";
 
 /**
- * Whether a Claude plan may be spent by this deployment (docs/adr/0013).
+ * Whether a Claude plan may be spent by this deployment (docs/adr/0015).
  *
  * This is deliberately a separate panel from the API-key form: plan access is
  * not a credential this installation can store, and reading it never sends a

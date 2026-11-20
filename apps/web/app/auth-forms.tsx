@@ -24,6 +24,9 @@ export type AccountFormAction = (
   formData: FormData,
 ) => Promise<AccountFormState>;
 
+export interface TwoFactorFormState { error: string | null; secret?: string; recoveryCodes?: string[]; }
+export type TwoFactorFormAction = (state: TwoFactorFormState, formData: FormData) => Promise<TwoFactorFormState>;
+
 function LanguageSwitch({ lang }: { lang: Lang }) {
   const other: Lang = lang === "en" ? "nl" : "en";
   return (
@@ -59,7 +62,6 @@ export function SetupForm({ lang, action }: { lang: Lang; action: AuthFormAction
           <input id="token" name="token" type="password" autoComplete="off" required />
           <span className="hint">{t.setupTokenHint}</span>
         </div>
-
         <div className="field">
           <label htmlFor="name">{t.nameLabel}</label>
           <input id="name" name="name" type="text" autoComplete="name" required />
@@ -134,6 +136,10 @@ export function SignInForm({ lang, action }: { lang: Lang; action: AuthFormActio
             required
           />
         </div>
+        <div className="field">
+          <label htmlFor="secondFactorCode">Authenticator or recovery code (if enabled)</label>
+          <input id="secondFactorCode" name="secondFactorCode" type="text" inputMode="numeric" autoComplete="one-time-code" />
+        </div>
 
         <button className="btn-submit" type="submit" disabled={pending}>
           {pending ? t.signInWorking : t.signInSubmit}
@@ -164,11 +170,7 @@ export function Notice({
       <section className="auth-card" aria-labelledby="notice-title">
         <h1 id="notice-title">{title}</h1>
         <div className={`notice notice-${tone}`}>{body}</div>
-        <a
-          className="btn-submit"
-          href={`/sign-in?lang=${lang}`}
-          style={{ display: "block", textAlign: "center" }}
-        >
+        <a className="btn-submit btn-link" href={`/sign-in?lang=${lang}`}>
           {dictionaries[lang].signInSubmit}
         </a>
       </section>
@@ -316,4 +318,21 @@ export function DeviceList({
       </form>
     </section>
   );
+}
+
+export function TwoFactorForm({ lang, beginAction, confirmAction }: { lang: Lang; beginAction: TwoFactorFormAction; confirmAction: TwoFactorFormAction }) {
+  const t = dictionaries[lang];
+  const [begin, beginFormAction, beginning] = useActionState(beginAction, { error: null });
+  const [confirm, confirmFormAction, confirming] = useActionState(confirmAction, { error: null });
+  const state = confirm.recoveryCodes ? confirm : begin;
+  return <section className="panel" aria-labelledby="two-factor-title">
+    <h2 id="two-factor-title">{t.twoFactorTitle}</h2><p className="muted">{t.twoFactorIntro}</p>
+    {state.error && <div className="notice notice-error" role="alert">{state.error}</div>}
+    {!begin.secret && !confirm.recoveryCodes && <form action={beginFormAction}><input type="hidden" name="lang" value={lang} /><button className="btn-submit" type="submit" disabled={beginning}>{t.twoFactorBegin}</button></form>}
+    {begin.secret && !confirm.recoveryCodes && <form action={confirmFormAction}>
+      <input type="hidden" name="lang" value={lang} /><div className="field"><label htmlFor="authenticatorSecret">{t.twoFactorSecret}</label><input id="authenticatorSecret" value={begin.secret} readOnly /></div>
+      <p className="hint">{t.twoFactorSetupHint}</p><div className="field"><label htmlFor="code">{t.twoFactorCodeLabel}</label><input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" required /></div>
+      <button className="btn-submit" type="submit" disabled={confirming}>{t.twoFactorConfirm}</button></form>}
+    {confirm.recoveryCodes && <div className="notice notice-info" role="status"><strong>{t.twoFactorRecoveryTitle}</strong><p>{t.twoFactorRecoveryHint}</p><ul>{confirm.recoveryCodes.map((code) => <li key={code}><code>{code}</code></li>)}</ul></div>}
+  </section>;
 }

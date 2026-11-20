@@ -25,6 +25,7 @@ export {
   setupTokenMatches,
   type SetupTokenSource,
 } from "./auth/setup-token";
+export { authenticatorCode } from "./auth/two-factor";
 export {
   type AuthenticatedUser,
   type ChangeEmailRequest,
@@ -43,7 +44,18 @@ export {
   type SignOutRequest,
   type SignUpRequest,
   type WorkspaceMembership,
+  type TwoFactorEnrollment,
+  type TwoFactorRecoveryCodes,
 } from "./auth/types";
+export {
+  createEmailLinkOperations,
+  EMAIL_CHANGE_SECONDS,
+  EMAIL_LINK_PATHS,
+  INVITATION_SECONDS,
+  PASSWORD_RESET_SECONDS,
+  type EmailLinkOperations,
+  type PasswordRecovery,
+} from "./auth/email-links";
 export {
   createMailer,
   DIAGNOSTIC_COOLDOWN_MS,
@@ -69,8 +81,101 @@ export {
   type VariantOffer,
   type VariantOfferDetail,
   type VariantPrice,
+  type AttributeReview,
 } from "./catalogue";
-export { addMoney } from "./money";
+export {
+  DEFAULT_SEARCH_LIMIT,
+  MAX_SEARCH_LIMIT,
+  type AttributeFilter,
+  type AttributeProvenance,
+  type AttributeStatus,
+  type CatalogueSearchQuery,
+  type CatalogueSearchResponse,
+  type CatalogueSearchResult,
+  type FilterOperator,
+  type ResultOfferSummary,
+  type ResultPrice,
+  type SearchMatch,
+} from "./catalogue-search";
+export {
+  analyseQuery,
+  MAX_IDENTIFIER_LENGTH,
+  MAX_SEARCH_TEXT_LENGTH,
+  MAX_SEARCH_TERMS,
+  simpleLexemes,
+  tokenize,
+  trigramSimilarity,
+  type AnalysedQuery,
+  type QueryExpansion,
+  type SearchTerm,
+  type VocabularyTerm,
+} from "./catalogue-search-query";
+export { addMoney, compareMoney } from "./money";
+export {
+  createIngestion,
+  type FetchBounds,
+  type IngestedPage,
+  type IngestionDependencies,
+  type PageFetcher,
+  type PermittedSource,
+  type PageSourceCoverage,
+  type SourceFailure,
+  type SourcePolicy,
+} from "./ingestion";
+export {
+  DEFAULT_FETCH_BOUNDS,
+} from "./ingestion/bounds";
+export {
+  adapterFor,
+  adaptersForHost,
+  MAINTAINED_ADAPTERS,
+  normalizePrice,
+  REQUIRED_PRODUCT_FIELDS,
+  type AdapterFields,
+  type AdapterPage,
+  type AdapterReading,
+  type FieldEvidence,
+  type RequiredProductField,
+  type SourceAdapter,
+} from "./ingestion/source-adapters";
+export {
+  EXTRACTION_OUTPUT_TOKENS,
+  extractionPrompt,
+  readableContent,
+  verifyModelReading,
+  type ModelExtractor,
+  type ModelExtractorRequest,
+  type ModelReading,
+  type ReadableContent,
+  type StructuredExtraction,
+} from "./ingestion/readable-extraction";
+export {
+  cacheContextKey,
+  createSourceReader,
+  DEFAULT_CACHE_TTL_MS,
+  DEFAULT_HOST_COORDINATION,
+  HOST_COORDINATION_LIMITS,
+  MAX_RETRY_AFTER_MS,
+  retryAfterMs,
+  type AccessBlock,
+  type AccessBlockReason,
+  type CacheContext,
+  type HostCoordination,
+  type SourcePage,
+  type SourceReadOutcome,
+  type SourceReader,
+  type SourceReaderDependencies,
+} from "./ingestion/source-reader";
+export {
+  createSourceCoverage,
+  EXTRACTION_REVISION,
+  type CoverageState,
+  type ExtractionResult,
+  type ExtractionSource,
+  type SourceCoverage,
+  type SourceCoverageDependencies,
+  type SourceCoverageService,
+} from "./ingestion/source-coverage";
 export {
   createModelRegistry,
   diagnosticBounds,
@@ -101,6 +206,44 @@ export {
   type PlanAccessView,
 } from "./models/plan-access";
 export {
+  createChatGPTPlanConnections,
+  DEFAULT_AGENT_NAME,
+  DEFAULT_AUTHORIZE_URL,
+  DEFAULT_REDIRECT_URI,
+  DEFAULT_TOKEN_URL,
+  CHATGPT_PLAN_ACCESS_TOKEN_SECONDS,
+  maskEmail,
+  pkceChallenge,
+  planScopeGranted,
+  type ChatGPTPlanConnections,
+  type ChatGPTPlanDependencies,
+} from "./models/chatgpt-plan";
+export {
+  CHATGPT_PLAN_ENTITLEMENT,
+  CHATGPT_PLAN_PROVIDER,
+  CHATGPT_PLAN_RESOURCE,
+  CHATGPT_PLAN_SCOPES,
+  CHATGPT_PLAN_SCOPE,
+  type ChatGPTPlanAccount,
+  type ChatGPTPlanConnectionStatus,
+  type ChatGPTPlanConsentAttempt,
+  type ChatGPTPlanEligibility,
+  type ChatGPTPlanEntitlement,
+  type ChatGPTPlanExercise,
+  type ChatGPTPlanExerciseFn,
+  type ChatGPTPlanExerciseResult,
+  type ChatGPTPlanModel,
+  type ChatGPTPlanOutcome,
+  type ChatGPTPlanPauseReason,
+  type ChatGPTPlanRefreshResult,
+  type ChatGPTPlanState,
+  type ChatGPTPlanStatus,
+  type ChatGPTPlanTokenGrant,
+  type ChatGPTPlanUsageSource,
+  type ChatGPTPlanView,
+  type ResolvedChatGPTPlanRequest,
+} from "./models/chatgpt-plan-types";
+export {
   INSTALLATION_SECRET_ENV,
   MINIMUM_INSTALLATION_SECRET_LENGTH,
 } from "./installation-secret";
@@ -125,3 +268,5 @@ export {
   type SaveModelConfiguration,
   type UsageSource,
 } from "./models/types";
+export { createBudgetRegistry, type BudgetKind, type BudgetRegistry, type BudgetReservation, type BudgetSettings, type BudgetView } from "./budgets/budget-registry";
+export { createChatSessions, type ChatLanguage, type ChatSessions, type SessionMessage, type SessionRequirements, type ShoppingSession } from "./chat";

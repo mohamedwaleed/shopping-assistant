@@ -24,6 +24,8 @@ export interface ActionScope {
   setCookies: string[];
   /** What the action redirected with, if it redirected. */
   redirect: unknown;
+  /** What the action returned to its form, when it did not redirect. */
+  state: unknown;
 }
 
 type Store = AsyncLocalStorage<unknown>;
@@ -89,8 +91,9 @@ export async function runServerAction(
   const work = nextStore("work-async-storage");
   const unit = nextStore("work-unit-async-storage");
   let redirect: unknown;
+  let state: unknown;
   try {
-    await work.run({ route: "/account" }, () =>
+    state = await work.run({ route: "/account" }, () =>
       unit.run(request, () => Promise.resolve(action())),
     );
   } catch (error) {
@@ -98,5 +101,5 @@ export async function runServerAction(
     redirect = error;
   }
 
-  return { setCookies, redirect };
+  return { setCookies, redirect, state };
 }

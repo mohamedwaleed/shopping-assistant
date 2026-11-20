@@ -13,6 +13,10 @@ export function authErrorMessage(error: CoreError, t: Dictionary): string {
       return t.errorSetupUnavailable;
     case "invalid-credentials":
       return t.errorInvalidCredentials;
+    case "second-factor-required":
+      return t.errorSecondFactorRequired;
+    case "invalid-second-factor":
+      return t.errorInvalidSecondFactor;
     case "registration-closed":
       return t.errorRegistrationClosed;
     case "invalid-input":
@@ -37,14 +41,26 @@ export function accountErrorMessage(error: CoreError, t: Dictionary): string {
       return t.errorReauthenticationRequired;
     case "invalid-credentials":
       return t.errorInvalidCredentials;
+    case "second-factor-required":
+      return t.errorSecondFactorRequired;
+    case "invalid-second-factor":
+      return t.errorInvalidSecondFactor;
     case "email-change-unsupported":
       return t.errorEmailChangeUnsupported;
     case "invalid-origin":
       return t.errorInvalidOrigin;
+    case "mail-not-configured":
+      return error.missing === "smtp"
+        ? t.emailNotConfiguredNoSmtp
+        : t.emailNotConfiguredNoRecipient;
+    case "invalid-email-link":
+      return t.errorInvalidEmailLink;
     case "invalid-input":
-      return error.field === "currentPassword"
-        ? t.errorInvalidCurrentPassword
-        : t.errorInvalidInput;
+      if (error.field === "currentPassword") return t.errorInvalidCurrentPassword;
+      // The core refuses a change to the address the account already signs in
+      // with, and an address another account already owns.
+      if (error.field === "newEmail") return t.errorEmailInUse;
+      return t.errorInvalidInput;
     default:
       return t.errorGeneric;
   }
