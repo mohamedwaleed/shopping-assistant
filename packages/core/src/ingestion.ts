@@ -4,6 +4,8 @@ import { lookup } from "node:dns/promises";
 import { err, ok, type Result } from "./errors";
 import { isAuthorized, type Principal } from "./principal";
 import { canonicalizeAttributeValue } from "./attribute-values";
+import { adapterFor, REQUIRED_PRODUCT_FIELDS, type AdapterReading } from "./ingestion/source-adapters";
+import type { SourceCoverageService } from "./ingestion/source-coverage";
 
 export interface PermittedSource {
   retailerName: string;
@@ -21,6 +23,12 @@ export interface IngestionDependencies {
   now?: () => Date;
   /** Resolves every destination before a connection; injectable for deterministic tests. */
   resolve?: (hostname: string) => Promise<readonly string[]>;
+  /**
+   * Records source coverage for the page that was read. Ingestion owns the
+   * observation; coverage only reports what it produced, so a later layout
+   * change lowers coverage without touching the observation.
+   */
+  coverage?: Pick<SourceCoverageService, "recordReading" | "recordFailure">;
 }
 
 export interface IngestedPage {
@@ -117,27 +125,55 @@ export function createIngestion(db: Knex, deps: IngestionDependencies = {}) {
     let current: URL = initialUrl;
     const permitted = policy(current);
     if (!permitted || !permittedHost(current, permitted)) return err({ kind: "source-not-permitted", url: current.toString() });
+    const host = current.hostname;
+    /** A failed read lowers coverage; it never touches an earlier observation. */
+    const failure = async (kind: string) => {
+      await deps.coverage?.recordFailure({ url: sourceUrl, host, kind });
+      return null;
+    };
     try { const destinations = await resolve(current.hostname); if (!destinations.length || !destinations.every(publicAddress)) return err({ kind: "unsafe-url", message: "Source resolves to a private network destination" }); }
-    catch { return err({ kind: "source-fetch-failed", classification: "network" }); }
+    catch { await failure("network"); return err({ kind: "source-fetch-failed", classification: "network" }); }
     let response: Response;
     for (let redirects = 0; ; redirects += 1) {
-      try { response = await fetchPage(current.toString()); } catch { return err({ kind: "source-fetch-failed", classification: "network" }); }
+      try { response = await fetchPage(current.toString()); } catch { await failure("network"); return err({ kind: "source-fetch-failed", classification: "network" }); }
       if (![301, 302, 303, 307, 308].includes(response.status)) break;
       const location = response.headers.get("location");
       const next: URL | null = location ? safeUrl(new URL(location, current).toString()) : null;
-      if (!next || redirects >= 3 || !permittedHost(next, permitted)) return err({ kind: "source-fetch-failed", classification: "redirect" });
-      try { const destinations = await resolve(next.hostname); if (!destinations.length || !destinations.every(publicAddress)) return err({ kind: "source-fetch-failed", classification: "redirect" }); }
-      catch { return err({ kind: "source-fetch-failed", classification: "redirect" }); }
+      if (!next || redirects >= 3 || !permittedHost(next, permitted)) { await failure("redirect"); return err({ kind: "source-fetch-failed", classification: "redirect" }); }
+      try { const destinations = await resolve(next.hostname); if (!destinations.length || !destinations.every(publicAddress)) { await failure("redirect"); return err({ kind: "source-fetch-failed", classification: "redirect" }); } }
+      catch { await failure("redirect"); return err({ kind: "source-fetch-failed", classification: "redirect" }); }
       current = next;
     }
-    if (!response.ok) return err({ kind: "source-fetch-failed", classification: "http" });
+    if (!response.ok) { await failure("http"); return err({ kind: "source-fetch-failed", classification: "http" }); }
     const html = await response.text();
-    if (/captcha|verify you are human|security checkpoint|access denied/i.test(html)) return err({ kind: "source-fetch-failed", classification: "challenge" });
+    if (/captcha|verify you are human|security checkpoint|access denied|controleer of je een mens bent/i.test(html)) { await failure("challenge"); return err({ kind: "source-fetch-failed", classification: "challenge" }); }
     const product = parseProduct(html);
-    if (!product) return err({ kind: "extraction-failed", message: "No complete Product JSON-LD offer was found" });
+    if (!product) { await failure("extraction-failed"); return err({ kind: "extraction-failed", message: "No complete Product JSON-LD offer was found" }); }
+    const reading: AdapterReading = {
+      fields: {
+        name: product.name,
+        ...(product.manufacturer === null ? {} : { manufacturer: product.manufacturer }),
+        ...(product.category === null ? {} : { category: product.category }),
+        ...(product.gtin === null ? {} : { gtin: product.gtin }),
+        ...(product.mpn === null ? {} : { mpn: product.mpn }),
+        ...(product.sku === null ? {} : { sku: product.sku }),
+        price: product.price,
+        currency: product.currency,
+        ...(product.seller === null ? {} : { seller: product.seller }),
+        condition: product.condition,
+      },
+      attributes: product.attributes,
+      evidence: [],
+      requiredCoverage: {
+        present: REQUIRED_PRODUCT_FIELDS.filter((field) =>
+          field === "name" || field === "price" || field === "currency" ? true : product.gtin !== null,
+        ),
+        missing: product.gtin === null ? ["gtin"] : [],
+      },
+    };
 
     const observedAt = now();
-    return db.transaction(async (trx) => {
+    const persisted = await db.transaction(async (trx) => {
       const existingEvidence = await trx("source_evidence").where({ source_url: sourceUrl }).first();
       const [evidence] = existingEvidence ? await trx("source_evidence").where({ id: existingEvidence.id }).update({ final_url: current!.toString(), excerpt: excerpt(html), observed_at: observedAt }).returning("id") : await trx("source_evidence").insert({ source_url: sourceUrl, final_url: current!.toString(), excerpt: excerpt(html), observed_at: observedAt }).returning("id");
       const evidenceId = evidence.id as string;
@@ -197,5 +233,20 @@ export function createIngestion(db: Knex, deps: IngestionDependencies = {}) {
       }
       return ok({ variantId: variant.id, offerId: offer.id, evidenceId });
     });
+    if (persisted.ok) {
+      // Coverage is recorded after the observation is committed, so a coverage
+      // write can never roll back a good observation.
+      const adapter = adapterFor(initialUrl);
+      await deps.coverage?.recordReading({
+        url: sourceUrl,
+        host,
+        adapter: adapter ? { id: adapter.id, version: adapter.version } : null,
+        source: adapter ? "source-adapter" : "structured-data",
+        reading,
+        evidenceId: persisted.value.evidenceId,
+        observedAt,
+      });
+    }
+    return persisted;
   };
 }

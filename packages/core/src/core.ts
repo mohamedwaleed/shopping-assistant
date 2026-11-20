@@ -4,15 +4,27 @@ import { getVariantOfferDetail, listAttributeReviews, reviewAttributeClaim, type
 import { createAuthentication, type AuthDependencies, type Authentication } from "./auth/authentication";
 import { createMailer, type Mailer, type MailerDependencies } from "./mail/mailer";
 import { createEmailLinkOperations, type EmailLinkOperations } from "./auth/email-links";
-import type { Result } from "./errors";
+import { err, ok, type Result } from "./errors";
 import {
   createModelRegistry,
   type ModelRegistry,
   type ModelRegistryDependencies,
 } from "./models/model-registry";
 import type { Principal } from "./principal";
+import { isAuthorized } from "./principal";
 import { createBudgetRegistry, type BudgetRegistry } from "./budgets/budget-registry";
 import { createIngestion, type IngestionDependencies, type IngestedPage } from "./ingestion";
+import {
+  createSourceCoverage,
+  type SourceCoverage,
+  type SourceCoverageService,
+} from "./ingestion/source-coverage";
+import {
+  createSourceReader,
+  type HostCoordination,
+  type SourceReader,
+} from "./ingestion/source-reader";
+import type { ModelExtractor } from "./ingestion/readable-extraction";
 import { createChatSessions, type ChatSessions } from "./chat";
 
 export interface ShoppingCore {
@@ -31,13 +43,25 @@ export interface ShoppingCore {
     listAttributeReviews(principal: Principal): Promise<Result<AttributeReview[]>>;
     reviewAttributeClaim(principal: Principal, claimId: string, canonicalKey: string | null): Promise<Result<void>>;
   };
+  /** Source reliability: adapters, coverage, access blocks and host policy. */
+  sources: {
+    coverage(principal: Principal, host: string): Promise<Result<SourceCoverage>>;
+    recordAccessBlock(principal: Principal, input: { url: string; reason: "robots" | "terms"; signal: string }): Promise<Result<void>>;
+    coordination(principal: Principal, host: string): Promise<Result<HostCoordination>>;
+    saveCoordination(principal: Principal, host: string, input: HostCoordination): Promise<Result<HostCoordination>>;
+  };
 }
 
 type CoreDependencies = {
   db: Knex;
   models: Pick<ModelRegistryDependencies, "cipher" | "probe">;
 } & Partial<AuthDependencies> &
-  Partial<MailerDependencies> & { ingestion?: IngestionDependencies };
+  Partial<MailerDependencies> & { ingestion?: IngestionDependencies } & {
+    /** The extraction model adapter; absent means no model extraction. */
+    extraction?: { extractor?: ModelExtractor };
+    /** The installation secret, used to decrypt the extraction credential. */
+    installationSecret?: string;
+  };
 
 /** Core owns shopping operations and authorization; adapters stay thin. */
 export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
@@ -51,24 +75,70 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
     ...(deps.installationSecret ? { installationSecret: deps.installationSecret } : {}),
     ...(deps.now ? { now: deps.now } : {}),
   });
+  const now = deps.now ?? (() => new Date());
+  const modelRegistry = createModelRegistry({
+    db: deps.db,
+    cipher: deps.models.cipher,
+    probe: deps.models.probe,
+    ...(deps.now ? { now: deps.now } : {}),
+  });
+  const reader: SourceReader = createSourceReader({
+    db: deps.db,
+    now,
+    // Retrieval bounds belong to the ingestion fetch helper; the source reader
+    // only decides when to call it.
+    retrieve: deps.ingestion?.fetch ?? ((url: string) => fetch(url)),
+  });
+  const sources: SourceCoverageService = createSourceCoverage({
+    db: deps.db,
+    reader,
+    ...(deps.extraction?.extractor ? { extractor: deps.extraction.extractor } : {}),
+    ...(deps.extraction?.extractor ? { resolveExtractionModel: () => modelRegistry.resolveExtractionModel() } : {}),
+    now,
+  });
   return {
     auth,
     mail,
     emailLinks: createEmailLinkOperations({ db: deps.db, auth, mail, ...(deps.now ? { now: deps.now } : {}) }),
-    models: createModelRegistry({
-      db: deps.db,
-      cipher: deps.models.cipher,
-      probe: deps.models.probe,
-      ...(deps.now ? { now: deps.now } : {}),
-    }),
+    models: modelRegistry,
     budgets: createBudgetRegistry({ db: deps.db }),
     chat: createChatSessions({ db: deps.db }),
     catalogue: {
       getVariantOfferDetail: (principal, variantId) =>
         getVariantOfferDetail(deps.db, principal, variantId),
-      ingestProductPage: createIngestion(deps.db, deps.ingestion),
+      ingestProductPage: createIngestion(deps.db, { ...deps.ingestion, coverage: sources }),
       listAttributeReviews: (principal) => listAttributeReviews(deps.db, principal),
       reviewAttributeClaim: (principal, claimId, canonicalKey) => reviewAttributeClaim(deps.db, principal, claimId, canonicalKey),
+    },
+    sources: {
+      coverage: (principal, host) => sources.read(principal, host),
+      recordAccessBlock: async (principal, input) => {
+        // Declaring a source restricted is an operator decision about the whole
+        // installation, not something an individual ingest request decides.
+        if (!isAuthorized(principal, "installation.manage")) return err({ kind: "forbidden", capability: "installation.manage" });
+        if (input.reason !== "robots" && input.reason !== "terms") {
+          return err({ kind: "invalid-input", field: "reason", message: "reason must be robots or terms" });
+        }
+        let url: URL;
+        try {
+          url = new URL(input.url);
+        } catch {
+          return err({ kind: "invalid-input", field: "url", message: "url must be an absolute URL" });
+        }
+        if (url.protocol !== "https:" && url.protocol !== "http:") {
+          return err({ kind: "invalid-input", field: "url", message: "url must be an absolute URL" });
+        }
+        await reader.recordBlock(input);
+        return ok(undefined);
+      },
+      coordination: async (principal, host) => {
+        if (!isAuthorized(principal, "installation.manage")) return err({ kind: "forbidden", capability: "installation.manage" });
+        return ok(await reader.coordination(host));
+      },
+      saveCoordination: async (principal, host, input) => {
+        if (!isAuthorized(principal, "installation.manage")) return err({ kind: "forbidden", capability: "installation.manage" });
+        return reader.saveCoordination(host, input);
+      },
     },
   };
 }

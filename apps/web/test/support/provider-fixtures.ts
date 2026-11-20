@@ -61,6 +61,8 @@ export const FIXTURE_MODEL_IDS = Object.keys(MODELS);
 const TOOL_CALL_MARKER = "Call the capability_probe tool";
 const TOOL_RESULT_PREFIX = "fixture-tool-result:";
 const STRUCTURED_MARKER = "Report the probe value";
+/** The readable-content extraction prompt asks to extract the product offer. */
+const EXTRACTION_MARKER = "Extract the product offer stated on this page";
 const STREAM_TEXT = "fixture stream ok";
 const STREAM_CHUNKS = [STREAM_TEXT.slice(0, 7), STREAM_TEXT.slice(7)];
 
@@ -179,6 +181,23 @@ function structuredRequestIn(
   return null;
 }
 
+/**
+ * What a model that honours the extraction schema returns for the reviewed
+ * readable page: every value is paired with the index of the line it came from.
+ * `no-structured-output` answers prose and `no-structured-schema` answers JSON
+ * of the wrong shape, so both must be recorded as "nothing extracted".
+ */
+const EXTRACTION_ANSWER = {
+  fields: {
+    name: "Philips Airfryer Essential HD9200/90",
+    price: "79.99",
+    currency: "EUR",
+    gtin: "8710103926851",
+  },
+  evidence: { name: 0, price: 2, currency: 2, gtin: 4 },
+  attributes: { Model: "HD9200/90" },
+};
+
 function replyFor(
   mode: FixtureMode,
   path: string,
@@ -194,6 +213,13 @@ function replyFor(
   }
   if (prompt.includes(TOOL_RESULT_PREFIX)) {
     return { kind: "final", text: "fixture tool ok" };
+  }
+  if (prompt.includes(EXTRACTION_MARKER)) {
+    if (mode === "no-structured-output") {
+      return { kind: "structured", text: "The airfryer costs seventy-nine euros." };
+    }
+    const payload = mode === "no-structured-schema" ? STRUCTURED_NONCONFORMING : EXTRACTION_ANSWER;
+    return { kind: "structured", text: JSON.stringify(payload) };
   }
   if (prompt.includes(STRUCTURED_MARKER)) {
     // An endpoint without structured output answers prose, and an endpoint that

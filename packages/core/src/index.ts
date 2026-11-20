@@ -85,6 +85,57 @@ export {
 export { addMoney } from "./money";
 export { createIngestion, type IngestedPage, type IngestionDependencies, type PageFetcher, type PermittedSource, type SourcePolicy } from "./ingestion";
 export {
+  adapterFor,
+  adaptersForHost,
+  MAINTAINED_ADAPTERS,
+  normalizePrice,
+  REQUIRED_PRODUCT_FIELDS,
+  type AdapterFields,
+  type AdapterPage,
+  type AdapterReading,
+  type FieldEvidence,
+  type RequiredProductField,
+  type SourceAdapter,
+} from "./ingestion/source-adapters";
+export {
+  EXTRACTION_OUTPUT_TOKENS,
+  extractionPrompt,
+  readableContent,
+  verifyModelReading,
+  type ModelExtractor,
+  type ModelExtractorRequest,
+  type ModelReading,
+  type ReadableContent,
+  type StructuredExtraction,
+} from "./ingestion/readable-extraction";
+export {
+  cacheContextKey,
+  createSourceReader,
+  DEFAULT_CACHE_TTL_MS,
+  DEFAULT_HOST_COORDINATION,
+  HOST_COORDINATION_LIMITS,
+  MAX_RETRY_AFTER_MS,
+  retryAfterMs,
+  type AccessBlock,
+  type AccessBlockReason,
+  type CacheContext,
+  type HostCoordination,
+  type SourcePage,
+  type SourceReadOutcome,
+  type SourceReader,
+  type SourceReaderDependencies,
+} from "./ingestion/source-reader";
+export {
+  createSourceCoverage,
+  EXTRACTION_REVISION,
+  type CoverageState,
+  type ExtractionResult,
+  type ExtractionSource,
+  type SourceCoverage,
+  type SourceCoverageDependencies,
+  type SourceCoverageService,
+} from "./ingestion/source-coverage";
+export {
   createModelRegistry,
   diagnosticBounds,
   type ModelRegistry,

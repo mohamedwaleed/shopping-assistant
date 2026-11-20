@@ -10,6 +10,7 @@ import {
 import { createDb, databaseUrl } from "@shopping/db";
 import type { Knex } from "knex";
 import { createAiSdkProbe } from "@/lib/models/ai-sdk-probe";
+import { createAiSdkExtractor } from "@/lib/models/ai-sdk-extraction";
 
 let db: Knex | undefined;
 let core: ShoppingCore | undefined;
@@ -51,6 +52,9 @@ export function getCore(): ShoppingCore {
     core = createShoppingCore({
       db: getDb(),
       models: { cipher: modelCipher(), probe: createAiSdkProbe() },
+      // Catalogue reading uses the installation's extraction model; core
+      // resolves it and refuses rather than borrowing a workspace override.
+      extraction: { extractor: createAiSdkExtractor() },
     });
   }
   return core;
