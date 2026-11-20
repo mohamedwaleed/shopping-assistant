@@ -6,6 +6,7 @@ import {
   DEFAULT_TEST_DATABASE_URL,
   DEVELOPMENT_FIXTURE_IDS,
   loadDevelopmentFixtures,
+  migrateFresh,
 } from "@shopping/db";
 import { createShoppingCore, createSecretCipher, type Principal } from "../src/index";
 
@@ -28,8 +29,7 @@ describe("catalogue reads through the core", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.rollback({}, true);
-    await db.migrate.latest();
+    await migrateFresh(db);
     await loadDevelopmentFixtures(db);
     core = createShoppingCore({
       db,
@@ -114,7 +114,7 @@ describe("catalogue reads through the core", () => {
 });
 
 const PAGE = `<!doctype html><script type="application/ld+json">${JSON.stringify({
-  "@context": "https://schema.org", "@type": "Product", name: "Acme Sound 1", brand: { name: "Acme" }, gtin13: "1234567890123", sku: "LOCAL-1",
+  "@context": "https://schema.org", "@type": "Product", name: "Acme Sound 1", brand: { name: "Acme" }, gtin13: "1234567890005", sku: "LOCAL-1",
   additionalProperty: [{ name: "colour", value: "blue" }],
   offers: { "@type": "Offer", price: "99.95", priceCurrency: "EUR", seller: { name: "Marketplace seller" } },
 })}</script>`;
@@ -129,7 +129,7 @@ describe("catalogue page ingestion through the core", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.rollback({}, true); await db.migrate.latest();
+    await migrateFresh(db);
     core = createShoppingCore({ db, ingestion: { sourcePolicy: permitted, resolve: async () => ["203.0.113.10"], fetch: async () => new Response(PAGE), now: () => new Date("2026-11-19T10:00:00Z") }, models: { cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }), probe: async () => { throw new Error("unused"); } } });
   });
   afterAll(async () => { await db.destroy(); });
@@ -147,7 +147,7 @@ describe("catalogue page ingestion through the core", () => {
   });
 
   it("keeps unfamiliar claims unresolved and lets only an administrator validate a canonical mapping", async () => {
-    const unknown = createShoppingCore({ db, ingestion: { sourcePolicy: permitted, resolve: async () => ["203.0.113.10"], fetch: async () => new Response(PAGE.replace("1234567890123", "2345678901234").replace('name":"colour","value":"blue', 'name":"mystery power","value":"90')), now: () => new Date("2026-11-19T10:00:00Z") }, models: { cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }), probe: async () => { throw new Error("unused"); } } });
+    const unknown = createShoppingCore({ db, ingestion: { sourcePolicy: permitted, resolve: async () => ["203.0.113.10"], fetch: async () => new Response(PAGE.replace("1234567890005", "2345678901005").replace('name":"colour","value":"blue', 'name":"mystery power","value":"90')), now: () => new Date("2026-11-19T10:00:00Z") }, models: { cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }), probe: async () => { throw new Error("unused"); } } });
     const result = await unknown.catalogue.ingestProductPage(shopper, "https://shop.example.test/products/unknown-attribute");
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -180,8 +180,8 @@ describe("catalogue page ingestion through the core", () => {
   });
 
   it("normalizes supported units across categories without excluding unfamiliar attributes", async () => {
-    const monitor = PAGE.replace("Acme Sound 1", "Acme Monitor 2").replace("1234567890123", "3456789012345").replace('name":"colour","value":"blue', 'name":"screen size","value":"68.58","unitText":"cm').replace('"@type":"Product",', '"@type":"Product","category":"Monitors",');
-    const kitchen = PAGE.replace("Acme Sound 1", "Acme Kettle 3").replace("1234567890123", "4567890123456").replace('name":"colour","value":"blue', 'name":"watt","value":"1.8","unitCode":"kW').replace('"@type":"Product",', '"@type":"Product","category":"Kitchen",');
+    const monitor = PAGE.replace("Acme Sound 1", "Acme Monitor 2").replace("1234567890005", "3456789012005").replace('name":"colour","value":"blue', 'name":"screen size","value":"68.58","unitText":"cm').replace('"@type":"Product",', '"@type":"Product","category":"Monitors",');
+    const kitchen = PAGE.replace("Acme Sound 1", "Acme Kettle 3").replace("1234567890005", "4567890123005").replace('name":"colour","value":"blue', 'name":"watt","value":"1.8","unitCode":"kW').replace('"@type":"Product",', '"@type":"Product","category":"Kitchen",');
     const source = createShoppingCore({ db, ingestion: { sourcePolicy: permitted, resolve: async () => ["203.0.113.10"], fetch: async (url) => new Response(url.includes("monitor") ? monitor : kitchen), now: () => new Date("2026-11-19T10:00:00Z") }, models: { cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }), probe: async () => { throw new Error("unused"); } } });
     const monitorResult = await source.catalogue.ingestProductPage(shopper, "https://shop.example.test/products/monitor");
     const kitchenResult = await source.catalogue.ingestProductPage(shopper, "https://shop.example.test/products/kitchen");

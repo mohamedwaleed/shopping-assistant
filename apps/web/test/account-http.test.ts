@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Knex } from "knex";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import { createDb, DEFAULT_TEST_DATABASE_URL, migrateFresh } from "@shopping/db";
 import { getCore, getDb } from "@/lib/core";
 import { closeAuth, getAuth } from "@/lib/auth/session";
 import { createAccountProvisioner } from "@/lib/auth/provisioner";
@@ -125,8 +125,7 @@ beforeAll(async () => {
   process.env.SETUP_TOKEN = TOKEN;
 
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.rollback({}, true);
-  await db.migrate.latest();
+  await migrateFresh(db);
   // Touch the shared pool now, so it is opened against the test database.
   await getDb().raw("select 1");
 

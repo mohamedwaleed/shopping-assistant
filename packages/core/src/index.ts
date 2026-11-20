@@ -83,7 +83,20 @@ export {
   type AttributeReview,
 } from "./catalogue";
 export { addMoney } from "./money";
-export { createIngestion, type IngestedPage, type IngestionDependencies, type PageFetcher, type PermittedSource, type SourcePolicy } from "./ingestion";
+export {
+  createIngestion,
+  type FetchBounds,
+  type IngestedPage,
+  type IngestionDependencies,
+  type PageFetcher,
+  type PermittedSource,
+  type SourceCoverage,
+  type SourceFailure,
+  type SourcePolicy,
+} from "./ingestion";
+export {
+  DEFAULT_FETCH_BOUNDS,
+} from "./ingestion/bounds";
 export {
   createModelRegistry,
   diagnosticBounds,

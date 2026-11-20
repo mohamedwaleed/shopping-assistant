@@ -61,12 +61,29 @@ export type CoreError =
   | { kind: "unsafe-url"; message: string }
   /** No explicitly configured source policy permits this URL. */
   | { kind: "source-not-permitted"; url: string }
-  /** Retrieval completed but was blocked, redirected unsafely, or otherwise unusable. */
-  | { kind: "source-fetch-failed"; classification: "redirect" | "challenge" | "http" | "network" }
+  /**
+   * Retrieval was refused or unusable: a blocked/challenged page, an unsafe or
+   * disallowed redirect, a non-success status, a body over the size bound, a
+   * request that outlived its timeout, or a network failure. Nothing was
+   * persisted from it.
+   */
+  | {
+      kind: "source-fetch-failed";
+      classification: "redirect" | "challenge" | "http" | "network" | "size" | "timeout";
+      /** The submitted URL, so a failure stays attributable. */
+      sourceUrl?: string;
+      /** The URL being retrieved when the refusal happened. */
+      url?: string;
+      /** HTTP status when a response arrived at all. */
+      status?: number;
+    }
   /** The page did not contain a complete supported structured product offer. */
   | { kind: "extraction-failed"; message: string }
-  /** Existing identifier evidence names a different configuration. */
-  | { kind: "identity-conflict"; identifier: string };
+  /**
+   * Existing identifier evidence names a different configuration. The fields
+   * that disagree are listed so the ambiguity is inspectable; nothing is merged.
+   */
+  | { kind: "identity-conflict"; identifier: string; conflicting?: readonly string[] };
 
 export type Result<T> =
   | { ok: true; value: T }

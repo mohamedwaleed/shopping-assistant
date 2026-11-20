@@ -12,7 +12,7 @@ import {
 } from "./models/model-registry";
 import type { Principal } from "./principal";
 import { createBudgetRegistry, type BudgetRegistry } from "./budgets/budget-registry";
-import { createIngestion, type IngestionDependencies, type IngestedPage } from "./ingestion";
+import { createIngestion, type IngestionDependencies, type IngestedPage, type SourceCoverage } from "./ingestion";
 import { createChatSessions, type ChatSessions } from "./chat";
 
 export interface ShoppingCore {
@@ -28,6 +28,7 @@ export interface ShoppingCore {
       variantId: string,
     ): Promise<Result<VariantOfferDetail>>;
     ingestProductPage(principal: Principal, sourceUrl: string): Promise<Result<IngestedPage>>;
+    reportSourceCoverage(principal: Principal, sourceUrl: string): Promise<Result<SourceCoverage>>;
     listAttributeReviews(principal: Principal): Promise<Result<AttributeReview[]>>;
     reviewAttributeClaim(principal: Principal, claimId: string, canonicalKey: string | null): Promise<Result<void>>;
   };
@@ -51,6 +52,7 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
     ...(deps.installationSecret ? { installationSecret: deps.installationSecret } : {}),
     ...(deps.now ? { now: deps.now } : {}),
   });
+  const ingestion = createIngestion(deps.db, deps.ingestion);
   return {
     auth,
     mail,
@@ -66,7 +68,8 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
     catalogue: {
       getVariantOfferDetail: (principal, variantId) =>
         getVariantOfferDetail(deps.db, principal, variantId),
-      ingestProductPage: createIngestion(deps.db, deps.ingestion),
+      ingestProductPage: ingestion.ingestProductPage,
+      reportSourceCoverage: ingestion.reportSourceCoverage,
       listAttributeReviews: (principal) => listAttributeReviews(deps.db, principal),
       reviewAttributeClaim: (principal, claimId, canonicalKey) => reviewAttributeClaim(deps.db, principal, claimId, canonicalKey),
     },
