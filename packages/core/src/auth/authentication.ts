@@ -428,6 +428,11 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
    * pass the gate forever. The session row is created by the sign-in that
    * issued it, so `created_at` is that moment. The window is short enough that
    * a hijacked cookie cannot be spent without the password.
+   *
+   * The moment is never earlier than the session's creation: an identity
+   * provisioned before its first session (an accepted invitation, which signs
+   * the new shopper in) can record its own creation slightly after the sign-in
+   * that just happened, and that must not make a fresh sign-in look stale.
    */
   async function recentAuthentication(
     principal: Principal,
@@ -440,10 +445,17 @@ export function createAuthentication(deps: AuthDependencies): Authentication {
     if (!admitted.ok) return admitted;
     if (!session) return err({ kind: "invalid-credentials" });
 
-    const elapsed = now().getTime() - session.created_at.getTime();
+    const user = (await db("user").where({ id: principal.userId }).first()) as
+      | { created_at: Date }
+      | undefined;
+    const authenticatedAt = Math.min(
+      session.created_at.getTime(),
+      user?.created_at.getTime() ?? session.created_at.getTime(),
+    );
+    const elapsed = now().getTime() - authenticatedAt;
     return ok({
       recent: elapsed < RECENT_AUTHENTICATION_SECONDS * 1000,
-      authenticatedAt: session.created_at.toISOString(),
+      authenticatedAt: new Date(authenticatedAt).toISOString(),
       windowSeconds: RECENT_AUTHENTICATION_SECONDS,
     });
   }

@@ -27,7 +27,7 @@ describe("email-bound account links through the core", () => {
     if (!match) throw new Error("expected a delivered link");
     return decodeURIComponent(match[1]!);
   }
-  beforeAll(async () => { db = createDb(url); await db.migrate.rollback({}, true); await db.migrate.latest(); });
+  beforeAll(async () => { db = createDb(url); await db.migrate.latest(); });
   beforeEach(async () => {
     await db("workspace_memberships").delete(); await db("workspaces").delete(); await db("session").delete(); await db("account").delete(); await db("user").delete(); await db("verification").delete();
     messages = [];
@@ -80,5 +80,51 @@ describe("email-bound account links through the core", () => {
     const unavailable = createEmailLinkOperations({ db, auth: authentication, mail: { deliver: async () => ({ ok: false as const, error: { kind: "mail-not-configured" as const, missing: "smtp" as const } }) } as unknown as Mailer });
     expect(await unavailable.requestEmailChange(admin, { newEmail: "never@example.nl", linkBaseUrl: "https://test/change" }, {} as never)).toEqual({ ok: false, error: { kind: "mail-not-configured", missing: "smtp" } });
     expect((await db("user").where({ id: "admin" }).first()).email).toBe("new@example.nl");
+  });
+
+  it("refuses an email change to the address the account already signs in with", async () => {
+    await db("user").insert({ id: "admin", name: "Admin", email: "admin@example.nl", email_verified: false });
+
+    // The confirmation link would arrive at the mailbox the account already
+    // uses, proving nothing new, so the request is refused before delivery.
+    expect(await links.requestEmailChange(admin, { newEmail: "Admin@Example.nl", linkBaseUrl: "https://test/change" }, {} as never)).toEqual({
+      ok: false,
+      error: { kind: "invalid-input", field: "newEmail", message: "newEmail is already this account's address" },
+    });
+    expect(messages).toEqual([]);
+  });
+
+  it("records where each delivered link sends the recipient", async () => {
+    await db("user").insert({ id: "admin", name: "Admin", email: "admin@example.nl", email_verified: false });
+    await provisioner.createCredentialAccount({ name: "Shopper", email: "shopper@example.nl", password: "a-long-password" });
+
+    // The screens are the links' destination, so the path a message carries is
+    // part of the contract: /accept-invitation, /reset-password and
+    // /account/email/confirm each have to be a route this installation serves.
+    expect(await links.invite(admin, { email: "new@example.nl", linkBaseUrl: "https://shop.test/accept-invitation" }, {} as never)).toEqual({ ok: true, value: { delivered: true } });
+    expect(await links.requestPasswordReset({ email: "shopper@example.nl", linkBaseUrl: "https://shop.test/reset-password" }, {} as never)).toEqual({ ok: true, value: { delivered: true } });
+    expect(await links.requestEmailChange(admin, { newEmail: "moved@example.nl", linkBaseUrl: "https://shop.test/account/email/confirm" }, {} as never)).toEqual({ ok: true, value: { delivered: true } });
+
+    const paths = messages.map((message) => {
+      const link = message.match(/https?:\/\/\S+/)?.[0];
+      if (!link) throw new Error(`expected a link in ${message}`);
+      const url = new URL(link);
+      return `${url.origin}${url.pathname}`;
+    });
+    expect(paths).toEqual([
+      "https://shop.test/accept-invitation",
+      "https://shop.test/reset-password",
+      "https://shop.test/account/email/confirm",
+    ]);
+  });
+
+  it("refuses a reset for an account with an authenticator instead of skipping it", async () => {
+    await provisioner.createCredentialAccount({ name: "Shopper", email: "shopper@example.nl", password: "a-long-password" });
+    await db("two_factor_authenticator").insert({ user_id: "user-shopper@example.nl", secret: "JBSWY3DPEHPK3PXP", enabled: true });
+    await links.requestPasswordReset({ email: "shopper@example.nl", linkBaseUrl: "https://test/reset" }, {} as never);
+
+    const applied: string[] = [];
+    expect(await links.resetPassword({ email: "shopper@example.nl", token: token(), newPassword: "new-long-password" }, { setPassword: async (input) => { applied.push(input.userId); } })).toEqual({ ok: false, error: { kind: "second-factor-required" } });
+    expect(applied).toEqual([]);
   });
 });

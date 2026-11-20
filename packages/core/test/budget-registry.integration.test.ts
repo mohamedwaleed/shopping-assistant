@@ -12,7 +12,7 @@ const admin: Principal = { ...principal, kind: "administrator" };
 describe("provider budgets through the core", () => {
   let db: Knex;
   let budgets: ReturnType<typeof createBudgetRegistry>;
-  beforeAll(async () => { db = createDb(url); await db.migrate.rollback({}, true); await db.migrate.latest(); });
+  beforeAll(async () => { db = createDb(url); await db.migrate.latest(); });
   beforeEach(async () => {
     await db("provider_budget_reservations").delete(); await db("workspace_provider_budget_usage").delete();
     await db("workspace_provider_budget_settings").delete(); await db("workspace_memberships").delete(); await db("workspaces").delete(); await db("user").delete();

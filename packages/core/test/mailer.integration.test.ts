@@ -100,7 +100,6 @@ describe("protected SMTP settings and diagnostic delivery", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.rollback({}, true);
     await db.migrate.latest();
     inbox = await startTestInbox();
   });

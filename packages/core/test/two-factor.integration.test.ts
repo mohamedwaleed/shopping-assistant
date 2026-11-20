@@ -15,7 +15,7 @@ describe("authenticator second factor through the core", () => {
   const sessionId = "two-factor-session";
   const principal = principalForUser(userId, { workspaceId, role: "owner" }, false, sessionId);
 
-  beforeAll(async () => { db = createDb(url); await db.migrate.rollback({}, true); await db.migrate.latest(); });
+  beforeAll(async () => { db = createDb(url); await db.migrate.latest(); });
   beforeEach(async () => {
     for (const table of ["two_factor_backup_code", "two_factor_authenticator", "workspace_memberships", "workspaces", "session", "account", "user"]) await db(table).delete();
     await db("user").insert({ id: userId, name: "Two Factor", email: "two@example.nl" });

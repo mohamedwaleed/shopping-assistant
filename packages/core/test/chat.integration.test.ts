@@ -12,7 +12,7 @@ const principal: Principal = { kind: "workspace", userId: "chat-user", workspace
 describe("shopping sessions through the core", () => {
   let db: Knex;
   let chat: ReturnType<typeof createChatSessions>;
-  beforeAll(async () => { db = createDb(url); await db.migrate.rollback({}, true); await db.migrate.latest(); chat = createChatSessions({ db }); });
+  beforeAll(async () => { db = createDb(url); await db.migrate.latest(); chat = createChatSessions({ db }); });
   beforeEach(async () => {
     await db("shopping_session_messages").delete(); await db("shopping_session_requirements").delete(); await db("shopping_sessions").delete();
     await db("workspace_memberships").delete(); await db("workspaces").delete(); await db("user").delete();

@@ -22,7 +22,6 @@ beforeAll(async () => {
   // installation secret the development stack supplies.
   process.env.INSTALLATION_SECRET = "api-contract-installation-secret-0123";
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.rollback({}, true);
   await db.migrate.latest();
   await loadDevelopmentFixtures(db);
   variantRoute = await import("../app/api/catalogue/variants/[id]/route");

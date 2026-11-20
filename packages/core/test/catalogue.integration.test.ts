@@ -28,7 +28,6 @@ describe("catalogue reads through the core", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.rollback({}, true);
     await db.migrate.latest();
     await loadDevelopmentFixtures(db);
     core = createShoppingCore({
@@ -129,7 +128,7 @@ describe("catalogue page ingestion through the core", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.rollback({}, true); await db.migrate.latest();
+    await db.migrate.latest();
     core = createShoppingCore({ db, ingestion: { sourcePolicy: permitted, resolve: async () => ["203.0.113.10"], fetch: async () => new Response(PAGE), now: () => new Date("2026-11-19T10:00:00Z") }, models: { cipher: createSecretCipher({ key: "catalogue-test-installation-secret" }), probe: async () => { throw new Error("unused"); } } });
   });
   afterAll(async () => { await db.destroy(); });

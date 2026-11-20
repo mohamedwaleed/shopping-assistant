@@ -102,7 +102,6 @@ beforeAll(async () => {
   process.env.INSTALLATION_SECRET = SECRET;
 
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.rollback({}, true);
   await db.migrate.latest();
 
   const recipients: string[] = [];

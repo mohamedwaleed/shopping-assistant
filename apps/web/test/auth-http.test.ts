@@ -77,7 +77,6 @@ beforeAll(async () => {
   process.env.INSTALLATION_SECRET = "auth-http-installation-secret-0123";
 
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.rollback({}, true);
   await db.migrate.latest();
 
   setupRoute = await import("../app/api/setup/route");
