@@ -82,7 +82,34 @@ export {
   type VariantPrice,
   type AttributeReview,
 } from "./catalogue";
-export { addMoney } from "./money";
+export {
+  DEFAULT_SEARCH_LIMIT,
+  MAX_SEARCH_LIMIT,
+  type AttributeFilter,
+  type AttributeProvenance,
+  type AttributeStatus,
+  type CatalogueSearchQuery,
+  type CatalogueSearchResponse,
+  type CatalogueSearchResult,
+  type FilterOperator,
+  type ResultOfferSummary,
+  type ResultPrice,
+  type SearchMatch,
+} from "./catalogue-search";
+export {
+  analyseQuery,
+  MAX_IDENTIFIER_LENGTH,
+  MAX_SEARCH_TEXT_LENGTH,
+  MAX_SEARCH_TERMS,
+  simpleLexemes,
+  tokenize,
+  trigramSimilarity,
+  type AnalysedQuery,
+  type QueryExpansion,
+  type SearchTerm,
+  type VocabularyTerm,
+} from "./catalogue-search-query";
+export { addMoney, compareMoney } from "./money";
 export { createIngestion, type IngestedPage, type IngestionDependencies, type PageFetcher, type PermittedSource, type SourcePolicy } from "./ingestion";
 export {
   createModelRegistry,

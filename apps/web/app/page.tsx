@@ -1,51 +1,182 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { DEVELOPMENT_FIXTURE_IDS } from "@shopping/db";
-import type { VariantOfferDetail } from "@shopping/core";
+import type {
+  AttributeFilter,
+  CatalogueSearchResponse,
+  CatalogueSearchResult,
+} from "@shopping/core";
+import { getCore } from "@/lib/core";
+import { requestIdentity } from "@/lib/auth/session";
 import { dictionaries, resolveLang, type Lang } from "@/lib/i18n";
 import { formatMoney, formatObservedAt } from "@/lib/format";
-import { requestIdentity } from "@/lib/auth/session";
-import { signOutAction } from "@/app/actions";
-import { SignOutButton } from "@/app/auth-forms";
+import { StudioShell } from "@/app/studio-shell";
 
-// Attribute keys rendered with English/Dutch labels; unknown attributes fall
-// back to a readable version of the raw key.
-const ATTRIBUTE_LABELS: Record<string, Record<Lang, string>> = {
-  screen_size_inch: { en: "Screen size", nl: "Schermgrootte" },
-  resolution: { en: "Resolution", nl: "Resolutie" },
-  panel: { en: "Panel", nl: "Paneel" },
-  usb_c_power_delivery_w: {
-    en: "USB-C power delivery",
-    nl: "USB-C Power Delivery",
-  },
+const COLOURS = ["black", "white", "grey", "blue", "red", "silver"] as const;
+
+const COLOUR_LABELS: Record<(typeof COLOURS)[number], Record<Lang, string>> = {
+  black: { en: "Black", nl: "Zwart" },
+  white: { en: "White", nl: "Wit" },
+  grey: { en: "Grey", nl: "Grijs" },
+  blue: { en: "Blue", nl: "Blauw" },
+  red: { en: "Red", nl: "Rood" },
+  silver: { en: "Silver", nl: "Zilver" },
 };
 
-const ATTRIBUTE_UNITS: Record<string, string> = {
-  screen_size_inch: "″",
-  usb_c_power_delivery_w: " W",
-};
+function single(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0] ?? "";
+  return value ?? "";
+}
 
-function attributeLabel(key: string, lang: Lang): string {
+/**
+ * The page accepts the same three inputs the API does — words, an identifier,
+ * and structured filters — and turns them into one core search. Every filter is
+ * expressed through the canonical attribute vocabulary, so the form cannot ask
+ * for something the catalogue does not model.
+ */
+function readFilters(params: Record<string, string | string[] | undefined>): AttributeFilter[] {
+  const filters: AttributeFilter[] = [];
+  const colour = single(params.colour).trim();
+  if (colour) filters.push({ key: "colour", op: "eq", value: colour });
+  const power = single(params.minPower).trim();
+  if (power) filters.push({ key: "power_w", op: "gte", value: power });
+  const screen = single(params.minScreen).trim();
+  if (screen) filters.push({ key: "screen_size_inch", op: "gte", value: screen });
+  return filters;
+}
+
+function matchLabel(match: CatalogueSearchResult["match"], t: ReturnType<typeof dictionary>): string {
+  if (match.mode === "identifier") {
+    return match.kind === "gtin" ? t.searchMatchGtin : t.searchMatchIdentifier;
+  }
+  if (match.mode === "attribute") return t.searchMatchAttribute;
+  if (match.mode === "typo") return t.searchMatchTypo;
+  return t.searchMatchText;
+}
+
+function dictionary(lang: Lang) {
+  return dictionaries[lang];
+}
+
+function attributeLabel(key: string): string {
+  return key.replaceAll("_", " ").replace(/^./, (character) => character.toUpperCase());
+}
+
+function ResultCard({
+  result,
+  lang,
+  t,
+}: {
+  result: CatalogueSearchResult;
+  lang: Lang;
+  t: ReturnType<typeof dictionary>;
+}) {
+  const best = result.offers.best;
+  const attributes = Object.entries(result.variant.attributes).slice(0, 6);
   return (
-    ATTRIBUTE_LABELS[key]?.[lang] ??
-    key.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase())
+    <article className="panel result-card">
+      <div className="result-head">
+        <div>
+          <h2>
+            <a href={`/products/${result.variant.id}?lang=${lang}`}>
+              {result.variant.product.name}
+            </a>
+          </h2>
+          <p className="muted">{result.variant.name}</p>
+        </div>
+        <div className="result-price">
+          {best ? (
+            <>
+              <div className="price-main">
+                {formatMoney(best.deliveredAmount, best.currency, lang)}
+              </div>
+              <div className="price-sub">
+                {t.deliveredTotal} · {t.observedAt}{" "}
+                {formatObservedAt(best.observedAt, lang)}
+              </div>
+            </>
+          ) : (
+            <div className="price-sub">{t.noOffers}</div>
+          )}
+        </div>
+      </div>
+
+      <div className="result-badges">
+        <span className={`badge-match badge-${result.match.mode}`}>
+          {matchLabel(result.match, t)}
+        </span>
+        <span
+          className={
+            result.uncertainty === "verified"
+              ? "badge-verified"
+              : "badge-partial"
+          }
+        >
+          {result.uncertainty === "verified"
+            ? t.uncertaintyVerified
+            : t.uncertaintyPartial}
+        </span>
+        {result.variant.product.isDevelopmentFixture && (
+          <span className="badge-fixture">{t.fixtureBadge}</span>
+        )}
+      </div>
+
+      {result.identifiers.manufacturerPartNumber && (
+        <p className="muted identifier-line">
+          {result.identifiers.manufacturerPartNumber}
+          {result.identifiers.gtin ? ` · GTIN ${result.identifiers.gtin}` : ""}
+        </p>
+      )}
+
+      {attributes.length > 0 && (
+        <div className="attr-grid">
+          {attributes.map(([key, value]) => {
+            const provenance = result.attributeProvenance[key];
+            return (
+              <div className="attr" key={key}>
+                <div className="k">{attributeLabel(key)}</div>
+                <div className="v">{String(value)}</div>
+                <div className="attr-source">
+                  {provenance?.status === "verified"
+                    ? `${t.attributeVerified}${provenance.observedAt ? ` · ${formatObservedAt(provenance.observedAt, lang)}` : ""}`
+                    : t.attributeUnverified}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {result.unmatchedTerms.length > 0 && (
+        <p className="notice notice-warning">
+          {t.unmatchedTermsLabel}: {result.unmatchedTerms.join(", ")}
+        </p>
+      )}
+
+      <details className="sources">
+        <summary>{t.sourcesLabel}</summary>
+        {result.sources.length === 0 ? (
+          <p className="muted">{t.noSourcesLabel}</p>
+        ) : (
+          <ul>
+            {result.sources.map((source) => (
+              <li key={`${source.sourceUrl}-${source.observedAt}`}>
+                <a href={source.sourceUrl} target="_blank" rel="noreferrer">
+                  {source.sourceUrl}
+                </a>
+                <span className="price-sub">
+                  {" "}
+                  · {t.observedAt} {formatObservedAt(source.observedAt, lang)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </details>
+    </article>
   );
 }
 
-async function loadDetail(
-  host: string,
-  proto: string,
-): Promise<VariantOfferDetail | null> {
-  const res = await fetch(
-    `${proto}://${host}/api/catalogue/variants/${DEVELOPMENT_FIXTURE_IDS.variantId}`,
-    { cache: "no-store" },
-  );
-  if (!res.ok) return null;
-  return (await res.json()) as VariantOfferDetail;
-}
-
-export default async function Home({
+export default async function ProductsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -55,170 +186,168 @@ export default async function Home({
   const t = dictionaries[lang];
   const otherLang: Lang = lang === "en" ? "nl" : "en";
 
-  // Persisted conversations and watches require an account; anonymous
-  // visitors sign in before reaching the Studio shell.
   const identity = await requestIdentity();
   if (!identity) redirect(`/sign-in?lang=${lang}`);
 
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("host") ?? "localhost:3000";
-  const proto = requestHeaders.get("x-forwarded-proto") ?? "http";
-  const detail = await loadDetail(host, proto);
+  const text = single(params.text).trim();
+  const identifiers = single(params.identifiers).trim();
+  const filters = readFilters(params);
+  const submitted = text !== "" || identifiers !== "" || filters.length > 0;
 
-  const isAdministrator = identity.trusted.principal.kind === "administrator";
-  const roleLabel =
-    identity.trusted.user.workspace.role === "owner" ? t.roleOwner : t.roleMember;
+  let response: CatalogueSearchResponse | null = null;
+  let failure: "invalid" | "error" | null = null;
+  if (submitted) {
+    const result = await getCore().catalogue.search(
+      identity.trusted.principal,
+      {
+        ...(text ? { text } : {}),
+        ...(identifiers ? { identifiers } : {}),
+        ...(filters.length > 0 ? { filters } : {}),
+      },
+    );
+    if (result.ok) response = result.value;
+    else failure = result.error.kind === "invalid-input" ? "invalid" : "error";
+  }
+
+  const results = response?.results ?? [];
+  const shellIdentity = {
+    name: identity.trusted.user.name,
+    email: identity.trusted.user.email,
+    role: identity.trusted.user.workspace.role,
+    isAdministrator: identity.trusted.principal.kind === "administrator",
+  };
 
   return (
-    <div className="app-shell" lang={lang}>
-      <nav className="rail" aria-label="Main">
-        <span className="brand">{t.appName}</span>
-        <a className="nav-item" href={`/chat?lang=${lang}`}>
-          {t.navChat}
+    <StudioShell lang={lang} identity={shellIdentity} active="products">
+      <div className="topbar">
+        <h1>{t.searchTitle}</h1>
+        <a className="lang-switch" href={`/?lang=${otherLang}`}>
+          {t.languageSwitch}
         </a>
-        <span className="nav-item active">{t.navProducts}</span>
-        <span className="nav-item">
-          {t.navCompare}
-          <span className="nav-badge">{t.navComingSoon}</span>
-        </span>
-        <span className="nav-item">
-          {t.navWatches}
-          <span className="nav-badge">{t.navComingSoon}</span>
-        </span>
-        <a className="nav-item" href={`/settings?lang=${lang}`}>
-          {t.navSettings}
-        </a>
-        <div className="rail-footer">
-          <div className="rail-user">
-            <strong>{identity.trusted.user.name}</strong>
-            {identity.trusted.user.email}
-            <br />
-            {t.workspaceLabel} · {roleLabel}
-            {isAdministrator ? ` · ${t.administratorRole}` : ""}
+      </div>
+
+      <section className="panel">
+        <p className="muted search-intro">{t.searchIntro}</p>
+        <form className="search-form" method="get" action="/">
+          <input type="hidden" name="lang" value={lang} />
+          <div className="search-field search-field-wide">
+            <label htmlFor="search-text">{t.searchTextLabel}</label>
+            <input
+              id="search-text"
+              name="text"
+              type="search"
+              defaultValue={text}
+              maxLength={200}
+              placeholder={t.searchTextHint}
+              autoComplete="off"
+            />
           </div>
-          <a className="btn-quiet" href={`/account?lang=${lang}`}>
-            {t.accountTitle}
-          </a>
-          {isAdministrator && (
-            <a className="btn-quiet" href={`/administration/email?lang=${lang}`}>
-              {t.navEmail}
-            </a>
-          )}
-          <SignOutButton lang={lang} action={signOutAction} />
-        </div>
-      </nav>
-
-      <main className="content">
-        <div className="topbar">
-          <h1>{t.navProducts}</h1>
-          <a className="lang-switch" href={`/?lang=${otherLang}`}>
-            {t.languageSwitch}
-          </a>
-        </div>
-
-        {!detail ? (
-          <div className="error-panel" role="alert">
-            {t.loadErrorTitle}
+          <div className="search-field">
+            <label htmlFor="search-identifiers">{t.searchIdentifierLabel}</label>
+            <input
+              id="search-identifiers"
+              name="identifiers"
+              type="text"
+              defaultValue={identifiers}
+              maxLength={64}
+              placeholder="U2723QE"
+              autoComplete="off"
+              spellCheck={false}
+            />
           </div>
-        ) : (
-          <>
-            {detail.variant.product.isDevelopmentFixture && (
-              <span className="badge-fixture">{t.fixtureBadge}</span>
-            )}
-            <section className="panel">
-              <h2>{detail.variant.product.name}</h2>
-              <p className="muted">
-                {detail.variant.name}
-                {detail.variant.product.manufacturer
-                  ? ` · ${detail.variant.product.manufacturer}`
-                  : ""}
-              </p>
-              <p className="muted" style={{ fontSize: "13px" }}>
-                {t.fixtureHint}
-              </p>
-              <h3 style={{ marginBottom: 0 }}>{t.attributes}</h3>
-              <div className="attr-grid">
-                {Object.entries(detail.variant.attributes).map(
-                  ([key, value]) => (
-                    <div className="attr" key={key}>
-                      <div className="k">{attributeLabel(key, lang)}</div>
-                      <div className="v">
-                        {String(value)}
-                        {ATTRIBUTE_UNITS[key] ?? ""}
-                      </div>
-                    </div>
-                  ),
-                )}
-              </div>
-            </section>
-
-            <section className="panel">
-              <h3>Source claims</h3>
-              {detail.claims.filter((claim) => claim.field.startsWith("attribute.")).map((claim) => (
-                <p className="muted" key={`${claim.field}-${claim.sourceUrl}`}>
-                  {claim.field.replace("attribute.", "")}: {String(claim.value)} · {claim.mappingStatus === "unresolved" ? "Needs review" : "Validated"}
-                </p>
+          <div className="search-field">
+            <label htmlFor="search-colour">{t.searchColourLabel}</label>
+            <select id="search-colour" name="colour" defaultValue={single(params.colour)}>
+              <option value="">{t.searchColourAny}</option>
+              {COLOURS.map((colour) => (
+                <option value={colour} key={colour}>
+                  {COLOUR_LABELS[colour][lang]}
+                </option>
               ))}
-            </section>
+            </select>
+          </div>
+          <div className="search-field">
+            <label htmlFor="search-power">{t.searchPowerLabel}</label>
+            <input
+              id="search-power"
+              name="minPower"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={1}
+              defaultValue={single(params.minPower)}
+            />
+          </div>
+          <div className="search-field">
+            <label htmlFor="search-screen">{t.searchScreenLabel}</label>
+            <input
+              id="search-screen"
+              name="minScreen"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step={0.1}
+              defaultValue={single(params.minScreen)}
+            />
+          </div>
+          <div className="search-actions">
+            <button className="btn-primary" type="submit">
+              {t.searchSubmit}
+            </button>
+            <a className="btn-quiet" href={`/?lang=${lang}`}>
+              {t.searchClear}
+            </a>
+          </div>
+        </form>
+      </section>
 
-            <section className="panel">
-              <h3 style={{ marginTop: 0 }}>{t.offers}</h3>
-              {detail.offers.length === 0 ? (
-                <p className="muted">{t.noOffers}</p>
-              ) : (
-                detail.offers.map((offer) => (
-                  <div className="offer-card" key={offer.id}>
-                    <div>
-                      <strong>{offer.retailer.name}</strong>
-                      <div className="price-sub">
-                        {t.condition}:{" "}
-                        {offer.condition === "new"
-                          ? t.conditionNew
-                          : t.conditionRefurbished}
-                      </div>
-                      {offer.currentPrice && (
-                        <div className="price-sub">
-                          {t.observedAt}:{" "}
-                          {formatObservedAt(offer.currentPrice.observedAt, lang)}
-                        </div>
-                      )}
-                    </div>
-                    {offer.currentPrice && (
-                      <div style={{ textAlign: "right" }}>
-                        <div className="price-main">
-                          {formatMoney(
-                            offer.currentPrice.deliveredAmount,
-                            offer.currentPrice.currency,
-                            lang,
-                          )}
-                        </div>
-                        <div className="price-sub">
-                          {t.deliveredTotal} · {t.includesVat} · {t.shipping}{" "}
-                          {Number(offer.currentPrice.shippingAmount) === 0
-                            ? t.freeShipping.toLowerCase()
-                            : formatMoney(
-                                offer.currentPrice.shippingAmount,
-                                offer.currentPrice.currency,
-                                lang,
-                              )}
-                        </div>
-                      </div>
-                    )}
-                    <a
-                      className="btn-primary"
-                      href={offer.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {t.viewOffer}
-                    </a>
-                  </div>
-                ))
-              )}
+      {failure === "invalid" && (
+        <div className="error-panel" role="alert">
+          <strong>{t.searchInvalidTitle}</strong>
+          <p>{t.searchErrorBody}</p>
+        </div>
+      )}
+      {failure === "error" && (
+        <div className="error-panel" role="alert">
+          <strong>{t.searchErrorTitle}</strong>
+          <p>{t.searchErrorBody}</p>
+        </div>
+      )}
+
+      {response && (
+        <>
+          {response.expansion.length > 0 && (
+            <p className="muted expansion-line">
+              {t.searchExpandedLabel}:{" "}
+              {response.expansion
+                .map((expansion) => expansion.terms.join(" / "))
+                .join(" · ")}
+            </p>
+          )}
+          <p className="muted results-count" aria-live="polite">
+            {results.length === 1
+              ? t.searchResultsOne
+              : `${results.length} ${t.searchResultsCount}`}
+          </p>
+          {results.length === 0 ? (
+            <section className="panel empty-panel">
+              <h2>{t.searchNoResultsTitle}</h2>
+              <p className="muted">{t.searchNoResultsBody}</p>
             </section>
-          </>
-        )}
-      </main>
-    </div>
+          ) : (
+            results.map((result) => (
+              <ResultCard key={result.variant.id} result={result} lang={lang} t={t} />
+            ))
+          )}
+        </>
+      )}
+
+      {!submitted && (
+        <section className="panel empty-panel">
+          <h2>{t.searchStartTitle}</h2>
+          <p className="muted">{t.searchStartBody}</p>
+        </section>
+      )}
+    </StudioShell>
   );
 }

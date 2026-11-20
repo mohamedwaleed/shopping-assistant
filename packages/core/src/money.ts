@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+/** Exact comparison of two money strings; never goes through a float. */
+export function compareMoney(a: string, b: string): -1 | 0 | 1 {
+  const left = toCents(a);
+  const right = toCents(b);
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 /** Exact decimal addition for money strings (cents via BigInt, no floats). */
 export function addMoney(a: string, b: string): string {
   const sum = toCents(a) + toCents(b);
