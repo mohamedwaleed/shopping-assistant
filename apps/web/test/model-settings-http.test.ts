@@ -94,7 +94,6 @@ beforeAll(async () => {
 
   fixtures = await startProviderFixtures();
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.rollback({}, true);
   await db.migrate.latest();
 
   setupRoute = await import("../app/api/settings/models/route");
@@ -124,6 +123,10 @@ beforeEach(async () => {
     capability_tested_at: null,
   });
   await db("installation_model_credentials").delete();
+  // Attribute claims are workspace-independent in this schema, so a claim left
+  // by another suite sharing the database would show up in the review list.
+  await db("attribute_assessments").delete();
+  await db("source_claims").delete();
   await db("workspace_memberships").delete();
   await db("workspaces").delete();
   await db("session").delete();

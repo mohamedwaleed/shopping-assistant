@@ -24,7 +24,6 @@ describe("Knex-backed Better Auth adapter on PostgreSQL", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.rollback({}, true);
     await db.migrate.latest();
   });
 

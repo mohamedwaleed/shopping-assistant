@@ -50,6 +50,7 @@ export {
 export {
   createEmailLinkOperations,
   EMAIL_CHANGE_SECONDS,
+  EMAIL_LINK_PATHS,
   INVITATION_SECONDS,
   PASSWORD_RESET_SECONDS,
   type EmailLinkOperations,

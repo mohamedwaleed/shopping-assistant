@@ -10,6 +10,18 @@ export const INVITATION_SECONDS = 7 * 24 * 60 * 60;
 export const PASSWORD_RESET_SECONDS = 30 * 60;
 export const EMAIL_CHANGE_SECONDS = 30 * 60;
 
+/**
+ * Where each delivered link sends the recipient. The screens that complete the
+ * flows live at these paths, so the adapters build every link from them rather
+ * than from a literal of their own, and a test asserts each one resolves to a
+ * route the installation serves.
+ */
+export const EMAIL_LINK_PATHS = {
+  invitation: "/accept-invitation",
+  "password-reset": "/reset-password",
+  "email-change": "/account/email/confirm",
+} as const;
+
 type Purpose = "invitation" | "password-reset" | "email-change";
 type LinkRow = { id: string; identifier: string; value: string; expires_at: Date };
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -96,6 +108,11 @@ export function createEmailLinkOperations(input: { db: Knex; auth: Authenticatio
       if (!admitted.ok) return admitted;
       const factor = await input.auth.verifySecondFactor(admitted.value.id, request.secondFactorCode ?? "");
       if (!factor.ok) return factor;
+      // Confirming the mailbox the account already signs in with would prove
+      // nothing new, so the request is refused before any delivery.
+      if (normalized(request.newEmail) === normalized(admitted.value.email)) {
+        return err({ kind: "invalid-input", field: "newEmail", message: "newEmail is already this account's address" });
+      }
       return send("email-change", request.newEmail, request.linkBaseUrl, transport, "Confirm your new Shopping Assistant email address", `${admitted.value.id}.`);
     },
     async confirmEmailChange(request) {

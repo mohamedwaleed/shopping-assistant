@@ -4,6 +4,7 @@ import { getCore, getDb } from "@/lib/core";
 import { createAccountProvisioner } from "@/lib/auth/provisioner";
 import { getAuth, requestIdentity } from "@/lib/auth/session";
 import { sameOriginRejected } from "@/lib/csrf";
+import { linkBaseUrl } from "@/lib/email-link-request";
 import { errorResponse } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,6 @@ export async function POST(request: Request): Promise<Response> {
   }
   const identity = await requestIdentity(request);
   if (!identity) return errorResponse({ kind: "forbidden", capability: "installation.manage" });
-  const result = await getCore().emailLinks.invite(identity.trusted.principal, { email: text(body.email), linkBaseUrl: `${new URL(request.url).origin}/accept-invitation` }, nodemailerTransport());
+  const result = await getCore().emailLinks.invite(identity.trusted.principal, { email: text(body.email), linkBaseUrl: linkBaseUrl("invitation", new URL(request.url).origin) }, nodemailerTransport());
   return result.ok ? Response.json(result.value) : errorResponse(result.error);
 }

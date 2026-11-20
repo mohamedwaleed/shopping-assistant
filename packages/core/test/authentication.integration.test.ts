@@ -65,7 +65,6 @@ describe("installation setup and workspace admission through the core", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.rollback({}, true);
     await db.migrate.latest();
   });
 

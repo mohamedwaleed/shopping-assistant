@@ -95,7 +95,6 @@ beforeAll(async () => {
   process.env.SETUP_TOKEN = TOKEN;
 
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.rollback({}, true);
   await db.migrate.latest();
 
   claimRoute = await import("../app/api/setup/claim/route");

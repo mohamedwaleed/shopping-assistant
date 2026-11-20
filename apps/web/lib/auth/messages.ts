@@ -49,10 +49,18 @@ export function accountErrorMessage(error: CoreError, t: Dictionary): string {
       return t.errorEmailChangeUnsupported;
     case "invalid-origin":
       return t.errorInvalidOrigin;
+    case "mail-not-configured":
+      return error.missing === "smtp"
+        ? t.emailNotConfiguredNoSmtp
+        : t.emailNotConfiguredNoRecipient;
+    case "invalid-email-link":
+      return t.errorInvalidEmailLink;
     case "invalid-input":
-      return error.field === "currentPassword"
-        ? t.errorInvalidCurrentPassword
-        : t.errorInvalidInput;
+      if (error.field === "currentPassword") return t.errorInvalidCurrentPassword;
+      // The core refuses a change to the address the account already signs in
+      // with, and an address another account already owns.
+      if (error.field === "newEmail") return t.errorEmailInUse;
+      return t.errorInvalidInput;
     default:
       return t.errorGeneric;
   }

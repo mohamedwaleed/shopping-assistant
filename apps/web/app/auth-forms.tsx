@@ -170,11 +170,7 @@ export function Notice({
       <section className="auth-card" aria-labelledby="notice-title">
         <h1 id="notice-title">{title}</h1>
         <div className={`notice notice-${tone}`}>{body}</div>
-        <a
-          className="btn-submit"
-          href={`/sign-in?lang=${lang}`}
-          style={{ display: "block", textAlign: "center" }}
-        >
+        <a className="btn-submit btn-link" href={`/sign-in?lang=${lang}`}>
           {dictionaries[lang].signInSubmit}
         </a>
       </section>

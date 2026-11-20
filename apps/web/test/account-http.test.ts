@@ -123,9 +123,11 @@ beforeAll(async () => {
   process.env.BETTER_AUTH_URL = "http://localhost:3000";
   process.env.BETTER_AUTH_SECRET = "account-surface-test-secret-0123456789ab";
   process.env.SETUP_TOKEN = TOKEN;
+  // A configured installation secret lets these checks reach the mailer's own
+  // "no SMTP settings" refusal rather than failing on a missing secret.
+  process.env.INSTALLATION_SECRET = "account-surface-installation-secret-0123";
 
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.rollback({}, true);
   await db.migrate.latest();
   // Touch the shared pool now, so it is opened against the test database.
   await getDb().raw("select 1");
@@ -154,6 +156,10 @@ beforeEach(async () => {
     setup_completed_at: null,
     setup_token_hash: null,
     setup_administrator_user_id: null,
+    // These checks describe an installation that has not configured SMTP yet;
+    // another suite sharing the database may have left working settings.
+    smtp_settings: null,
+    mail_delivery: null,
   });
 });
 

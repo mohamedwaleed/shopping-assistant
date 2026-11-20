@@ -75,7 +75,7 @@ export const dictionaries = {
     errorInvalidOrigin: "That request did not come from this installation.",
     accountTitle: "Account and devices",
     accountIntro:
-      "Review where you are signed in, sign devices out, and change your password.",
+      "Review where you are signed in, change the email address you sign in with, sign devices out, and change your password.",
     devicesTitle: "Signed-in devices",
     devicesEmpty: "No other devices are signed in.",
     deviceCurrent: "This device",
@@ -233,6 +233,79 @@ export const dictionaries = {
     interactiveAllowance: "Interactive research allowance (cents)", backgroundAllowance: "Background monitoring allowance (cents)", maximumInteractive: "Maximum simultaneous research tasks", maximumBackground: "Maximum simultaneous monitoring tasks", retryLimit: "Retries per provider task", paidFallback: "Allow an explicitly selected paid provider fallback", backgroundConsent: "I consent to background monitoring using this workspace's personal key", saveBudgets: "Save budget settings", savingBudgets: "Saving budget settings…", budgetsSaved: "Budget settings saved.", budgetUsage: "Usage", budgetReserved: "Reserved", budgetPaused: "Paused", pauseAllowance: "Allowance exhausted", pauseConcurrency: "Maximum simultaneous work reached", pausePersonalKey: "Personal-key background consent is required",
     errorForbiddenAdmin: "Only the installation administrator can change these settings.",
     modelsSectionUnavailable: "Model settings are unavailable until INSTALLATION_SECRET is configured.",
+    acceptInvitationTitle: "Join this installation",
+    acceptInvitationIntro:
+      "You were invited by email. Choose your name, a password and a workspace name to create your own private workspace. The invitation works once.",
+    invitationTokenLabel: "Invitation token",
+    invitationTokenHint: "Filled in from your invitation email.",
+    acceptInvitationSubmit: "Create my account",
+    acceptInvitationWorking: "Creating your account…",
+    acceptInvitationNote:
+      "Your email address is the one the invitation was sent to and cannot be changed here. This invitation stops working once used.",
+    acceptInvitationDoneTitle: "You're in",
+    acceptInvitationDoneBody:
+      "Your account and private workspace are ready. Sign in with the password you just chose.",
+    invitationInvalidTitle: "This invitation cannot be used",
+    invitationInvalidBody:
+      "The invitation link has expired or was already used. Invitations work once and for seven days. Ask the installation administrator for a new one.",
+    invitationMissingTokenBody:
+      "This page needs the invitation link from your email, including its token. Open the link again, or ask the administrator for a new invitation.",
+    resetRequestTitle: "Reset your password",
+    resetRequestIntro:
+      "Enter the email address of your account. If it exists, a reset link is sent to that mailbox. The link works once and expires after 30 minutes.",
+    resetRequestSubmit: "Send reset link",
+    resetRequestWorking: "Sending…",
+    resetRequestNote:
+      "Nothing is revealed about which addresses have an account: the answer is the same either way.",
+    resetRequestSentTitle: "Check your email",
+    resetRequestSentBody:
+      "If an account uses that address, a reset link is on its way. Open it on this device and choose a new password.",
+    resetCompleteTitle: "Choose a new password",
+    resetCompleteIntro:
+      "Your reset link works once. Every device signed in to this account is signed out afterwards, so sign in again with the new password.",
+    resetCompleteSubmit: "Change password",
+    resetCompleteWorking: "Changing your password…",
+    resetCompleteDoneTitle: "Your password was changed",
+    resetCompleteDoneBody:
+      "Every device was signed out. Sign in with your new password.",
+    resetLinkInvalidTitle: "This reset link cannot be used",
+    resetLinkInvalidBody:
+      "The link has expired, was already used, or was replaced by a newer one. Request a new reset link and try again.",
+    resetMissingTokenBody:
+      "This page needs the reset link from your email, including its token. Open the link again, or request a new one.",
+    resetBlockedBySecondFactorTitle: "Finish with your authenticator first",
+    resetBlockedBySecondFactorBody:
+      "This account signs in with an authenticator app. A reset link cannot replace that second step, so the password was not changed. Use your authenticator or a recovery code to sign in, then change the password on the account screen.",
+    errorInvalidEmailLink:
+      "This link has expired or was already used. Request a new one and try again.",
+    requestNewResetLink: "Request a new reset link",
+    emailChangeTitle: "Email address",
+    emailChangeIntro:
+      "Change the address you sign in with. A confirmation link goes to the new address and the change only happens once you open it.",
+    emailChangeCurrentLabel: "Current address",
+    emailChangeNewLabel: "New email address",
+    emailChangeSecondFactorLabel: "Authenticator or recovery code (if enabled)",
+    emailChangeSubmit: "Send confirmation link",
+    emailChangeWorking: "Sending…",
+    emailChangeSent:
+      "A confirmation link was sent to the new address. Your sign-in address stays the same until you open it.",
+    emailChangeRecentHint:
+      "Changing your sign-in address needs a session from the last few minutes. Sign in again if this is refused.",
+    emailChangeNoAddressHint:
+      "No new address is shown here; the address stays the same until the link is confirmed.",
+    confirmEmailTitle: "Confirm your new email address",
+    confirmEmailIntro:
+      "Opening the link from your email completes the change. Until then your account keeps its current sign-in address.",
+    confirmEmailSubmit: "Confirm this address",
+    confirmEmailWorking: "Confirming…",
+    confirmEmailDoneTitle: "Your email address was changed",
+    confirmEmailDoneBody:
+      "Sign in with the new address from now on. Your workspace, devices and password are unchanged.",
+    confirmEmailInvalidTitle: "This confirmation link cannot be used",
+    confirmEmailInvalidBody:
+      "The link has expired, was already used, or the address is already in use by another account. Nothing was changed; start the change again from the account screen.",
+    errorEmailInUse:
+      "That address already belongs to another account. Nothing was changed.",
   },
   nl: {
     appName: "Shopping Assistant",
@@ -307,7 +380,7 @@ export const dictionaries = {
     errorInvalidOrigin: "Dat verzoek kwam niet van deze installatie.",
     accountTitle: "Account en apparaten",
     accountIntro:
-      "Bekijk waar je bent aangemeld, meld apparaten af en wijzig je wachtwoord.",
+      "Bekijk waar je bent aangemeld, wijzig het e-mailadres waarmee je aanmeldt, meld apparaten af en wijzig je wachtwoord.",
     devicesTitle: "Aangemelde apparaten",
     devicesEmpty: "Er zijn geen andere apparaten aangemeld.",
     deviceCurrent: "Dit apparaat",
@@ -473,6 +546,79 @@ export const dictionaries = {
       "Alleen de installatiebeheerder kan deze instellingen wijzigen.",
     modelsSectionUnavailable:
       "Modelinstellingen zijn niet beschikbaar totdat INSTALLATION_SECRET is ingesteld.",
+    acceptInvitationTitle: "Sluit je aan bij deze installatie",
+    acceptInvitationIntro:
+      "Je bent per e-mail uitgenodigd. Kies je naam, een wachtwoord en een naam voor je werkruimte om je eigen privéwerkruimte aan te maken. De uitnodiging werkt één keer.",
+    invitationTokenLabel: "Uitnodigingstoken",
+    invitationTokenHint: "Ingevuld vanuit je uitnodigingsmail.",
+    acceptInvitationSubmit: "Mijn account aanmaken",
+    acceptInvitationWorking: "Je account wordt aangemaakt…",
+    acceptInvitationNote:
+      "Je e-mailadres is het adres waarnaar de uitnodiging is gestuurd en kan hier niet worden gewijzigd. Deze uitnodiging werkt daarna niet meer.",
+    acceptInvitationDoneTitle: "Je bent erbij",
+    acceptInvitationDoneBody:
+      "Je account en privéwerkruimte staan klaar. Meld je aan met het wachtwoord dat je net hebt gekozen.",
+    invitationInvalidTitle: "Deze uitnodiging kan niet worden gebruikt",
+    invitationInvalidBody:
+      "De uitnodigingslink is verlopen of al gebruikt. Uitnodigingen werken één keer en zeven dagen. Vraag de installatiebeheerder om een nieuwe.",
+    invitationMissingTokenBody:
+      "Deze pagina heeft de uitnodigingslink uit je e-mail nodig, inclusief het token. Open de link opnieuw, of vraag de beheerder om een nieuwe uitnodiging.",
+    resetRequestTitle: "Wachtwoord opnieuw instellen",
+    resetRequestIntro:
+      "Voer het e-mailadres van je account in. Bestaat het, dan gaat er een herstellink naar dat postvak. De link werkt één keer en verloopt na 30 minuten.",
+    resetRequestSubmit: "Herstellink versturen",
+    resetRequestWorking: "Bezig met versturen…",
+    resetRequestNote:
+      "Er wordt niets onthuld over welke adressen een account hebben: het antwoord is in beide gevallen hetzelfde.",
+    resetRequestSentTitle: "Controleer je e-mail",
+    resetRequestSentBody:
+      "Als er een account met dat adres bestaat, is er een herstellink onderweg. Open die op dit apparaat en kies een nieuw wachtwoord.",
+    resetCompleteTitle: "Kies een nieuw wachtwoord",
+    resetCompleteIntro:
+      "Je herstellink werkt één keer. Elk apparaat dat op dit account is aangemeld, wordt daarna afgemeld; meld je opnieuw aan met het nieuwe wachtwoord.",
+    resetCompleteSubmit: "Wachtwoord wijzigen",
+    resetCompleteWorking: "Je wachtwoord wordt gewijzigd…",
+    resetCompleteDoneTitle: "Je wachtwoord is gewijzigd",
+    resetCompleteDoneBody:
+      "Elk apparaat is afgemeld. Meld je aan met je nieuwe wachtwoord.",
+    resetLinkInvalidTitle: "Deze herstellink kan niet worden gebruikt",
+    resetLinkInvalidBody:
+      "De link is verlopen, al gebruikt, of vervangen door een nieuwere. Vraag een nieuwe herstellink aan en probeer opnieuw.",
+    resetMissingTokenBody:
+      "Deze pagina heeft de herstellink uit je e-mail nodig, inclusief het token. Open de link opnieuw, of vraag een nieuwe aan.",
+    resetBlockedBySecondFactorTitle: "Rond eerst je authenticator af",
+    resetBlockedBySecondFactorBody:
+      "Dit account meldt aan met een authenticator-app. Een herstellink kan die tweede stap niet vervangen, dus het wachtwoord is niet gewijzigd. Meld je aan met je authenticator of een herstelcode en wijzig daarna het wachtwoord op de accountpagina.",
+    errorInvalidEmailLink:
+      "Deze link is verlopen of al gebruikt. Vraag een nieuwe aan en probeer opnieuw.",
+    requestNewResetLink: "Nieuwe herstellink aanvragen",
+    emailChangeTitle: "E-mailadres",
+    emailChangeIntro:
+      "Wijzig het adres waarmee je aanmeldt. Er gaat een bevestigingslink naar het nieuwe adres en de wijziging gaat pas in als je die opent.",
+    emailChangeCurrentLabel: "Huidig adres",
+    emailChangeNewLabel: "Nieuw e-mailadres",
+    emailChangeSecondFactorLabel: "Authenticator- of herstelcode (indien ingesteld)",
+    emailChangeSubmit: "Bevestigingslink versturen",
+    emailChangeWorking: "Bezig met versturen…",
+    emailChangeSent:
+      "Er is een bevestigingslink naar het nieuwe adres gestuurd. Je aanmeldadres blijft hetzelfde tot je de link opent.",
+    emailChangeRecentHint:
+      "Je aanmeldadres wijzigen vereist een sessie van de laatste paar minuten. Meld je opnieuw aan als dit wordt geweigerd.",
+    emailChangeNoAddressHint:
+      "Hier wordt geen nieuw adres getoond; het adres blijft hetzelfde tot de link is bevestigd.",
+    confirmEmailTitle: "Bevestig je nieuwe e-mailadres",
+    confirmEmailIntro:
+      "Het openen van de link uit je e-mail rondt de wijziging af. Tot die tijd houdt je account het huidige aanmeldadres.",
+    confirmEmailSubmit: "Dit adres bevestigen",
+    confirmEmailWorking: "Bezig met bevestigen…",
+    confirmEmailDoneTitle: "Je e-mailadres is gewijzigd",
+    confirmEmailDoneBody:
+      "Meld je vanaf nu aan met het nieuwe adres. Je werkruimte, apparaten en wachtwoord blijven ongewijzigd.",
+    confirmEmailInvalidTitle: "Deze bevestigingslink kan niet worden gebruikt",
+    confirmEmailInvalidBody:
+      "De link is verlopen, al gebruikt, of het adres hoort al bij een ander account. Er is niets gewijzigd; start de wijziging opnieuw op de accountpagina.",
+    errorEmailInUse:
+      "Dat adres hoort al bij een ander account. Er is niets gewijzigd.",
   },
 } as const;
 

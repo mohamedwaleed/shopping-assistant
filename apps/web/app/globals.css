@@ -598,3 +598,9 @@ a {
     flex: 1;
   }
 }
+
+/* A link styled as the primary action, for cards that end in navigation. */
+.btn-link {
+  display: block;
+  text-align: center;
+}
