@@ -39,6 +39,20 @@ export interface VariantOfferDetail {
   };
   offers: VariantOffer[];
   claims: Array<{ field: string; value: unknown; sourceUrl: string; observedAt: string; excerpt: string; mappingStatus: "accepted" | "rejected" | "unresolved" | null }>;
+  /**
+   * What the page can and cannot stand behind. `overall` stays `verified` only
+   * when no unresolved claim touches this variant; each canonical attribute is
+   * listed with the status the claims support.
+   */
+  uncertainty: {
+    overall: "verified" | "partial";
+    unverifiedAttributes: Array<{
+      key: string;
+      status: "verified" | "unverified";
+      sourceUrl: string | null;
+      observedAt: string | null;
+    }>;
+  };
 }
 
 export interface AttributeReview { id: string; rawName: string; value: unknown; sourceUrl: string; variantId: string; }
@@ -172,7 +186,38 @@ export async function getVariantOfferDetail(
       mappingStatus: claim.mapping_status,
       observedAt: new Date(claim.observed_at).toISOString(),
     })),
+    uncertainty: describeUncertainty(variantRow.attributes ?? {}, claims),
   });
+}
+
+/**
+ * An attribute value that arrived with the variant row has no accepted claim
+ * behind it, so it is reported as unverified rather than presented as fact.
+ * Unresolved claims make the whole page `partial`.
+ */
+function describeUncertainty(
+  attributes: Record<string, unknown>,
+  claims: ReadonlyArray<{ field: string; mapping_status: string | null; observed_at: Date | string; source_url: string }>,
+): VariantOfferDetail["uncertainty"] {
+  const unverifiedAttributes = Object.keys(attributes).map((key) => {
+    const accepted = claims.find(
+      (claim) => claim.field === `attribute.${key}` && claim.mapping_status === "accepted",
+    );
+    return accepted
+      ? {
+          key,
+          status: "verified" as const,
+          sourceUrl: accepted.source_url,
+          observedAt: new Date(accepted.observed_at).toISOString(),
+        }
+      : { key, status: "unverified" as const, sourceUrl: null, observedAt: null };
+  });
+  return {
+    overall: claims.some((claim) => claim.mapping_status === "unresolved")
+      ? "partial"
+      : "verified",
+    unverifiedAttributes,
+  };
 }
 
 export async function listAttributeReviews(db: Knex, principal: Principal): Promise<Result<AttributeReview[]>> {

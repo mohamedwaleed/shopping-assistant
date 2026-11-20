@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { Knex } from "knex";
 import { getVariantOfferDetail, listAttributeReviews, reviewAttributeClaim, type AttributeReview, type VariantOfferDetail } from "./catalogue";
+import {
+  searchCatalogue,
+  type CatalogueSearchQuery,
+  type CatalogueSearchResponse,
+} from "./catalogue-search";
 import { createAuthentication, type AuthDependencies, type Authentication } from "./auth/authentication";
 import { createMailer, type Mailer, type MailerDependencies } from "./mail/mailer";
 import { createEmailLinkOperations, type EmailLinkOperations } from "./auth/email-links";
@@ -23,6 +28,10 @@ export interface ShoppingCore {
   budgets: BudgetRegistry;
   chat: ChatSessions;
   catalogue: {
+    search(
+      principal: Principal,
+      query: CatalogueSearchQuery,
+    ): Promise<Result<CatalogueSearchResponse>>;
     getVariantOfferDetail(
       principal: Principal,
       variantId: string,
@@ -64,6 +73,7 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
     budgets: createBudgetRegistry({ db: deps.db }),
     chat: createChatSessions({ db: deps.db }),
     catalogue: {
+      search: (principal, query) => searchCatalogue(deps.db, principal, query),
       getVariantOfferDetail: (principal, variantId) =>
         getVariantOfferDetail(deps.db, principal, variantId),
       ingestProductPage: createIngestion(deps.db, deps.ingestion),
