@@ -1,6 +1,10 @@
 # Model access: keys and subscriptions
 
-Status: requested capability, partly feasible subject to provider integration/eligibility verification. Verified against official documentation on 2026-11-17. No implementation or entitlement approval is claimed.
+Status: the ChatGPT plan connection is implemented as a workspace-owned provider
+OAuth connection with an **unresolved entitlement gate** (ADR 0013,
+`docs/chatgpt-plan-deployment.md`); the Claude plan connection remains a
+requested, provider-gated feature. Verified against official documentation on
+2026-11-17 and re-verified on 2026-11-19. No entitlement approval is claimed.
 
 ## User intent
 
@@ -16,6 +20,18 @@ Configure supported API keys or connect an existing ChatGPT/Claude subscription 
 - Claude's developer SDK documentation says offering claude.ai login/rate limits for third-party products requires prior approval, otherwise use API keys: https://code.claude.com/docs/en/agent-sdk/overview .
 - Claude's account guidance directs developers building products for others to API-key auth and describes third-party usage-credit conditions: https://support.claude.com/en/articles/13189465-log-in-to-your-claude-account .
 - A separate support article states Agent SDK/CLI subscription usage still draws from plan limits: https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan . This creates ambiguity for product integration; retain both references and do not interpret personal SDK use as blanket authorization for our product.
+
+## What is implemented
+
+- A ChatGPT plan connection per private workspace, separate from application
+  sign-in and invitations, with consent, refresh and disconnect protected by a
+  browser-bound attempt and same-origin checks (ADR 0013).
+- Account-specific model selection from the account's own list, and a
+  shopping tool step exercised through the plan route — not a text-only ping.
+- Eligibility, expiry, quota and usage-source states shown in English and Dutch,
+  with no browser-cookie reuse and no silent API-key billing.
+- The unresolved entitlement gate is a constant in core
+  (`CHATGPT_PLAN_ENTITLEMENT`) and is displayed wherever plan usage appears.
 
 ## Design constraints
 

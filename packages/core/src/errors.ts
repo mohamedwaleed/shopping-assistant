@@ -66,7 +66,28 @@ export type CoreError =
   /** The page did not contain a complete supported structured product offer. */
   | { kind: "extraction-failed"; message: string }
   /** Existing identifier evidence names a different configuration. */
-  | { kind: "identity-conflict"; identifier: string };
+  | { kind: "identity-conflict"; identifier: string }
+  /** No ChatGPT plan connection exists for this workspace. */
+  | { kind: "chatgpt-plan-not-connected" }
+  /** The connection was disconnected, or its refresh token is unusable. */
+  | { kind: "chatgpt-plan-disconnected" }
+  /** The provider withheld the plan scope; plan usage stays disabled. */
+  | { kind: "chatgpt-plan-not-enabled" }
+  /** The access token expired and no refresh was recorded yet. */
+  | { kind: "chatgpt-plan-expired" }
+  /**
+   * The plan cannot pay for this request right now. Inference pauses visibly;
+   * there is no silent fallback to an API key.
+   */
+  | { kind: "chatgpt-plan-usage-limit"; reason: "usage-limit" | "not-eligible" | "usage-unavailable" | "unsupported-capability" }
+  /** The account's model list must be discovered before a model is chosen. */
+  | { kind: "chatgpt-plan-model-not-selected" }
+  /** The requested model is not in this account's own list. */
+  | { kind: "chatgpt-plan-model-unavailable"; modelId: string; available: string[] }
+  /** The shopper declined the provider consent screen. */
+  | { kind: "chatgpt-plan-consent-declined" }
+  /** A provider Responses call failed with the provider's own error code. */
+  | { kind: "chatgpt-plan-request-failed"; code: string | null; status: number };
 
 export type Result<T> =
   | { ok: true; value: T }

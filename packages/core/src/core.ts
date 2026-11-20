@@ -31,12 +31,19 @@ import {
 } from "./ingestion/source-reader";
 import type { ModelExtractor } from "./ingestion/readable-extraction";
 import { createChatSessions, type ChatSessions } from "./chat";
+import {
+  createChatGPTPlanConnections,
+  type ChatGPTPlanConnections,
+  type ChatGPTPlanDependencies,
+} from "./models/chatgpt-plan";
 
 export interface ShoppingCore {
   auth: Authentication;
   mail: Mailer;
   emailLinks: EmailLinkOperations;
   models: ModelRegistry;
+  /** Provider OAuth for ChatGPT plan usage; separate from application sign-in. */
+  chatgptPlan: ChatGPTPlanConnections;
   budgets: BudgetRegistry;
   chat: ChatSessions;
   catalogue: {
@@ -64,6 +71,12 @@ export interface ShoppingCore {
 type CoreDependencies = {
   db: Knex;
   models: Pick<ModelRegistryDependencies, "cipher" | "probe">;
+  /** The AI SDK adapter that exercises a ChatGPT plan shopping tool step. */
+  planExercise?: ChatGPTPlanDependencies["exercise"];
+  planOAuth?: Pick<
+    ChatGPTPlanDependencies,
+    "authorizeUrl" | "tokenUrl" | "redirectUri" | "agentName" | "hostId"
+  >;
 } & Partial<AuthDependencies> &
   Partial<MailerDependencies> & { ingestion?: IngestionDependencies } & {
     /** The extraction model adapter; absent means no model extraction. */
@@ -111,6 +124,15 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
     emailLinks: createEmailLinkOperations({ db: deps.db, auth, mail, ...(deps.now ? { now: deps.now } : {}) }),
     models: modelRegistry,
     budgets: createBudgetRegistry({ db: deps.db }),
+    chatgptPlan: createChatGPTPlanConnections({
+      db: deps.db,
+      cipher: deps.models.cipher,
+      // Without an adapter no plan request is attempted: the core refuses the
+      // exercise as a configuration error instead of inventing a model call.
+      exercise: deps.planExercise ?? (async () => err({ kind: "chatgpt-plan-request-failed", code: "no-plan-adapter", status: 503 })),
+      ...(deps.planOAuth ?? {}),
+      ...(deps.now ? { now: deps.now } : {}),
+    }),
     chat: createChatSessions({ db: deps.db }),
     catalogue: {
       search: (principal, query) => searchCatalogue(deps.db, principal, query),
