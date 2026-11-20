@@ -72,6 +72,19 @@ output and streaming through pinned Vercel AI SDK adapters, so a compatible
 endpoint is only trusted for what it actually does. See
 [ADR 0012](docs/adr/0012-pinned-ai-sdk-adapters-and-model-registry.md).
 
+A workspace may also connect a **ChatGPT plan** account, so research can be paid
+for with an existing plan instead of an API key. The connection is provider OAuth
+owned by one private workspace: it never signs anyone in to this assistant,
+never creates or links an account, and its tokens never reach the browser. The
+plan route is exercised against the provider's documented Responses requirements
+with a real shopping tool step, and eligibility, expiry, quota and billing source
+are shown in English and Dutch. Plan usage is offered only for local and
+self-hosted deployments the provider documents; this project holds **no approval
+for paid or remotely hosted use**, and that unresolved gate is stated in the UI
+and in the docs. A paused or refused plan stops the turn instead of silently
+billing an API key. See [ADR 0013](docs/adr/0013-chatgpt-plan-usage-as-a-workspace-connection.md)
+and the [deployment, hosting and licensing notes](docs/chatgpt-plan-deployment.md).
+
 Identity uses Better Auth with PostgreSQL through a verified custom Knex
 adapter: Knex migrations own the identity schema, credential and session writes
 join the caller's transaction, and single-use values are consumed atomically.

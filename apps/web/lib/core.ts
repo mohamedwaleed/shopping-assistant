@@ -9,7 +9,11 @@ import {
 } from "@shopping/core";
 import { createDb, databaseUrl } from "@shopping/db";
 import type { Knex } from "knex";
-import { createAiSdkProbe } from "@/lib/models/ai-sdk-probe";
+import {
+  CHATGPT_PLAN_ENDPOINT_ENV,
+  createAiSdkProbe,
+  createChatGPTPlanExercise,
+} from "@/lib/models/ai-sdk-probe";
 
 let db: Knex | undefined;
 let core: ShoppingCore | undefined;
@@ -51,6 +55,15 @@ export function getCore(): ShoppingCore {
     core = createShoppingCore({
       db: getDb(),
       models: { cipher: modelCipher(), probe: createAiSdkProbe() },
+      // The plan exercise is the only place a provider SDK call is made for a
+      // ChatGPT plan connection; core decides when it may run. The endpoint is
+      // configuration (a self-hosted installation may not reach the public
+      // route), so it is read once here and never taken from a request.
+      planExercise: createChatGPTPlanExercise({
+        ...(process.env[CHATGPT_PLAN_ENDPOINT_ENV]
+          ? { baseUrl: process.env[CHATGPT_PLAN_ENDPOINT_ENV] }
+          : {}),
+      }),
     });
   }
   return core;

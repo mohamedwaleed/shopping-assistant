@@ -9,6 +9,7 @@ import * as pageIngestion from "./migrations/20261119010000_page_ingestion";
 import * as authenticatorTwoFactor from "./migrations/20261119020000_authenticator_two_factor";
 import * as attributeReview from "./migrations/20261119030000_attribute_review";
 import * as shoppingChat from "./migrations/20261119040000_shopping_chat";
+import * as planUsage from "./migrations/20261119090000_plan_usage";
 
 interface MigrationModule {
   up: (db: Knex) => Promise<void>;
@@ -26,6 +27,7 @@ const ORDERED_MIGRATIONS: ReadonlyArray<[string, MigrationModule]> = [
   ["20261119020000_authenticator_two_factor", authenticatorTwoFactor],
   ["20261119030000_attribute_review", attributeReview],
   ["20261119040000_shopping_chat", shoppingChat],
+  ["20261119090000_plan_usage", planUsage],
 ];
 
 /** One Knex instance per process; callers own pool lifecycle via destroy(). */

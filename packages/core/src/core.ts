@@ -4,7 +4,7 @@ import { getVariantOfferDetail, listAttributeReviews, reviewAttributeClaim, type
 import { createAuthentication, type AuthDependencies, type Authentication } from "./auth/authentication";
 import { createMailer, type Mailer, type MailerDependencies } from "./mail/mailer";
 import { createEmailLinkOperations, type EmailLinkOperations } from "./auth/email-links";
-import type { Result } from "./errors";
+import { err, type Result } from "./errors";
 import {
   createModelRegistry,
   type ModelRegistry,
@@ -14,12 +14,19 @@ import type { Principal } from "./principal";
 import { createBudgetRegistry, type BudgetRegistry } from "./budgets/budget-registry";
 import { createIngestion, type IngestionDependencies, type IngestedPage } from "./ingestion";
 import { createChatSessions, type ChatSessions } from "./chat";
+import {
+  createChatGPTPlanConnections,
+  type ChatGPTPlanConnections,
+  type ChatGPTPlanDependencies,
+} from "./models/chatgpt-plan";
 
 export interface ShoppingCore {
   auth: Authentication;
   mail: Mailer;
   emailLinks: EmailLinkOperations;
   models: ModelRegistry;
+  /** Provider OAuth for ChatGPT plan usage; separate from application sign-in. */
+  chatgptPlan: ChatGPTPlanConnections;
   budgets: BudgetRegistry;
   chat: ChatSessions;
   catalogue: {
@@ -36,6 +43,12 @@ export interface ShoppingCore {
 type CoreDependencies = {
   db: Knex;
   models: Pick<ModelRegistryDependencies, "cipher" | "probe">;
+  /** The AI SDK adapter that exercises a ChatGPT plan shopping tool step. */
+  planExercise?: ChatGPTPlanDependencies["exercise"];
+  planOAuth?: Pick<
+    ChatGPTPlanDependencies,
+    "authorizeUrl" | "tokenUrl" | "redirectUri" | "agentName" | "hostId"
+  >;
 } & Partial<AuthDependencies> &
   Partial<MailerDependencies> & { ingestion?: IngestionDependencies };
 
@@ -62,6 +75,15 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
       ...(deps.now ? { now: deps.now } : {}),
     }),
     budgets: createBudgetRegistry({ db: deps.db }),
+    chatgptPlan: createChatGPTPlanConnections({
+      db: deps.db,
+      cipher: deps.models.cipher,
+      // Without an adapter no plan request is attempted: the core refuses the
+      // exercise as a configuration error instead of inventing a model call.
+      exercise: deps.planExercise ?? (async () => err({ kind: "chatgpt-plan-request-failed", code: "no-plan-adapter", status: 503 })),
+      ...(deps.planOAuth ?? {}),
+      ...(deps.now ? { now: deps.now } : {}),
+    }),
     chat: createChatSessions({ db: deps.db }),
     catalogue: {
       getVariantOfferDetail: (principal, variantId) =>

@@ -38,6 +38,18 @@ const STATUS_BY_KIND: Record<CoreError["kind"], number> = {
   "source-fetch-failed": 502,
   "extraction-failed": 422,
   "identity-conflict": 409,
+  // Provider OAuth state is a conflict with the workspace's connection, not a
+  // server fault: the shopper connects, refreshes or disconnects and retries.
+  "chatgpt-plan-not-connected": 409,
+  "chatgpt-plan-disconnected": 409,
+  "chatgpt-plan-not-enabled": 409,
+  "chatgpt-plan-expired": 409,
+  "chatgpt-plan-usage-limit": 409,
+  "chatgpt-plan-model-not-selected": 409,
+  "chatgpt-plan-model-unavailable": 409,
+  "chatgpt-plan-consent-declined": 403,
+  // The provider refused or could not complete the plan request.
+  "chatgpt-plan-request-failed": 502,
 };
 
 export function errorResponse(error: CoreError): Response {
