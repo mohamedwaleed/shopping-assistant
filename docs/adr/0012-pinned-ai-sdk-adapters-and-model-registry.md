@@ -3,7 +3,9 @@
 Model access is configuration, not code: one installation default, an optional
 per-workspace override, and an optional extraction model, all resolved through a
 single registry in `packages/core` (`src/models/model-registry.ts`). The Vercel
-AI SDK lives only in the web adapter (`apps/web/lib/models/ai-sdk-probe.ts`), so
+AI SDK lives only in the web adapters (`apps/web/lib/models/ai-sdk-probe.ts`
+for diagnostics and `apps/web/lib/models/ai-sdk-extraction.ts` for
+readable-content extraction), so
 core stays framework-free and the worker, MCP and built-in agent tickets can
 call the same registry without importing a provider SDK.
 
