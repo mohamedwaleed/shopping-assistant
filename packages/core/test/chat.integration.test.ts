@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import { createDb, DEFAULT_TEST_DATABASE_URL, migrateFresh } from "@shopping/db";
 import { createChatSessions, type Principal } from "../src/index";
 import type { Knex } from "knex";
 
@@ -12,7 +12,7 @@ const principal: Principal = { kind: "workspace", userId: "chat-user", workspace
 describe("shopping sessions through the core", () => {
   let db: Knex;
   let chat: ReturnType<typeof createChatSessions>;
-  beforeAll(async () => { db = createDb(url); await db.migrate.rollback({}, true); await db.migrate.latest(); chat = createChatSessions({ db }); });
+  beforeAll(async () => { db = createDb(url); await migrateFresh(db); chat = createChatSessions({ db }); });
   beforeEach(async () => {
     await db("shopping_session_messages").delete(); await db("shopping_session_requirements").delete(); await db("shopping_sessions").delete();
     await db("workspace_memberships").delete(); await db("workspaces").delete(); await db("user").delete();

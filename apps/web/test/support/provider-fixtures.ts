@@ -39,6 +39,8 @@ export interface ProviderFixture {
   /** Base URL to configure as the provider endpoint. */
   baseUrl: string;
   requests: CapturedRequest[];
+  /** Plan-usage wire shape of each `/openai/v1/responses` request received. */
+  planChecks: PlanWireCheck[];
   modeFor(modelId: string): FixtureMode;
   reset(): void;
   close(): Promise<void>;
@@ -61,8 +63,120 @@ export const FIXTURE_MODEL_IDS = Object.keys(MODELS);
 const TOOL_CALL_MARKER = "Call the capability_probe tool";
 const TOOL_RESULT_PREFIX = "fixture-tool-result:";
 const STRUCTURED_MARKER = "Report the probe value";
+/** The readable-content extraction prompt asks to extract the product offer. */
+const EXTRACTION_MARKER = "Extract the product offer stated on this page";
 const STREAM_TEXT = "fixture stream ok";
 const STREAM_CHUNKS = [STREAM_TEXT.slice(0, 7), STREAM_TEXT.slice(7)];
+
+/**
+ * ChatGPT plan usage shares the Responses route but has its own rules
+ * (developers.openai.com/siwc/token-sharing-open-source/preview-limitations):
+ * `store: false`, `stream: true`, no `max_output_tokens`, and function tools
+ * supplied in namespaces rather than as bare top-level tools. The fixture
+ * refuses anything else with the provider's `subscription_sharing_unsupported_
+ * capability` code, so a conformance test proves the request shape rather than
+ * trusting it.
+ */
+const PLAN_TOOL_MARKER = "Call the requirements_update tool";
+const PLAN_TOOL_RESULT_PREFIX = "fixture-plan-tool-result:";
+const PLAN_STREAM_TEXT = "fixture plan ok";
+const PLAN_STREAM_CHUNKS = [PLAN_STREAM_TEXT.slice(0, 8), PLAN_STREAM_TEXT.slice(8)];
+const PLAN_UNSUPPORTED_FIELDS = [
+  "background",
+  "conversation",
+  "max_output_tokens",
+  "max_tool_calls",
+  "metadata",
+  "moderation",
+  "multi_agent",
+  "prompt",
+  "prompt_cache_retention",
+  "safety_identifier",
+  "temperature",
+  "top_logprobs",
+  "top_p",
+  "truncation",
+  "user",
+] as const;
+
+/**
+ * The token endpoint the adapter's OAuth exchange and refresh call, in the
+ * documented wire shape (`grant_type`, `refresh_token`, `expires_in`, `scope`).
+ */
+export const PLAN_REFRESH_TOKEN = "plan-refresh-token-fixture-0001";
+const PLAN_REFRESHED_ACCESS_TOKEN = "plan-access-token-fixture-refreshed";
+const PLAN_REFRESHED_REFRESH_TOKEN = "plan-refresh-token-fixture-0002";
+
+function idTokenFor(subject: string, email: string): string {
+  const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${encode({ alg: "none", typ: "JWT" })}.${encode({ sub: subject, email, iss: "https://auth.openai.com" })}.fixture`;
+}
+
+/**
+ * A token issued for ChatGPT plan usage: the Responses route sees a bearer
+ * token whose audience is the public API. Only these fixture tokens are
+ * accepted, so a test can prove an API key was never spent on this route.
+ */
+export const PLAN_FIXTURE_TOKENS = {
+  eligible: "plan-access-token-fixture-0001",
+  expired: "plan-access-token-fixture-expired",
+  usageLimit: "plan-access-token-fixture-usage-limit",
+  notEligible: "plan-access-token-fixture-not-eligible",
+  unauthorized: "plan-access-token-fixture-unauthorized",
+} as const;
+
+export interface PlanWireCheck {
+  store: boolean | undefined;
+  stream: boolean | undefined;
+  /** Fields the route forbids and the request nonetheless carried. */
+  unsupportedFields: string[];
+  /** Namespace ids that carried function tools. */
+  toolNamespaces: string[];
+  /** Bare top-level function tools, which this route does not accept. */
+  bareTools: number;
+  /** True when the system instruction was sent as a developer message. */
+  developerInstructions: boolean;
+  /** True when a `{type:"message", role:"system"}` item was sent, which is rejected. */
+  systemMessageItem: boolean;
+  inputIsArray: boolean;
+}
+
+function planWireCheck(body: Record<string, unknown>): PlanWireCheck {
+  const tools = Array.isArray(body.tools) ? body.tools : [];
+  const input = Array.isArray(body.input) ? body.input : [];
+  return {
+    store: body.store as boolean | undefined,
+    stream: body.stream as boolean | undefined,
+    unsupportedFields: PLAN_UNSUPPORTED_FIELDS.filter((field) => field in body),
+    toolNamespaces: tools.flatMap((entry) => {
+      if (!entry || typeof entry !== "object") return [];
+      const record = entry as Record<string, unknown>;
+      return record.type === "namespace" && typeof record.name === "string" ? [record.name] : [];
+    }),
+    bareTools: tools.filter(
+      (entry) =>
+        entry !== null &&
+        typeof entry === "object" &&
+        (entry as Record<string, unknown>).type === "function",
+    ).length,
+    developerInstructions:
+      Array.isArray(body.instructions) ||
+      input.some(
+        (item) =>
+          item !== null &&
+          typeof item === "object" &&
+          (item as Record<string, unknown>).role === "developer",
+      ),
+    systemMessageItem: input.some(
+      (item) =>
+        item !== null &&
+        typeof item === "object" &&
+        (item as Record<string, unknown>).type === "message" &&
+        (item as Record<string, unknown>).role === "system",
+    ),
+    inputIsArray: Array.isArray(body.input),
+  };
+}
 
 /**
  * The schema-conforming answer to the structured-output probe. The shape is
@@ -90,7 +204,14 @@ function readBody(req: IncomingMessage): Promise<Record<string, unknown>> {
       try {
         resolve(raw ? (JSON.parse(raw) as Record<string, unknown>) : {});
       } catch {
-        resolve({});
+        // The OAuth token endpoint takes a form-encoded body, so the raw text is
+        // kept for it; the fixture's own paths are JSON.
+        const contentType = req.headers["content-type"] ?? "";
+        resolve(
+          contentType.includes("application/x-www-form-urlencoded")
+            ? { raw }
+            : {},
+        );
       }
     });
   });
@@ -148,8 +269,31 @@ function toolSpecs(tools: unknown): ToolSpec[] {
 interface Reply {
   kind: "tool-call" | "final" | "structured" | "text";
   toolName?: string;
+  /** Namespace the call belongs to; the plan route calls namespaced tools. */
+  namespace?: string;
   text: string;
   malformed?: boolean;
+}
+
+/** Function tools, including those grouped inside a namespace entry. */
+function functionNames(tools: unknown): Array<{ name: string; namespace?: string }> {
+  if (!Array.isArray(tools)) return [];
+  const names: Array<{ name: string; namespace?: string }> = [];
+  for (const entry of tools) {
+    if (!entry || typeof entry !== "object") continue;
+    const record = entry as Record<string, unknown>;
+    if (record.type === "namespace" && Array.isArray(record.tools)) {
+      for (const inner of record.tools) {
+        if (inner && typeof inner === "object" && typeof (inner as { name?: unknown }).name === "string") {
+          names.push({ name: (inner as { name: string }).name, namespace: String(record.name) });
+        }
+      }
+      continue;
+    }
+    const fn = (record.function ?? record) as Record<string, unknown>;
+    if (typeof fn.name === "string") names.push({ name: fn.name });
+  }
+  return names;
 }
 
 /**
@@ -179,6 +323,23 @@ function structuredRequestIn(
   return null;
 }
 
+/**
+ * What a model that honours the extraction schema returns for the reviewed
+ * readable page: every value is paired with the index of the line it came from.
+ * `no-structured-output` answers prose and `no-structured-schema` answers JSON
+ * of the wrong shape, so both must be recorded as "nothing extracted".
+ */
+const EXTRACTION_ANSWER = {
+  fields: {
+    name: "Philips Airfryer Essential HD9200/90",
+    price: "79.99",
+    currency: "EUR",
+    gtin: "8710103926851",
+  },
+  evidence: { name: 0, price: 2, currency: 2, gtin: 4 },
+  attributes: { Model: "HD9200/90" },
+};
+
 function replyFor(
   mode: FixtureMode,
   path: string,
@@ -186,14 +347,32 @@ function replyFor(
   prompt: string,
   tools: ToolSpec[],
 ): Reply {
+  const namespaced = functionNames(request.tools);
   if (prompt.includes("Call the requirements_update tool") && tools.length > 0) {
-    return { kind: "tool-call", toolName: tools.find((tool) => tool.name === "requirements_update")?.name ?? tools[0]!.name, text: "", malformed: mode === "malformed-tools" };
+    const target = namespaced.find((entry) => entry.name === "requirements_update") ?? namespaced[0];
+    return {
+      kind: "tool-call",
+      toolName: target?.name ?? tools[0]!.name,
+      ...(target?.namespace ? { namespace: target.namespace } : {}),
+      text: "",
+      malformed: mode === "malformed-tools",
+    };
+  }
+  if (prompt.includes(PLAN_TOOL_RESULT_PREFIX)) {
+    return { kind: "final", text: "fixture plan tool ok" };
   }
   if (prompt.includes(TOOL_CALL_MARKER) && mode !== "no-tools" && tools.length > 0) {
     return { kind: "tool-call", toolName: tools[0]!.name, text: "" };
   }
   if (prompt.includes(TOOL_RESULT_PREFIX)) {
     return { kind: "final", text: "fixture tool ok" };
+  }
+  if (prompt.includes(EXTRACTION_MARKER)) {
+    if (mode === "no-structured-output") {
+      return { kind: "structured", text: "The airfryer costs seventy-nine euros." };
+    }
+    const payload = mode === "no-structured-schema" ? STRUCTURED_NONCONFORMING : EXTRACTION_ANSWER;
+    return { kind: "structured", text: JSON.stringify(payload) };
   }
   if (prompt.includes(STRUCTURED_MARKER)) {
     // An endpoint without structured output answers prose, and an endpoint that
@@ -518,8 +697,257 @@ function anthropicEvents(reply: Reply): string[] {
   return events;
 }
 
+/**
+ * Which plan token the request carried, if any. Anything else (an API key) is
+ * not a plan credential: the fixture answers it as ordinary API usage.
+ */
+function planTokenOf(authorization: string | null): string | null {
+  const token = authorization?.replace(/^Bearer\s+/i, "") ?? "";
+  return [...Object.values(PLAN_FIXTURE_TOKENS), PLAN_FAILED_STREAM_TOKEN].includes(token as never)
+    ? token
+    : null;
+}
+
+interface Refusal {
+  status: number;
+  body: unknown;
+}
+
+/**
+ * The plan route refuses a request that breaks its documented requirements, and
+ * refuses the account-specific failures (exhausted allowance, ineligible
+ * account, expired token, a credential that is not a plan token) *before a
+ * stream opens*, so the adapter must read the refusal rather than assume the
+ * stream started.
+ */
+function planRefusal(
+  check: PlanWireCheck,
+  authorization: string | null,
+  stream: boolean,
+): Refusal | null {
+  const token = planTokenOf(authorization);
+  if (!token) {
+    // An API key or a cookie-derived credential cannot pay from a plan.
+    return {
+      status: 401,
+      body: {
+        error: {
+          message: "the bearer credential is not a ChatGPT plan token",
+          type: "invalid_request_error",
+          code: "subscription_sharing_invalid_user",
+        },
+      },
+    };
+  }
+  if (token === PLAN_FIXTURE_TOKENS.unauthorized) {
+    return {
+      status: 401,
+      body: {
+        error: {
+          message: "the subscriber context could not be validated",
+          type: "invalid_request_error",
+          code: "subscription_sharing_invalid_user",
+        },
+      },
+    };
+  }
+  if (token === PLAN_FIXTURE_TOKENS.expired) {
+    return {
+      status: 401,
+      body: {
+        error: {
+          message: "the access token expired",
+          type: "invalid_request_error",
+          code: "token_expired",
+        },
+      },
+    };
+  }
+  if (token === PLAN_FIXTURE_TOKENS.notEligible) {
+    return {
+      status: 403,
+      body: {
+        error: {
+          message: "ChatGPT plan usage is unavailable for this account",
+          type: "invalid_request_error",
+          code: "subscription_sharing_user_not_eligible",
+        },
+      },
+    };
+  }
+  if (token === PLAN_FIXTURE_TOKENS.usageLimit) {
+    return {
+      status: 429,
+      body: {
+        error: {
+          message: "the plan allowance is exhausted",
+          type: "invalid_request_error",
+          code: "subscription_sharing_usage_limit_exceeded",
+        },
+      },
+    };
+  }
+  // Conformance: the documented requirements for this route.
+  const violations: string[] = [];
+  if (check.store !== false) violations.push("store");
+  if (check.stream !== true || !stream) violations.push("stream");
+  if (check.unsupportedFields.length > 0) violations.push(...check.unsupportedFields);
+  if (check.bareTools > 0) violations.push("tools");
+  if (check.systemMessageItem) violations.push("input.role.system");
+  if (!check.inputIsArray) violations.push("input");
+  if (violations.length > 0) {
+    return {
+      status: 400,
+      body: {
+        error: {
+          message: `unsupported for ChatGPT plan usage: ${violations.join(", ")}`,
+          type: "invalid_request_error",
+          code: "subscription_sharing_unsupported_capability",
+          param: violations[0],
+        },
+      },
+    };
+  }
+  return null;
+}
+
+/**
+ * A stream that already opened but ends without `response.completed`. The
+ * adapter must treat this as a failure, not as a short answer.
+ */
+export const PLAN_FAILED_STREAM_TOKEN = "plan-access-token-fixture-stream-fails";
+
+function planFailedStreamEvents(): string[] {
+  const response = { id: "resp_plan_fixture", object: "response", created_at: 0, model: "fixture", status: "in_progress" };
+  const events: string[] = [];
+  const push = (event: unknown) =>
+    events.push(`event: ${(event as { type: string }).type}\ndata: ${JSON.stringify(event)}\n\n`);
+  push({ type: "response.created", response });
+  push({
+    type: "response.failed",
+    response: {
+      ...response,
+      status: "failed",
+      error: { code: "subscription_sharing_usage_limit_exceeded", message: "plan allowance exhausted mid-stream" },
+    },
+  });
+  return events;
+}
+
+/**
+ * Plan-usage streaming events. The route always answers as a stream and only a
+ * terminal `response.completed` counts as success, so the tool-call and final
+ * answer phases are emitted as the Responses protocol defines them.
+ */
+function planEvents(reply: Reply): string[] {
+  const events: string[] = [];
+  const push = (event: unknown) =>
+    events.push(`event: ${(event as { type: string }).type}\ndata: ${JSON.stringify(event)}\n\n`);
+  const response = { id: "resp_plan_fixture", object: "response", created_at: 0, model: "fixture", status: "in_progress" };
+  push({ type: "response.created", response });
+  push({ type: "response.in_progress", response });
+  if (reply.kind === "tool-call") {
+    push({
+      type: "response.output_item.added",
+      output_index: 0,
+      item: {
+        type: "function_call",
+        id: "fc_plan_fixture",
+        call_id: "call_plan_fixture",
+        name: reply.toolName,
+        ...(reply.namespace ? { namespace: reply.namespace } : {}),
+        arguments: "",
+        status: "in_progress",
+      },
+    });
+    push({
+      type: "response.function_call_arguments.delta",
+      item_id: "fc_plan_fixture",
+      output_index: 0,
+      delta: JSON.stringify(PLAN_TOOL_ARGUMENTS),
+    });
+    push({
+      type: "response.function_call_arguments.done",
+      item_id: "fc_plan_fixture",
+      output_index: 0,
+      arguments: JSON.stringify(PLAN_TOOL_ARGUMENTS),
+    });
+    push({
+      type: "response.output_item.done",
+      output_index: 0,
+      item: {
+        type: "function_call",
+        id: "fc_plan_fixture",
+        call_id: "call_plan_fixture",
+        name: reply.toolName,
+        ...(reply.namespace ? { namespace: reply.namespace } : {}),
+        arguments: JSON.stringify(PLAN_TOOL_ARGUMENTS),
+        status: "completed",
+      },
+    });
+  } else {
+    push({
+      type: "response.output_item.added",
+      output_index: 0,
+      item: { type: "message", id: "msg_plan_fixture", role: "assistant", status: "in_progress", content: [] },
+    });
+    push({
+      type: "response.content_part.added",
+      item_id: "msg_plan_fixture",
+      output_index: 0,
+      content_index: 0,
+      part: { type: "output_text", text: "", annotations: [] },
+    });
+    for (const delta of PLAN_STREAM_CHUNKS) {
+      push({
+        type: "response.output_text.delta",
+        item_id: "msg_plan_fixture",
+        output_index: 0,
+        content_index: 0,
+        delta,
+      });
+    }
+    push({
+      type: "response.output_text.done",
+      item_id: "msg_plan_fixture",
+      output_index: 0,
+      content_index: 0,
+      text: reply.text || PLAN_STREAM_TEXT,
+    });
+    push({
+      type: "response.output_item.done",
+      output_index: 0,
+      item: {
+        type: "message",
+        id: "msg_plan_fixture",
+        role: "assistant",
+        status: "completed",
+        content: [{ type: "output_text", text: reply.text || PLAN_STREAM_TEXT, annotations: [] }],
+      },
+    });
+  }
+  push({
+    type: "response.completed",
+    response: {
+      ...response,
+      status: "completed",
+      usage: { input_tokens: 12, output_tokens: 3, total_tokens: 15 },
+    },
+  });
+  return events;
+}
+
+const PLAN_TOOL_ARGUMENTS = {
+  mustHaves: ["minstens 16 GB geheugen"],
+  preferences: ["licht gewicht"],
+  assumptions: ["levering in Nederland"],
+  questions: ["Welke schermgrootte?"],
+  revisionNote: "fixture plan extraction",
+};
+
 export async function startProviderFixtures(): Promise<ProviderFixture> {
   let requests: CapturedRequest[] = [];
+  let planChecks: PlanWireCheck[] = [];
 
   const server: Server = createServer((req, res) => {
     void (async () => {
@@ -539,7 +967,15 @@ export async function startProviderFixtures(): Promise<ProviderFixture> {
         return;
       }
       if (mode === "unauthorized") {
-        sendJson(res, 401, { error: { message: "fixture rejects this credential", type: "invalid_request_error" } });
+        // The plan route's own authentication errors, so a plan test sees the
+        // provider's documented code rather than a generic message.
+        sendJson(res, 401, {
+          error: {
+            message: "fixture rejects this credential",
+            type: "invalid_request_error",
+            code: "subscription_sharing_invalid_user",
+          },
+        });
         return;
       }
 
@@ -548,8 +984,67 @@ export async function startProviderFixtures(): Promise<ProviderFixture> {
       const stream = streamRequested(body);
 
       if (path === "/openai/v1/responses") {
+        // ChatGPT plan usage shares this route but has its own rules. The
+        // request is recognised by its bearer credential, so an API-key request
+        // is never mistaken for plan usage and vice versa.
+        const planCheck = planWireCheck(body);
+        // Plan usage and API-key usage share this route. A plan request is
+        // recognised by its documented shape, so each adapter is answered in its
+        // own protocol and an API-key probe is never answered as plan usage.
+        const planRequested =
+          planCheck.store === false && (planCheck.toolNamespaces.length > 0 || planCheck.developerInstructions);
+        if (planRequested) {
+          planChecks.push(planCheck);
+          const refusal = planRefusal(planCheck, req.headers.authorization ?? null, stream);
+          if (refusal) {
+            sendJson(res, refusal.status, refusal.body);
+            return;
+          }
+          if (req.headers.authorization?.includes(PLAN_FAILED_STREAM_TOKEN)) {
+            sendEventStream(res, planFailedStreamEvents());
+            return;
+          }
+          sendEventStream(res, planEvents(reply));
+          return;
+        }
         if (stream) sendEventStream(res, openAiResponsesEvents(reply));
         else sendJson(res, 200, openAiResponsesPayload(reply));
+        return;
+      }
+      if (path === "/oauth/token") {
+        const form = new URLSearchParams(
+          typeof body.raw === "string" ? body.raw : JSON.stringify(body),
+        );
+        const grantType = String((body.grant_type as string | undefined) ?? form.get("grant_type") ?? "");
+        if (grantType === "authorization_code") {
+          sendJson(res, 200, {
+            access_token: PLAN_FIXTURE_TOKENS.eligible,
+            refresh_token: PLAN_REFRESH_TOKEN,
+            id_token: idTokenFor("chatgpt-subject-fixture", "sam@example.nl"),
+            token_type: "Bearer",
+            expires_in: 3600,
+            scope: "chatgpt.tokens.use.direct email offline_access openid profile resource.invoke",
+            client_id: "oaiapp_fixture0001",
+          });
+          return;
+        }
+        if (grantType === "refresh_token") {
+          const presented = String((body.refresh_token as string | undefined) ?? form.get("refresh_token") ?? "");
+          if (presented === PLAN_REFRESH_TOKEN) {
+            sendJson(res, 200, {
+              access_token: PLAN_REFRESHED_ACCESS_TOKEN,
+              refresh_token: PLAN_REFRESHED_REFRESH_TOKEN,
+              token_type: "Bearer",
+              expires_in: 3600,
+              scope: "chatgpt.tokens.use.direct email offline_access openid profile resource.invoke",
+            });
+            return;
+          }
+          // A reused or unknown refresh token is the documented terminal error.
+          sendJson(res, 400, { error: "invalid_grant", error_description: "refresh token is not usable" });
+          return;
+        }
+        sendJson(res, 400, { error: "unsupported_grant_type" });
         return;
       }
       if (path === "/anthropic/v1/messages") {
@@ -580,9 +1075,13 @@ export async function startProviderFixtures(): Promise<ProviderFixture> {
     get requests() {
       return requests;
     },
+    get planChecks() {
+      return planChecks;
+    },
     modeFor: (modelId) => MODELS[modelId] ?? "complete",
     reset: () => {
       requests = [];
+      planChecks = [];
     },
     close: () =>
       new Promise<void>((resolve, reject) =>

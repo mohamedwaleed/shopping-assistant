@@ -7,15 +7,20 @@ import {
   changePasswordAction,
   beginTwoFactorEnrollmentAction,
   confirmTwoFactorEnrollmentAction,
+  requestEmailChangeAction,
   revokeAllDevicesAction,
   revokeDeviceAction,
 } from "@/app/actions";
 import { DeviceList, PasswordForm, TwoFactorForm } from "@/app/auth-forms";
+import { EmailChangeForm } from "@/app/email-link-forms";
 
 /**
- * Account settings: the signed-in devices of this account and the password
- * change form. Devices come from stored sessions through the core, so the list
- * shows exactly what a revoke would delete, and nothing about another account.
+ * Account settings: the sign-in address, the signed-in devices of this account
+ * and the password change form. Devices come from stored sessions through the
+ * core, so the list shows exactly what a revoke would delete, and nothing about
+ * another account. The email change only starts here: core keeps the
+ * recent-authentication requirement, and the address moves when the link sent
+ * to the new mailbox is opened at /account/email/confirm.
  */
 export default async function Account({
   searchParams,
@@ -57,6 +62,11 @@ export default async function Account({
           devices={sessions}
           revokeAction={revokeDeviceAction}
           revokeAllAction={revokeAllDevicesAction}
+        />
+        <EmailChangeForm
+          lang={lang}
+          currentEmail={identity.trusted.user.email}
+          action={requestEmailChangeAction}
         />
         <PasswordForm lang={lang} action={changePasswordAction} />
         <TwoFactorForm lang={lang} beginAction={beginTwoFactorEnrollmentAction} confirmAction={confirmTwoFactorEnrollmentAction} />

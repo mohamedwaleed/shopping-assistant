@@ -46,6 +46,13 @@ export interface ModelRegistry {
    * provider, model or account.
    */
   resolve(principal: Principal, role?: ModelRole): Promise<Result<ResolvedModel>>;
+  /**
+   * The extraction role for catalogue work that belongs to no workspace: the
+   * installation's extraction override, then its default, using only the
+   * installation credential. It never borrows a workspace override or key,
+   * because a page read for the public catalogue is not one shopper's work.
+   */
+  resolveExtractionModel(): Promise<Result<ResolvedModel>>;
   testConnection(
     principal: Principal,
     input: { bounds?: Partial<DiagnosticBounds> },
@@ -556,6 +563,31 @@ export function createModelRegistry(deps: ModelRegistryDependencies): ModelRegis
     });
   }
 
+  async function resolveExtractionModel(): Promise<Result<ResolvedModel>> {
+    const settings = await readSettings();
+    const target = settings.extractionModel ?? settings.defaultModel;
+    if (!target) return err({ kind: "model-not-configured", role: "extraction" });
+    const credential = await readCredential("installation");
+    if (!credential) {
+      return err({ kind: "model-credential-missing", provider: target.provider, source: "installation" });
+    }
+    if (credential.provider !== target.provider) {
+      return err({
+        kind: "model-credential-provider-mismatch",
+        provider: target.provider,
+        credentialProvider: credential.provider,
+        source: "installation",
+      });
+    }
+    return ok({
+      ...target,
+      role: "extraction",
+      source: "installation",
+      usageSource: "installation",
+      apiKey: credential.apiKey,
+    });
+  }
+
   async function testConnection(
     principal: Principal,
     input: { bounds?: Partial<DiagnosticBounds> },
@@ -624,5 +656,5 @@ export function createModelRegistry(deps: ModelRegistryDependencies): ModelRegis
     return ok(report);
   }
 
-  return { read, saveInstallation, saveWorkspace, resolve, testConnection };
+  return { read, saveInstallation, saveWorkspace, resolve, resolveExtractionModel, testConnection };
 }
