@@ -5,6 +5,7 @@ import {
   createDb,
   DEFAULT_TEST_DATABASE_URL,
   loadDevelopmentFixtures,
+  migrateFresh,
 } from "../src/index";
 
 // Real-PostgreSQL checks: migrations must be repeatable and development
@@ -17,7 +18,7 @@ describe("catalogue schema on PostgreSQL", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.latest();
+    await migrateFresh(db);
   });
 
   afterAll(async () => {

@@ -17,7 +17,7 @@ const BOL_TEXT = `<html><body>
   <h1>Philips Airfryer Essential HD9200/90</h1>
   <p>De Philips Airfryer Essential bak <b>4,1 liter</b> in een keer.</p>
   <p>Prijs: &euro; 79,99 (EUR)</p>
-  <dl class="specs"><dt>EAN</dt><dd>8710103926851</dd><dt>Model</dt><dd>HD9200/90</dd></dl>
+  <dl class="specs"><dt>EAN</dt><dd>8710103926856</dd><dt>Model</dt><dd>HD9200/90</dd></dl>
   <script>window.tracking = "do not read me";</script>
   <style>.price { color: red }</style>
 </body></html>`;
@@ -32,14 +32,14 @@ describe("readable content", () => {
       "De Philips Airfryer Essential bak 4,1 liter in een keer.",
       "Prijs: € 79,99 (EUR)",
       "EAN",
-      "8710103926851",
+      "8710103926856",
       "Model",
       "HD9200/90",
     ]);
     // Script and style contents are never readable content.
     expect(content.lines.map((line) => line.text).join(" ")).not.toContain("do not read me");
     expect(content.lines[0]).toEqual({ selector: "h1", text: "Philips Airfryer Essential HD9200/90" });
-    expect(content.lines[4]).toEqual({ selector: "dd:contains", text: "8710103926851" });
+    expect(content.lines[4]).toEqual({ selector: "dd:contains", text: "8710103926856" });
   });
 
   it("reports a page with no readable body text as empty", () => {
@@ -69,7 +69,7 @@ describe("evidence-linked model extraction", () => {
           name: "Philips Airfryer Essential HD9200/90",
           price: "79.99",
           currency: "EUR",
-          gtin: "8710103926851",
+          gtin: "8710103926856",
           mpn: "HD9200/90",
         },
         // The model points at the lines it read: name on line 0, price on line 2
@@ -84,10 +84,10 @@ describe("evidence-linked model extraction", () => {
       name: "Philips Airfryer Essential HD9200/90",
       price: "79.99",
       currency: "EUR",
-      gtin: "8710103926851",
+      gtin: "8710103926856",
       mpn: "HD9200/90",
     });
-    expect(extraction.evidence).toContainEqual({ field: "gtin", selector: "dd:contains", value: "8710103926851" });
+    expect(extraction.evidence).toContainEqual({ field: "gtin", selector: "dd:contains", value: "8710103926856" });
     expect(extraction.requiredCoverage).toEqual({
       present: ["name", "price", "currency", "gtin"],
       missing: [],
@@ -100,7 +100,7 @@ describe("evidence-linked model extraction", () => {
         fields: {
           name: "Philips Airfryer Essential HD9200/90",
           price: "69.99",
-          gtin: "8710103926851",
+          gtin: "8710103926856",
         },
         // The model cites a line for a price the page never states, and gives
         // no evidence at all for the currency.
@@ -111,7 +111,7 @@ describe("evidence-linked model extraction", () => {
 
     expect(extraction.fields).toEqual({
       name: "Philips Airfryer Essential HD9200/90",
-      gtin: "8710103926851",
+      gtin: "8710103926856",
     });
     expect(extraction.requiredCoverage).toEqual({
       present: ["name", "gtin"],
@@ -121,7 +121,7 @@ describe("evidence-linked model extraction", () => {
 
   it("drops a value whose cited line is not evidence for it", () => {
     const extraction = verifyModelReading(
-      { fields: { price: "79.99", gtin: "8710103926851" }, evidence: { price: 0, gtin: 0 } },
+      { fields: { price: "79.99", gtin: "8710103926856" }, evidence: { price: 0, gtin: 0 } },
       content,
     );
     expect(extraction.fields).toEqual({});

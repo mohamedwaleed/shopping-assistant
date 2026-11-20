@@ -2,7 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Knex } from "knex";
 import { getAuthTables } from "better-auth/db";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import { createDb, DEFAULT_TEST_DATABASE_URL, migrateFresh } from "@shopping/db";
 import { knexAuthAdapter } from "@/lib/auth/knex-adapter";
 import { createAuthOptions } from "@/lib/auth/server";
 
@@ -24,7 +24,7 @@ describe("Knex-backed Better Auth adapter on PostgreSQL", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.latest();
+    await migrateFresh(db);
   });
 
   afterAll(async () => {

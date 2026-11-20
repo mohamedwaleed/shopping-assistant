@@ -111,7 +111,20 @@ export {
   type VocabularyTerm,
 } from "./catalogue-search-query";
 export { addMoney, compareMoney } from "./money";
-export { createIngestion, type IngestedPage, type IngestionDependencies, type PageFetcher, type PermittedSource, type SourcePolicy } from "./ingestion";
+export {
+  createIngestion,
+  type FetchBounds,
+  type IngestedPage,
+  type IngestionDependencies,
+  type PageFetcher,
+  type PermittedSource,
+  type PageSourceCoverage,
+  type SourceFailure,
+  type SourcePolicy,
+} from "./ingestion";
+export {
+  DEFAULT_FETCH_BOUNDS,
+} from "./ingestion/bounds";
 export {
   adapterFor,
   adaptersForHost,

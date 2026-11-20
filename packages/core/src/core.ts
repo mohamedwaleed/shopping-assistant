@@ -18,7 +18,7 @@ import {
 import type { Principal } from "./principal";
 import { isAuthorized } from "./principal";
 import { createBudgetRegistry, type BudgetRegistry } from "./budgets/budget-registry";
-import { createIngestion, type IngestionDependencies, type IngestedPage } from "./ingestion";
+import { createIngestion, type IngestionDependencies, type IngestedPage, type PageSourceCoverage } from "./ingestion";
 import {
   createSourceCoverage,
   type SourceCoverage,
@@ -56,6 +56,7 @@ export interface ShoppingCore {
       variantId: string,
     ): Promise<Result<VariantOfferDetail>>;
     ingestProductPage(principal: Principal, sourceUrl: string): Promise<Result<IngestedPage>>;
+    reportSourceCoverage(principal: Principal, sourceUrl: string): Promise<Result<PageSourceCoverage>>;
     listAttributeReviews(principal: Principal): Promise<Result<AttributeReview[]>>;
     reviewAttributeClaim(principal: Principal, claimId: string, canonicalKey: string | null): Promise<Result<void>>;
   };
@@ -118,6 +119,7 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
     ...(deps.extraction?.extractor ? { resolveExtractionModel: () => modelRegistry.resolveExtractionModel() } : {}),
     now,
   });
+  const ingestion = createIngestion(deps.db, { ...deps.ingestion, coverage: sources });
   return {
     auth,
     mail,
@@ -138,7 +140,8 @@ export function createShoppingCore(deps: CoreDependencies): ShoppingCore {
       search: (principal, query) => searchCatalogue(deps.db, principal, query),
       getVariantOfferDetail: (principal, variantId) =>
         getVariantOfferDetail(deps.db, principal, variantId),
-      ingestProductPage: createIngestion(deps.db, { ...deps.ingestion, coverage: sources }),
+      ingestProductPage: ingestion.ingestProductPage,
+      reportSourceCoverage: ingestion.reportSourceCoverage,
       listAttributeReviews: (principal) => listAttributeReviews(deps.db, principal),
       reviewAttributeClaim: (principal, claimId, canonicalKey) => reviewAttributeClaim(deps.db, principal, claimId, canonicalKey),
     },

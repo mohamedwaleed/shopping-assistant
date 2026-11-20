@@ -32,7 +32,7 @@ export const COOLBLUE_JSONLD_HTML = `<!doctype html>
     "name": "Dell UltraSharp U2723QE",
     "brand": { "@type": "Brand", "name": "Dell" },
     "category": "Monitoren",
-    "gtin13": "5397184572244",
+    "gtin13": "5397184572245",
     "mpn": "U2723QE",
     "sku": "869952",
     "additionalProperty": [
@@ -60,7 +60,7 @@ export const COOLBLUE_JSONLD_HTML = `<!doctype html>
       <tr><th>Schermdiagonaal</th><td>27 inch</td></tr>
       <tr><th>Paneeltype</th><td>IPS Black</td></tr>
       <tr><th>Fabrikantcode</th><td>U2723QE</td></tr>
-      <tr><th>EAN</th><td>5397184572244</td></tr>
+      <tr><th>EAN</th><td>5397184572245</td></tr>
     </table>
   </section>
 </body>
@@ -103,7 +103,7 @@ export const BOL_TABLE_HTML = `<!doctype html>
     <dl class="product-specs">
       <dt>Merk</dt><dd>Philips</dd>
       <dt>Model</dt><dd>HD9200/90</dd>
-      <dt>EAN</dt><dd>8710103926851</dd>
+      <dt>EAN</dt><dd>8710103926856</dd>
       <dt>Inhoud</dt><dd>4,1 liter</dd>
       <dt>Vermogen</dt><dd>1400 watt</dd>
       <dt>Kleur</dt><dd>Zwart</dd>

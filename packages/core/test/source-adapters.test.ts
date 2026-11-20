@@ -56,7 +56,7 @@ describe("maintained source adapters", () => {
       name: "Dell UltraSharp U2723QE",
       manufacturer: "Dell",
       category: "Monitoren",
-      gtin: "5397184572244",
+      gtin: "5397184572245",
       mpn: "U2723QE",
       sku: "869952",
       price: "559.00",
@@ -92,7 +92,7 @@ describe("maintained source adapters", () => {
     expect(reading.fields).toMatchObject({
       name: "Philips Airfryer Essential HD9200/90",
       manufacturer: "Philips",
-      gtin: "8710103926851",
+      gtin: "8710103926856",
       mpn: "HD9200/90",
       price: "79.99",
       currency: "EUR",

@@ -6,6 +6,7 @@ import {
   DEFAULT_TEST_DATABASE_URL,
   DEVELOPMENT_FIXTURE_IDS,
   loadDevelopmentFixtures,
+  migrateFresh,
 } from "@shopping/db";
 
 // Thin-adapter contract checks: the HTTP layer maps core results and errors.
@@ -22,7 +23,7 @@ beforeAll(async () => {
   // installation secret the development stack supplies.
   process.env.INSTALLATION_SECRET = "api-contract-installation-secret-0123";
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.latest();
+  await migrateFresh(db);
   await loadDevelopmentFixtures(db);
   variantRoute = await import("../app/api/catalogue/variants/[id]/route");
   healthRoute = await import("../app/api/health/route");

@@ -2,7 +2,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { SMTPServer } from "smtp-server";
 import type { Knex } from "knex";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import { createDb, DEFAULT_TEST_DATABASE_URL, migrateFresh } from "@shopping/db";
 import { closeCore, getDb } from "@/lib/core";
 import { closeAuth, getAuth } from "@/lib/auth/session";
 import { createAccountProvisioner } from "@/lib/auth/provisioner";
@@ -102,7 +102,7 @@ beforeAll(async () => {
   process.env.INSTALLATION_SECRET = SECRET;
 
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.latest();
+  await migrateFresh(db);
 
   const recipients: string[] = [];
   const server = new SMTPServer({

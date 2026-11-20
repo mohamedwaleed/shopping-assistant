@@ -2,7 +2,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Knex } from "knex";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import { createDb, DEFAULT_TEST_DATABASE_URL, migrateFresh } from "@shopping/db";
 import { runServerAction } from "./support/server-action-scope";
 
 // The framework's request modules read `globalThis.AsyncLocalStorage` once,
@@ -95,7 +95,7 @@ beforeAll(async () => {
   process.env.SETUP_TOKEN = TOKEN;
 
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.latest();
+  await migrateFresh(db);
 
   claimRoute = await import("../app/api/setup/claim/route");
   signInRoute = await import("../app/api/sign-in/route");

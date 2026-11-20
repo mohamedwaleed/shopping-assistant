@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Knex } from "knex";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import { createDb, DEFAULT_TEST_DATABASE_URL, migrateFresh } from "@shopping/db";
 import { createEmailLinkOperations, principalForUser, type AccountProvisioner, type Authentication, type Mailer } from "../src";
 
 const url = process.env.DATABASE_URL_TEST ?? DEFAULT_TEST_DATABASE_URL;
@@ -27,7 +27,7 @@ describe("email-bound account links through the core", () => {
     if (!match) throw new Error("expected a delivered link");
     return decodeURIComponent(match[1]!);
   }
-  beforeAll(async () => { db = createDb(url); await db.migrate.latest(); });
+  beforeAll(async () => { db = createDb(url); await migrateFresh(db); });
   beforeEach(async () => {
     await db("workspace_memberships").delete(); await db("workspaces").delete(); await db("session").delete(); await db("account").delete(); await db("user").delete(); await db("verification").delete();
     messages = [];
