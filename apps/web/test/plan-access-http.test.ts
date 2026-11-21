@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Knex } from "knex";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import {
+  migrateFresh, createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
 import { getCore, getDb } from "@/lib/core";
 import { closeAuth, getAuth } from "@/lib/auth/session";
 import { createAccountProvisioner } from "@/lib/auth/provisioner";
@@ -50,8 +51,7 @@ beforeAll(async () => {
 
   fixtures = await startProviderFixtures();
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.rollback({}, true);
-  await db.migrate.latest();
+  await migrateFresh(db);
 
   setupRoute = await import("../app/api/settings/models/route");
   testRoute = await import("../app/api/settings/models/test/route");

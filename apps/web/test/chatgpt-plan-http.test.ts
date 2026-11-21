@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Knex } from "knex";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import {
+  migrateFresh, createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
 import { CHATGPT_PLAN_SCOPE } from "@shopping/core";
 import { getCore, getDb } from "@/lib/core";
 import { closeAuth, getAuth } from "@/lib/auth/session";
@@ -92,8 +93,7 @@ beforeAll(async () => {
   process.env.CHATGPT_PLAN_RESPONSES_BASE_URL = `${fixtures.baseUrl}/openai/v1`;
   process.env.CHATGPT_PLAN_TOKEN_URL = `${fixtures.baseUrl}/oauth/token`;
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.rollback({}, true);
-  await db.migrate.latest();
+  await migrateFresh(db);
 
   statusRoute = await import("../app/api/settings/chatgpt-plan/route");
   consentRoute = await import("../app/api/settings/chatgpt-plan/consent/route");

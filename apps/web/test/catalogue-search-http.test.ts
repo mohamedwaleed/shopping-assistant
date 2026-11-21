@@ -2,6 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Knex } from "knex";
 import {
+  migrateFresh,
   createDb,
   DEFAULT_TEST_DATABASE_URL,
   DEVELOPMENT_FIXTURE_IDS,
@@ -21,8 +22,7 @@ beforeAll(async () => {
   process.env.DATABASE_URL = TEST_DATABASE_URL;
   process.env.INSTALLATION_SECRET = "api-contract-installation-secret-0123";
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.rollback({}, true);
-  await db.migrate.latest();
+  await migrateFresh(db);
   await loadDevelopmentFixtures(db);
   searchRoute = await import("../app/api/catalogue/search/route");
 });
