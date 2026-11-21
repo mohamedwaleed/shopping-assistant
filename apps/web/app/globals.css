@@ -588,6 +588,63 @@ a {
   border: 1px solid var(--border);
 }
 
+/* Claude plan availability: a read-only status block, never a form. */
+.cap-unavailable,
+.cap-approval-required {
+  background: var(--soft);
+  color: var(--warning);
+  border: 1px solid var(--border);
+}
+
+.plan-state {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 4px 0 14px;
+  font-size: 13.5px;
+}
+
+.plan-routes {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.plan-route {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--soft);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.plan-route p {
+  margin: 2px 0 0;
+}
+
+.plan-sources summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.plan-sources ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.plan-sources a {
+  color: var(--primary);
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 760px) {
   .scope-tabs {
     display: flex;

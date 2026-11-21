@@ -2,6 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Knex } from "knex";
 import {
+  migrateFresh,
   createDb,
   DEFAULT_TEST_DATABASE_URL,
   DEVELOPMENT_FIXTURE_IDS,
@@ -199,8 +200,7 @@ describe("catalogue search through the core", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.rollback({}, true);
-    await db.migrate.latest();
+    await migrateFresh(db);
     await loadDevelopmentFixtures(db);
     await seedSearchCatalogue(db);
     core = createShoppingCore({

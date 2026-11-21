@@ -2,14 +2,14 @@
 
 **What to build:** Submit a permitted product URL and inspect its persisted product, variant, offer and claims.
 
-**Status:** done
+**Blocked by:** 07 — Manage the Netherlands retailer registry (GitHub #8)
+
+**Status:** ready-for-agent
 
 - [ ] Bound fetching, validate source policy/network destinations and classify redirects/challenges/errors, including HTTP 200 challenge pages.
-- [x] Parse structured product/offer data, preserving identifiers, actual seller, evidence excerpts and source/observation times with Knex.
+- [ ] Parse structured product/offer data, preserving identifiers, actual seller, evidence excerpts and source/observation times with Knex.
 - [ ] Only merge agreeing identities/configurations; retailer SKUs are retailer-local and ambiguity remains explicit.
 - [ ] Details/core/HTTP checks prove idempotence, unsafe-URL rejection, variant conflicts and failed extraction never overwriting valid observations.
-
-**Integration commit:** e1b083d
 
 ## Delivery constraints
 

@@ -4,19 +4,15 @@
 
 **Blocked by:** 09 — Enforce research and monitoring budgets (GitHub #10)
 
-**Status:** done
+**Status:** ready-for-agent
 
-- [x] Vercel AI SDK typed tools produce visible must-haves/preferences/assumptions in English/Dutch under core authorization.
-- [x] Persist session messages and authoritative structured requirements/questions separately; summaries cannot override them.
-- [x] Ask material questions, preserve must-haves and record revisions; implement session navigation in the responsive Studio shell.
-- [x] Verify reload/isolation, bounded secret-free context, invalid model output and provider/budget failure states.
-- [x] Use the pinned Vercel AI SDK server streaming/typed message APIs and its React useChat integration with an authenticated transport; render text, typed tool states and structured-result references rather than flattening everything to prose.
-- [x] Provide bounded requirements/clarification tools calling the authorized core. Persist model/UI messages and structured state; reload/context assembly keeps workspace data isolated and excludes credentials.
-- [x] Verify a real request through the SDK runtime using deterministic model/provider fixtures, including streaming tool results, malformed output, cancellation/error display and persistence; a static mocked chat transcript is not completion.
-
-**Integration commit:** `2c2aa26`
-
-**Remainder:** None.
+- [ ] Vercel AI SDK typed tools produce visible must-haves/preferences/assumptions in English/Dutch under core authorization.
+- [ ] Persist session messages and authoritative structured requirements/questions separately; summaries cannot override them.
+- [ ] Ask material questions, preserve must-haves and record revisions; implement session navigation in the responsive Studio shell.
+- [ ] Verify reload/isolation, bounded secret-free context, invalid model output and provider/budget failure states.
+- [ ] Use the pinned Vercel AI SDK server streaming/typed message APIs and its React useChat integration with an authenticated transport; render text, typed tool states and structured-result references rather than flattening everything to prose.
+- [ ] Provide bounded requirements/clarification tools calling the authorized core. Persist model/UI messages and structured state; reload/context assembly keeps workspace data isolated and excludes credentials.
+- [ ] Verify a real request through the SDK runtime using deterministic model/provider fixtures, including streaming tool results, malformed output, cancellation/error display and persistence; a static mocked chat transcript is not completion.
 
 ## Delivery constraints
 

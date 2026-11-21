@@ -3,6 +3,7 @@ import type { Knex } from "knex";
 import { err, ok, type Result } from "../errors";
 import { isAuthorized, type Principal } from "../principal";
 import { maskSecret, type SecretCipher } from "./secret-cipher";
+import { CLAUDE_PLAN_ROUTES, planAccessView, type PlanAccessRoute } from "./plan-access";
 import {
   DEFAULT_DIAGNOSTIC_BOUNDS,
   MAX_DIAGNOSTIC_CALLS,
@@ -27,6 +28,12 @@ export interface ModelRegistryDependencies {
   cipher: SecretCipher;
   /** AI SDK adapter; core decides the bounds and records the outcome. */
   probe: ModelProbe;
+  /**
+   * Published Claude plan routes this deployment resolves its availability
+   * from. Defaults to the shipped declaration; injecting one changes only what
+   * is reported, never what is permitted.
+   */
+  planRoutes?: readonly PlanAccessRoute[];
   now?: () => Date;
 }
 
@@ -203,6 +210,7 @@ function effectiveSettings(
 export function createModelRegistry(deps: ModelRegistryDependencies): ModelRegistry {
   const { db, cipher, probe } = deps;
   const now = deps.now ?? (() => new Date());
+  const planRoutes = deps.planRoutes ?? CLAUDE_PLAN_ROUTES;
 
   function membershipWorkspace(principal: Principal): Result<string> {
     if (principal.kind === "anonymous" || !isAuthorized(principal, "workspace.read")) {
@@ -513,6 +521,9 @@ export function createModelRegistry(deps: ModelRegistryDependencies): ModelRegis
           maxOutputTokens: MAX_DIAGNOSTIC_OUTPUT_TOKENS,
         },
       },
+      // Derived on every read from the declaration, never stored: availability
+      // is a property of published terms, not of a shopper's row.
+      planAccess: planAccessView(planRoutes),
     });
   }
 

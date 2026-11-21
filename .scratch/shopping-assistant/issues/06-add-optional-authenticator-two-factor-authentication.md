@@ -4,15 +4,11 @@
 
 **Blocked by:** 03 — Manage devices, sessions and password changes (GitHub #4); 05 — Invite shoppers, change email and recover passwords (GitHub #6)
 
-**Status:** done
+**Status:** ready-for-agent
 
-- [x] Enrollment requires recent authentication and a verified authenticator code; provide protected recovery codes.
-- [x] Enabled second-factor requirements apply to sign-in and sensitive changes; backup codes are atomically single-use.
-- [x] Password reset alone cannot bypass the second factor; document separate recovery and test incorrect/replayed codes across responsive account screens.
-
-**Integration commit:** `2c2aa26`
-
-**Remainder:** None.
+- [ ] Enrollment requires recent authentication and a verified authenticator code; provide protected recovery codes.
+- [ ] Enabled second-factor requirements apply to sign-in and sensitive changes; backup codes are atomically single-use.
+- [ ] Password reset alone cannot bypass the second factor; document separate recovery and test incorrect/replayed codes across responsive account screens.
 
 ## Delivery constraints
 

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Knex } from "knex";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import {
+  migrateFresh, createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
 import {
   createSourceCoverage,
   createSourceReader,
@@ -139,8 +140,7 @@ describe("model extraction through the core", () => {
 
   beforeAll(async () => {
     db = createDb(TEST_DATABASE_URL);
-    await db.migrate.rollback({}, true);
-    await db.migrate.latest();
+    await migrateFresh(db);
   });
 
   afterAll(async () => {

@@ -189,6 +189,23 @@ export {
   type SecretCipher,
 } from "./models/secret-cipher";
 export {
+  CLAUDE_PLAN_ROUTES,
+  PLAN_ACCESS_CHECKED_AT,
+  PLAN_ACCESS_REASONS,
+  PLAN_ACCESS_SOURCES,
+  PLAN_ACCESS_STATES,
+  planAccessView,
+  type PlanAccessCredential,
+  type PlanAccessEvidence,
+  type PlanAccessReason,
+  type PlanAccessRoute,
+  type PlanAccessRouteName,
+  type PlanAccessRouteView,
+  type PlanAccessSource,
+  type PlanAccessState,
+  type PlanAccessView,
+} from "./models/plan-access";
+export {
   createChatGPTPlanConnections,
   DEFAULT_AGENT_NAME,
   DEFAULT_AUTHORIZE_URL,

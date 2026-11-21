@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Knex } from "knex";
-import { createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
+import {
+  migrateFresh, createDb, DEFAULT_TEST_DATABASE_URL } from "@shopping/db";
 import { getCore, getDb } from "@/lib/core";
 import { closeAuth, getAuth } from "@/lib/auth/session";
 import { createAccountProvisioner } from "@/lib/auth/provisioner";
@@ -52,8 +53,7 @@ beforeAll(async () => {
   process.env.INSTALLATION_SECRET = "source-coverage-installation-secret";
 
   db = createDb(TEST_DATABASE_URL);
-  await db.migrate.rollback({}, true);
-  await db.migrate.latest();
+  await migrateFresh(db);
 
   setupClaim = await import("../app/api/setup/claim/route");
   signIn = await import("../app/api/sign-in/route");

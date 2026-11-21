@@ -4,16 +4,12 @@
 
 **Blocked by:** 10 — Ingest a product page with inspectable evidence (GitHub #11)
 
-**Status:** done
+**Status:** ready-for-agent
 
-- [x] Support extensible category attributes/types/units/synonyms and common fields without excluding unknown categories.
-- [x] Preserve source claims; parser/model proposals cannot silently activate invented filters or resolve conflicts.
-- [x] Administrator correction/review focuses on unresolved mappings/merges and invalidates affected assessments; supported routine ingestion remains automatic.
-- [x] Test mixed categories, units, contradictory variants and unauthorized/non-destructive correction through details and administration.
-
-**Integration commit:** `2c2aa26`
-
-**Remainder:** None.
+- [ ] Support extensible category attributes/types/units/synonyms and common fields without excluding unknown categories.
+- [ ] Preserve source claims; parser/model proposals cannot silently activate invented filters or resolve conflicts.
+- [ ] Administrator correction/review focuses on unresolved mappings/merges and invalidates affected assessments; supported routine ingestion remains automatic.
+- [ ] Test mixed categories, units, contradictory variants and unauthorized/non-destructive correction through details and administration.
 
 ## Delivery constraints
 

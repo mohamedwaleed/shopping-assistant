@@ -10,7 +10,7 @@
       "delivers": "Start development Compose and view a labelled example product loaded from PostgreSQL through the core and HTTP into Studio.",
       "acceptance": [
         "TypeScript/pnpm, Next.js and real PostgreSQL work with Knex/pg and repeatable Knex migrations; no additional application ORM.",
-        "An example exact variant/offer renders through core → HTTP → UI; development fixtures are separate from live data.",
+        "An example exact variant/offer renders through core \u2192 HTTP \u2192 UI; development fixtures are separate from live data.",
         "One-command startup, health checks, schema ordering, AGPL notices and focused integration/type checks are demonstrated."
       ],
       "draft": "01-run-a-catalogue-to-screen-walking-skeleton.md",
@@ -87,9 +87,7 @@
         "Email-address changes require recent authentication and confirmation of the new address before switching account identity; unavailable email cannot report a completed change."
       ],
       "draft": "05-invite-shoppers-and-recover-passwords.md",
-      "status": "done",
-      "commit": "5eab407",
-      "pr": 42
+      "status": "ready"
     },
     {
       "number": 6,
@@ -105,9 +103,7 @@
         "Password reset alone cannot bypass the second factor; document separate recovery and test incorrect/replayed codes across responsive account screens."
       ],
       "draft": "06-add-optional-authenticator-two-factor-authentication.md",
-      "status": "done",
-      "commit": "2c2aa26",
-      "pr": 45
+      "status": "ready"
     },
     {
       "number": 7,
@@ -159,14 +155,14 @@
         "Prove limits on simultaneous work, cancellation/retries and absence of silent paid-key fallback."
       ],
       "draft": "09-enforce-research-and-monitoring-budgets.md",
-      "status": "done",
-      "commit": "e1f9098",
-      "pr": 42
+      "status": "ready"
     },
     {
       "number": 10,
       "title": "Ingest a product page with inspectable evidence",
-      "blocked_by": [],
+      "blocked_by": [
+        7
+      ],
       "delivers": "Submit a permitted product URL and inspect its persisted product, variant, offer and claims.",
       "acceptance": [
         "Bound fetching, validate source policy/network destinations and classify redirects/challenges/errors, including HTTP 200 challenge pages.",
@@ -175,9 +171,7 @@
         "Details/core/HTTP checks prove idempotence, unsafe-URL rejection, variant conflicts and failed extraction never overwriting valid observations."
       ],
       "draft": "10-ingest-a-product-page-with-inspectable-evidence.md",
-      "status": "done",
-      "commit": "e1b083d",
-      "pr": 42
+      "status": "ready"
     },
     {
       "number": 11,
@@ -193,9 +187,7 @@
         "Test mixed categories, units, contradictory variants and unauthorized/non-destructive correction through details and administration."
       ],
       "draft": "11-normalize-attributes-and-review-conflicting-claims.md",
-      "status": "done",
-      "commit": "2c2aa26",
-      "pr": 45
+      "status": "ready"
     },
     {
       "number": 12,
@@ -280,9 +272,7 @@
         "Verify a real request through the SDK runtime using deterministic model/provider fixtures, including streaming tool results, malformed output, cancellation/error display and persistence; a static mocked chat transcript is not completion."
       ],
       "draft": "16-stream-persistent-bilingual-chat-with-vercel-ai-sdk.md",
-      "status": "done",
-      "commit": "2c2aa26",
-      "pr": 45
+      "status": "ready"
     },
     {
       "number": 17,
@@ -293,11 +283,11 @@
       ],
       "delivers": "A shopper request causes a bounded multi-step agent to search catalogue evidence, evaluate fit and present structured recommendations or material clarification.",
       "acceptance": [
-        "Implement controlled requirements → catalogue search → gap assessment → evaluation → presentation with phase-scoped shopping tools.",
+        "Implement controlled requirements \u2192 catalogue search \u2192 gap assessment \u2192 evaluation \u2192 presentation with phase-scoped shopping tools.",
         "Code checks identity, business seller, Netherlands eligibility, condition, EUR/VAT/shipping and must-have evidence; models explain subjective trade-offs.",
         "Separate verified/uncertain candidates and incomplete/conditional prices; affiliate revenue cannot change ranking.",
         "Persist result references and historical/fresh distinctions; test heterogeneous categories, false variants, postcode context, six-hour offer and thirty-day spec policy.",
-        "Implement the selected ToolLoopAgent abstraction using the pinned AI SDK version. The SDK owns model → tool call → tool result → next model step; do not hand-roll a second competing tool-calling protocol loop.",
+        "Implement the selected ToolLoopAgent abstraction using the pinned AI SDK version. The SDK owns model \u2192 tool call \u2192 tool result \u2192 next model step; do not hand-roll a second competing tool-calling protocol loop.",
         "The application owns explicit requirements/catalogue/gap/evaluation/presentation phases and permitted transitions. Use documented per-step controls (such as prepareStep) to assemble bounded messages and select tools; every core operation separately enforces access and permitted actions.",
         "Register typed shopping tools for requirement updates, catalogue search, evidence inspection, candidate evaluation, clarification and result presentation, backed by actual core operations. Do not expose raw database/network credentials or a generic SQL tool.",
         "At each step, assemble context from authoritative requirements, recent messages, candidate/evidence references and current gaps. Tool results carry structured identifiers/evidence/gaps/errors, not unbounded raw pages.",
@@ -605,38 +595,10 @@
       ],
       "draft": "34-verify-complete-flows-and-measured-release-coverage.md",
       "status": "ready"
-    },
-    {
-      "number": 35,
-      "title": "Build the invite, recovery and email-change screens",
-      "blocked_by": [],
-      "delivers": "Accept an invitation, recover access and confirm an email-address change on real screens instead of a 404.",
-      "acceptance": [
-        "/accept-invitation renders and consumes a single-use invitation through the existing core path.",
-        "/reset-password renders request and completion forms with explicit failures for expired, replayed and concurrently consumed tokens.",
-        "The account screen starts an email-address change and /account/email/confirm completes it.",
-        "A test asserts every API-generated link path resolves to an existing route."
-      ],
-      "draft": "35-build-the-invite-recovery-and-email-change-screens.md",
-      "status": "ready"
-    },
-    {
-      "number": 36,
-      "title": "Harden product-page ingestion",
-      "blocked_by": [],
-      "delivers": "Bounded, classified fetching and identity rules that keep the catalogue trustworthy.",
-      "acceptance": [
-        "Fetching is bounded and network destinations validated; redirects, challenges and HTTP 200 challenge pages are classified.",
-        "Only agreeing identities and configurations merge; retailer-local SKU ambiguity stays visible.",
-        "Idempotence, unsafe-URL rejection, variant conflicts and failed-extraction preservation are proven.",
-        "Source coverage is reported for a submitted page."
-      ],
-      "draft": "36-harden-product-page-ingestion.md",
-      "status": "ready"
     }
   ],
   "revision": 2,
-  "changes": "Make SDK provider integration, streaming chat, controlled agent loop, durable checkpoints and external-research extension explicit in tickets 8 and 16–19. No blocker changes.",
+  "changes": "Make SDK provider integration, streaming chat, controlled agent loop, durable checkpoints and external-research extension explicit in tickets 8 and 16\u201319. No blocker changes.",
   "approved": "2026-11-17",
   "implementation": {
     "updated": "2026-11-19",

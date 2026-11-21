@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { redirect } from "next/navigation";
 import {
+  CLAUDE_PLAN_ROUTES,
   CHATGPT_PLAN_ENTITLEMENT,
   createSecretCipher,
+  planAccessView,
   type BudgetView,
   type ChatGPTPlanView,
   type ModelConfigurationViewResult,
@@ -13,6 +15,7 @@ import { requestIdentity } from "@/lib/auth/session";
 import { signOutAction } from "@/app/actions";
 import { SignOutButton } from "@/app/auth-forms";
 import { ModelSettingsForm } from "@/app/model-settings";
+import { PlanAccessPanel } from "@/app/plan-access";
 import { ChatGPTPlanSettings } from "@/app/chatgpt-plan-settings";
 import { BudgetSettings } from "@/app/budget-settings";
 
@@ -22,6 +25,7 @@ const EMPTY_VIEW: ModelConfigurationViewResult = {
   effective: null,
   capability: null,
   diagnostics: { bounds: { maxCalls: 4, maxOutputTokens: 64 }, limits: { maxCalls: 8, maxOutputTokens: 512 } },
+  planAccess: planAccessView(CLAUDE_PLAN_ROUTES),
 };
 /** Shown when the connection cannot be read; nothing is invented for it. */
 const EMPTY_PLAN: ChatGPTPlanView = {
@@ -117,6 +121,9 @@ export default async function Settings({
               view={view}
               bounds={view.diagnostics.bounds}
             />
+            {/* Separate panel, not part of the API-key form: plan access is a
+                published-terms question, not a credential to configure. */}
+            <PlanAccessPanel lang={lang} planAccess={view.planAccess} />
             <ChatGPTPlanSettings lang={lang} initial={plan} />
             <BudgetSettings lang={lang} canManage={isAdministrator} initial={budget} />
           </>

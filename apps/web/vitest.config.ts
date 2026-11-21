@@ -3,6 +3,9 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // tsconfig keeps "preserve" for Next; tests must still be able to import a
+  // .tsx component, so the transformer is told how to compile JSX.
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: { "@": fileURLToPath(new URL(".", import.meta.url)) },
   },
