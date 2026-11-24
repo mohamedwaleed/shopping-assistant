@@ -8,6 +8,18 @@ importers:
 
   .: {}
 
+  packages/config:
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.1.1
+        version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6))
+
   packages/database:
     dependencies:
       knex:
@@ -26,6 +38,9 @@ importers:
 
   packages/engine:
     dependencies:
+      '@shopping-assistant/config':
+        specifier: workspace:*
+        version: link:../config
       '@shopping-assistant/database':
         specifier: workspace:*
         version: link:../database

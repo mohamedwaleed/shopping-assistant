@@ -10,6 +10,7 @@ This program is free software: you can redistribute it and/or modify it under th
 
 ## Layout
 
+- `packages/config` — environment configuration: validated settings, secrets kept server-side.
 - `packages/database` — PostgreSQL persistence: connection, migrations, test helpers.
 - `packages/engine` — shopping logic and authorization behind public engine operations.
 
@@ -20,6 +21,25 @@ The agent and web packages arrive with their own tickets.
 - Node.js 22 or newer
 - pnpm 10
 - Docker (for the development database)
+
+## Configuration
+
+The installation operator supplies `SETUP_TOKEN`, a random secret of at least 32 characters that authorizes creating the first admin. `DATABASE_URL` defaults to the development database below.
+
+```sh
+openssl rand -base64 48
+```
+
+The setup token travels in request bodies only: never in URLs, responses, or logs.
+
+## Installation bootstrap
+
+`createSetupServer` (from `@shopping-assistant/engine/setup-http`) serves the thin setup contract:
+
+- `GET /setup` — readiness of the database, email, model, and search configuration, plus whether setup is still `open`. Secrets are never reported, and live provider diagnostics arrive with their adapters.
+- `POST /setup/complete` — `{ "setupToken": "...", "email": "..." }` creates the initial admin and returns `201`. A wrong token is `403`, and a completed installation answers `409` for every later attempt.
+
+Setup closes permanently once the initial admin exists, including after a restart and after every account is deleted. Two simultaneous requests produce one admin, because the database claims a single installation row rather than checking and inserting separately.
 
 ## Development database
 

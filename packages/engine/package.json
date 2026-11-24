@@ -6,13 +6,15 @@
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./setup-http": "./src/setup-http.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "@shopping-assistant/config": "workspace:*",
     "@shopping-assistant/database": "workspace:*"
   },
   "devDependencies": {
