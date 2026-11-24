@@ -38,9 +38,6 @@ importers:
 
   packages/engine:
     dependencies:
-      '@shopping-assistant/config':
-        specifier: workspace:*
-        version: link:../config
       '@shopping-assistant/database':
         specifier: workspace:*
         version: link:../database
