@@ -10,7 +10,12 @@ import {
   createTestSchema,
   migrate,
 } from "@shopping-assistant/database/testing";
-import { createEngine, ConversationNotFoundError, type Engine } from "./index.ts";
+import {
+  createEngine,
+  ConversationNotFoundError,
+  HardConstraintRelaxationRefusedError,
+  type Engine,
+} from "./index.ts";
 
 describe("shopper requirements", () => {
   let admin: Database;
@@ -34,6 +39,50 @@ describe("shopper requirements", () => {
     await database?.destroy();
     await dropSchema?.();
     await admin?.destroy();
+  });
+
+  it("adds a new hard constraint without needing the shopper's agreement", async () => {
+    const conversation = await engine.conversations.create(shopperId, {
+      title: "Standing desk",
+    });
+    await engine.requirements.set(shopperId, conversation.id, {
+      hardConstraints: [{ statement: "Costs at most 400 euros" }],
+      preferences: [],
+    });
+
+    const revised = await engine.requirements.revise(shopperId, conversation.id, {
+      hardConstraints: [{ statement: "Must fit under a 120 cm ceiling" }],
+    });
+
+    expect(revised.hardConstraints.map((requirement) => requirement.statement)).toEqual([
+      "Costs at most 400 euros",
+      "Must fit under a 120 cm ceiling",
+    ]);
+  });
+
+  it("keeps preferences when an unapproved hard-constraint change is refused", async () => {
+    const conversation = await engine.conversations.create(shopperId, {
+      title: "Office chair",
+    });
+    await engine.requirements.set(shopperId, conversation.id, {
+      hardConstraints: [{ statement: "Costs at most 300 euros" }],
+      preferences: [],
+    });
+
+    await expect(
+      engine.requirements.revise(shopperId, conversation.id, {
+        retract: [{ statement: "Costs at most 300 euros" }],
+        hardConstraints: [{ statement: "Costs at most 500 euros" }],
+        preferences: [{ statement: "Prefer mesh" }],
+      }),
+    ).rejects.toThrow(HardConstraintRelaxationRefusedError);
+
+    const reopened = await engine.requirements.get(shopperId, conversation.id);
+
+    expect(reopened.hardConstraints.map((requirement) => requirement.statement)).toEqual([
+      "Costs at most 300 euros",
+    ]);
+    expect(reopened.preferences).toEqual([]);
   });
 
   it("keeps a budget as a hard constraint and a weight as a preference", async () => {
@@ -103,16 +152,19 @@ describe("shopper requirements", () => {
     );
   });
 
-  it("keeps a hard constraint in force when a revision relaxes it without the shopper's agreement", async () => {
+  it("refuses to drop a hard constraint without the shopper's agreement", async () => {
     const conversation = await engine.conversations.create(shopperId, { title: "Running shoes" });
     await engine.requirements.set(shopperId, conversation.id, {
       hardConstraints: [{ statement: "Costs at most 120 euros" }],
       preferences: [{ statement: "Prefers a trail sole" }],
     });
 
-    await engine.requirements.revise(shopperId, conversation.id, {
-      hardConstraints: [{ statement: "Costs at most 180 euros" }],
-    });
+    await expect(
+      engine.requirements.revise(shopperId, conversation.id, {
+        retract: [{ statement: "Costs at most 120 euros" }],
+        hardConstraints: [{ statement: "Costs at most 180 euros" }],
+      }),
+    ).rejects.toThrow(HardConstraintRelaxationRefusedError);
 
     const reopened = await engine.requirements.get(shopperId, conversation.id);
 
@@ -147,6 +199,7 @@ describe("shopper requirements", () => {
     });
 
     await engine.requirements.revise(shopperId, conversation.id, {
+      retract: [{ statement: "Costs at most 90 euros" }],
       hardConstraints: [{ statement: "Costs at most 130 euros" }],
       approvedByShopper: true,
     });
@@ -154,7 +207,7 @@ describe("shopper requirements", () => {
     const reopened = await engine.requirements.get(shopperId, conversation.id);
 
     expect(reopened.summary).toBe(
-      "Hard constraints: Costs at most 90 euros; Costs at most 130 euros. Preferences: Prefers a MIPS liner.",
+      "Hard constraints: Costs at most 130 euros. Preferences: Prefers a MIPS liner.",
     );
   });
 

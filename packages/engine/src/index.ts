@@ -54,6 +54,9 @@ interface RequirementRow {
   created_at: Date;
 }
 
+/** Anything that can build a query: the database itself or an open transaction. */
+type Queryable = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
+
 /**
  * Raised for both unknown and other accounts' conversations so callers cannot
  * learn whether a conversation exists for someone else.
@@ -62,6 +65,14 @@ export class ConversationNotFoundError extends Error {
   constructor() {
     super("Conversation not found");
     this.name = "ConversationNotFoundError";
+  }
+}
+
+/** Raised when a hard constraint would be dropped without the shopper's agreement. */
+export class HardConstraintRelaxationRefusedError extends Error {
+  constructor() {
+    super("Relaxing a hard constraint requires the shopper's agreement");
+    this.name = "HardConstraintRelaxationRefusedError";
   }
 }
 
@@ -89,6 +100,8 @@ export interface Engine {
       input: {
         hardConstraints?: { statement: string }[];
         preferences?: { statement: string }[];
+        /** Existing hard constraints the shopper wants to stop honouring. */
+        retract?: { statement: string }[];
         approvedByShopper?: true;
       },
     ): Promise<Requirements>;
@@ -137,6 +150,7 @@ export function createEngine({ database }: { database: Database }): Engine {
   async function record(
     conversationId: string,
     input: { hardConstraints: { statement: string }[]; preferences: { statement: string }[] },
+    connection: Queryable = database,
   ): Promise<void> {
     const rows = [
       ...input.hardConstraints.map(({ statement }) => ({
@@ -150,7 +164,8 @@ export function createEngine({ database }: { database: Database }): Engine {
         statement,
       })),
     ];
-    await database("requirements")
+    if (rows.length === 0) return;
+    await connection("requirements")
       .insert(rows)
       .onConflict(["conversation_id", "kind", "statement"])
       .ignore();
@@ -234,15 +249,29 @@ export function createEngine({ database }: { database: Database }): Engine {
 
       async revise(userId, conversationId, input) {
         await requireOwnedConversation(userId, conversationId);
-        const hardConstraints = input.hardConstraints ?? [];
-        // Without the shopper's own agreement a relaxation attempt is ignored,
-        // so the stricter constraint stays in force rather than being traded away.
-        if (hardConstraints.length > 0 && input.approvedByShopper !== true) {
-          return requirementsOf(conversationId);
+        const retract = input.retract ?? [];
+        // Only dropping a constraint the shopper already set is a relaxation;
+        // adding one is not, so additions and preferences always apply. Without
+        // the shopper's agreement the retraction is refused and the stricter
+        // constraint stays in force.
+        if (retract.length > 0 && input.approvedByShopper !== true) {
+          throw new HardConstraintRelaxationRefusedError();
         }
-        await record(conversationId, {
-          hardConstraints,
-          preferences: input.preferences ?? [],
+        await database.transaction(async (transaction) => {
+          if (retract.length > 0) {
+            await transaction("requirements")
+              .where({ conversation_id: conversationId, kind: "hard_constraint" })
+              .whereIn(
+                "statement",
+                retract.map(({ statement }) => statement),
+              )
+              .del();
+          }
+          await record(
+            conversationId,
+            { hardConstraints: input.hardConstraints ?? [], preferences: input.preferences ?? [] },
+            transaction,
+          );
         });
         return requirementsOf(conversationId);
       },
