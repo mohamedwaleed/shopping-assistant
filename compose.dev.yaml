@@ -1,0 +1,22 @@
+# Development database only. The full self-hosted stack (web, PostgreSQL,
+# SearXNG) arrives with the release ticket.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shopping_assistant_dev
+    ports:
+      # Loopback only: the database is never exposed beyond this machine.
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d shopping_assistant_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
