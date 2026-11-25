@@ -121,6 +121,29 @@ describe("installation policy", () => {
     await discard(installation);
   });
 
+  it("refuses a model that has no adapter, even with no ceiling configured", async () => {
+    const installation = await createInstallation();
+    const actor = { id: await operatorOf(installation) };
+
+    await expect(
+      installation.accounts.updatePolicy(actor, { modelId: "gpt-imaginary" }),
+    ).rejects.toThrow(PolicyRefusedError);
+    expect((await installation.accounts.policy()).modelId).toBeUndefined();
+    await discard(installation);
+  });
+
+  it("refuses a policy change from an ordinary account", async () => {
+    const installation = await createInstallation();
+    const other = await createIdentity(installation.database, "other@example.com");
+    await installation.accounts.register({ identityId: other, email: "other@example.com" });
+
+    await expect(
+      installation.accounts.updatePolicy({ id: other }, { registrationOpen: false }),
+    ).rejects.toThrow(NotAnAdminError);
+    expect((await installation.accounts.policy()).registrationOpen).toBe(true);
+    await discard(installation);
+  });
+
   it("refuses a model the deployment does not offer", async () => {
     const installation = await createInstallation({ modelIds: ["economy"] });
     const actor = { id: await operatorOf(installation) };

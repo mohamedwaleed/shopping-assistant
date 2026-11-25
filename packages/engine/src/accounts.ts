@@ -1,4 +1,5 @@
 import type { Database } from "@shopping-assistant/database";
+import { offeredModels } from "./policy.ts";
 
 /**
  * Identity creation belongs to the web layer, which owns Better Auth. The engine
@@ -351,15 +352,16 @@ export function createAccounts({
   /**
    * A ceiling restricts, so it can only ever narrow the change: an admin may
    * turn registration off, or on where the operator allows it, and may choose
-   * among the offered models.
+   * among the offered models. With no ceiling configured the application's own
+   * list is the limit, so a model id with no adapter behind it is never stored.
    */
   function withinCeilings(change: PolicyChange): void {
     if (change.registrationOpen !== undefined && ceilings.registration === false) {
       throw new PolicyRefusedError("registration policy is fixed by the deployment");
     }
     if (typeof change.modelId === "string") {
-      const offered = ceilings.modelIds;
-      if (offered && !offered.includes(change.modelId)) {
+      const offered = offeredModels(ceilings.modelIds).map((model) => model.id);
+      if (!offered.includes(change.modelId)) {
         throw new PolicyRefusedError("that model is not offered by the deployment");
       }
     }
@@ -418,11 +420,13 @@ export function createAccounts({
     policy: readPolicy,
 
     async updatePolicy(actor, change) {
-      await requireAdmin(actor);
       withinCeilings(change);
       try {
+        // The admin predicate is part of the write, so an admin demoted while
+        // this request was in flight cannot still change the installation.
         const rows = await database("installation")
           .where({ id: 1 })
+          .whereRaw(ACTOR_IS_ADMIN, [actor.id])
           .update({
             ...(change.registrationOpen === undefined
               ? {}
@@ -438,7 +442,9 @@ export function createAccounts({
             "policy_updated_at",
           ]);
         const row = rows[0];
-        if (!row) throw new AccountNotFoundError();
+        // No row means the caller is not an admin, or has just stopped being
+        // one; both are reported as a refusal rather than as a missing record.
+        if (!row) throw new NotAnAdminError();
         return {
           registrationOpen: row.registration_open,
           modelId: row.policy_model_id ?? undefined,
