@@ -34,7 +34,9 @@ The installation operator supplies two secrets of at least 32 characters each:
 openssl rand -base64 48
 ```
 
-`DATABASE_URL` defaults to the development database below. `PUBLIC_BASE_URL` (default `http://localhost:3000`) is the origin shoppers reach: sessions and verification links are built from it. `SMTP_URL` configures delivery; without it, readiness reports email as `unconfigured` and registration fails when it tries to send.
+`DATABASE_URL` defaults to the development database below. `PUBLIC_BASE_URL` (default `http://localhost:3000`) is the origin shoppers reach: sessions and verification links are built from it.
+
+`SMTP_URL` configures delivery and is required for invitations and password recovery: a `nodemailer` connection URL such as `smtps://user:password@smtp.example.com:465` (or `smtp://user:password@smtp.example.com:587` with STARTTLS). The relay must accept mail from the installation and deliver to the addresses it invites, and the operator's own inbox must be reachable from it, because an invitation and a reset link are only usable if the message arrives. Without `SMTP_URL`, readiness reports email as `unconfigured` and invitations and resets answer `503` rather than pretending to have sent anything.
 
 The setup token travels in request bodies only: never in URLs, responses, or logs.
 
@@ -57,6 +59,19 @@ Better Auth owns identities, credentials, sessions, and verification tokens; `pa
 - `POST /api/auth/sign-out`, `GET /api/auth/get-session` — end the session, and report the signed-in user.
 
 `createAuthServer({ auth, engine })` serves these; `currentUser(auth, request)` resolves the signed-in shopper for engine operations. The engine only sees identities through `createIdentityStore(auth)`, and it records the profile (role) an identity owns. Passwords and session tokens never appear in a response or a log.
+
+## Invitations and password recovery
+
+Invitations are how an installation that has closed public sign-up still gains members. The engine's `invitations` and `passwordResets` operations decide when each is allowed; `createAuthServer` exposes them:
+
+- `POST /api/auth/invitations` — `{ "email": "..." }`, sent with an admin's session cookie. Emails a link and answers `201 { "email", "expiresAt" }`. The token is not returned: it reached the recipient's inbox, and an admin holding it could join as them. A session belonging to an ordinary account is `403`, no session is `401`, an address with an account or a live invitation is `409`, and an installation without SMTP is `503`.
+- `GET /api/auth/accept-invitation?token=…` — `200 { "email", "expiresAt" }` for a live link, so the screen can say whose address it is for; `410` for a link that is unknown, spent, or expired, all with the same body.
+- `POST /api/auth/accept-invitation` — `{ "token", "name", "password" }` creates an ordinary account and answers `201 { "email", "role": "user" }`. The address is treated as verified, because the link reached it, so the account signs in immediately. Works while registration is closed: the invitation is the authorisation, and registration policy is untouched.
+- `POST /api/auth/request-password-reset` — `{ "email": "..." }` emails a reset link and answers `202` with the same body whether or not the address has an account. An installation without SMTP answers `503`.
+- `GET /api/auth/reset-password?token=…` — `200` for a link that can still be used, `410` for one that cannot.
+- `POST /api/auth/reset-password` — `{ "token", "password" }` sets the new password and answers `200 { "status": "password-reset" }`. Every session the account held is ended, since whoever knew the old password may have held one.
+
+Invitation links are valid for seven days and reset links for one hour. Each is single use: consumption is one statement that claims the row (`UPDATE ... WHERE accepted_at IS NULL RETURNING` for invitations, `DELETE ... WHERE expiresAt > now() RETURNING` for resets), so of two simultaneous redemptions exactly one succeeds and the other answers `410`. Only the digest of an invitation token is stored. The SMTP relay must be configured as described above for either flow to work.
 
 ## Development database
 

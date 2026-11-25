@@ -7,6 +7,23 @@ import {
   type PolicyCeilings,
 } from "./accounts.ts";
 import { offeredModels, type ModelOption } from "./policy.ts";
+import {
+  createInvitations,
+  InvitationInvalidError,
+  InvitationRefusedError,
+  INVITATION_LIFETIME_MS,
+  type Invitation,
+  type Invitations,
+  type IssuedInvitation,
+} from "./invitations.ts";
+import {
+  createPasswordResets,
+  EmailUnavailableError,
+  ResetTokenInvalidError,
+  RESET_LIFETIME_MS,
+  type PasswordResets,
+  type PasswordSetter,
+} from "./password-reset.ts";
 
 export {
   AccountAlreadyExistsError,
@@ -27,6 +44,22 @@ export {
 } from "./accounts.ts";
 
 export { OFFERED_MODELS, offeredModels, type ModelOption } from "./policy.ts";
+export {
+  InvitationInvalidError,
+  InvitationRefusedError,
+  INVITATION_LIFETIME_MS,
+  type Invitation,
+  type Invitations,
+  type IssuedInvitation,
+} from "./invitations.ts";
+
+export {
+  EmailUnavailableError,
+  ResetTokenInvalidError,
+  RESET_LIFETIME_MS,
+  type PasswordResets,
+  type PasswordSetter,
+} from "./password-reset.ts";
 
 export type MessageRole = "user" | "assistant";
 
@@ -152,6 +185,25 @@ export class HardConstraintRelaxationRefusedError extends Error {
   }
 }
 
+/** Emailed links need a mailer and an origin; without either nothing is sent. */
+export interface AccountEmail {
+  /** The origin shoppers reach; emailed links are built from it. */
+  baseUrl: string;
+  /** Absent when the installation has no SMTP relay; readiness then reports it. */
+  mailer?: { send(message: { to: string; subject: string; text: string }): Promise<void> };
+}
+
+/**
+ * An installation with no credential writer can still be asked for a reset, so
+ * the request is accepted and completion then fails rather than pretending a
+ * password changed.
+ */
+const unwritablePasswords: PasswordSetter = {
+  async setPassword() {
+    throw new Error("This installation cannot change a password");
+  },
+};
+
 export interface Engine {
   setup: {
     /**
@@ -167,6 +219,10 @@ export interface Engine {
     /** The offered models after the environment ceiling is applied. */
     modelOptions(): ModelOption[];
   };
+  /** Admin invitations: the one way to join an installation that has closed public sign-up. */
+  invitations: Invitations;
+  /** Emailed password recovery. */
+  passwordResets: PasswordResets;
   conversations: {
     create(userId: string, input: { title: string }): Promise<Conversation>;
     list(userId: string): Promise<Conversation[]>;
@@ -204,6 +260,8 @@ export function createEngine({
   services = {},
   identity,
   policyCeilings,
+  accounts: accountServices,
+  now,
 }: {
   database: Database;
   setupToken: string;
@@ -215,6 +273,18 @@ export function createEngine({
    * only ever restricts, so an installation without one offers the full set.
    */
   policyCeilings?: PolicyCeilings;
+  /**
+   * What invitations and reset links need. Omitted when the installation has
+   * nowhere to send them, so readiness reports email as unconfigured and both
+   * flows refuse explicitly instead of silently doing nothing.
+   */
+  accounts?: {
+    email?: AccountEmail;
+    /** How a reset writes the new credential; the engine never sees a hash. */
+    passwords?: PasswordSetter;
+  };
+  /** The clock, so expiry can be tested without waiting. */
+  now?: () => Date;
 }): Engine {
   /** `INSERT ... RETURNING` yields exactly one row or throws. */
   function inserted<Row>(rows: Row[]): Row {
@@ -313,6 +383,25 @@ export function createEngine({
 
   const accounts = createAccounts({ database, ...(policyCeilings ? { ceilings: policyCeilings } : {}) });
   const identityStore = identity;
+  const clock = now ?? (() => new Date());
+  const mailer = accountServices?.email?.mailer;
+  const baseUrl = accountServices?.email?.baseUrl ?? "";
+  const invitations = createInvitations({
+    database,
+    accounts,
+    identities: identityStore,
+    ...(mailer ? { mailer } : {}),
+    baseUrl,
+    now: clock,
+  });
+  const passwordResets = createPasswordResets({
+    database,
+    identities: identityStore,
+    passwords: accountServices?.passwords ?? unwritablePasswords,
+    ...(mailer ? { mailer } : {}),
+    baseUrl,
+    now: clock,
+  });
 
   return {
     setup: {
@@ -367,6 +456,9 @@ export function createEngine({
         return offeredModels(policyCeilings?.modelIds);
       },
     },
+    invitations,
+
+    passwordResets,
 
     conversations: {
       async create(userId, input) {

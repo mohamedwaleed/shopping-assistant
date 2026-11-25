@@ -20,8 +20,21 @@ type Queryable = Database | Parameters<Parameters<Database["transaction"]>[0]>[0
  * profile it belongs to commit or roll back together.
  */
 export interface AuthIdentityStore {
+  /**
+   * Creates an identity. It is expected to carry the invitation the engine
+   * validated into any policy check of its own: an invited identity may exist
+   * while public registration is closed, so a store that enforces that policy
+   * must exempt the call it was asked to make on an invitation's behalf.
+   */
   createUser(
-    identity: AuthIdentity & { password: string },
+    identity: AuthIdentity & {
+      password: string;
+      /**
+       * Set only when an invitation the engine already validated authorised
+       * this identity, which exempts it from a closed registration policy.
+       */
+      invited?: true;
+    },
     connection: Queryable,
   ): Promise<{ id: string }>;
   findUserByEmail(email: string): Promise<{ id: string; email: string } | undefined>;
@@ -164,6 +177,16 @@ export interface Accounts {
    * policy, inside the transaction that claims the installation.
    */
   recordAdmin(
+    input: { identityId: string; email: string },
+    connection?: Queryable,
+  ): Promise<Account>;
+  /**
+   * Records an ordinary account for an identity created through an admin
+   * invitation. The invitation is the authorisation, so registration policy is
+   * deliberately not consulted: an installation that has closed public sign-up
+   * can still be joined by someone its admin invited.
+   */
+  recordInvited(
     input: { identityId: string; email: string },
     connection?: Queryable,
   ): Promise<Account>;
@@ -375,6 +398,10 @@ export function createAccounts({
 
     async recordAdmin(input, connection) {
       return record(input, "admin", connection);
+    },
+
+    async recordInvited(input, connection) {
+      return record(input, "user", connection);
     },
 
     async findByEmail(email) {

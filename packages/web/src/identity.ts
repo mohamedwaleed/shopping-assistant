@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { fromNodeHeaders } from "better-auth/node";
 import { hashPassword } from "better-auth/crypto";
 import type { AuthIdentityStore, Accounts } from "@shopping-assistant/engine";
@@ -11,6 +12,20 @@ export interface AuthenticatedUser {
 }
 
 /**
+ * The invitation an identity is currently being created for, if any. Better
+ * Auth evaluates its user-creation hook inside `createUser`, so the fact that
+ * this identity is invited has to travel with the call rather than with the
+ * store: two requests may create identities at the same time, and only the
+ * invited one may pass a closed registration gate.
+ */
+const invitedCreation = new AsyncLocalStorage<"invited">();
+
+/** Whether the identity being created right now was authorised by an invitation. */
+export function creatingInvitedIdentity(): boolean {
+  return invitedCreation.getStore() === "invited";
+}
+
+/**
  * Creates identities for the engine. Better Auth's transaction is tracked in
  * its own async storage, so passing the engine's knex transaction here would
  * not reach the inserts Better Auth makes. A failure therefore removes the
@@ -19,23 +34,29 @@ export interface AuthenticatedUser {
 export function createIdentityStore(auth: Auth): AuthIdentityStore {
   return {
     async createUser(identity, _connection) {
-      const context = await auth.$context;
-      const user = await context.internalAdapter.createUser(
-        {
-          email: identity.email,
-          name: identity.name,
-          emailVerified: false,
-        },
-        { method: "email-password" },
-      );
-      try {
-        const password = await hashPassword(identity.password);
-        await createCredentialAccount(context, user.id, password);
-      } catch (error) {
-        await context.internalAdapter.deleteUser(user.id);
-        throw error;
-      }
-      return { id: user.id };
+      // Only an invited identity is exempt from installation policy, and the
+      // flag travels with this call alone: the policy hook reads it from the
+      // current async scope, so nothing is left behind for the next request.
+      const create = async () => {
+        const context = await auth.$context;
+        const user = await context.internalAdapter.createUser(
+          {
+            email: identity.email,
+            name: identity.name,
+            emailVerified: false,
+          },
+          { method: "email-password" },
+        );
+        try {
+          const password = await hashPassword(identity.password);
+          await createCredentialAccount(context, user.id, password);
+        } catch (error) {
+          await context.internalAdapter.deleteUser(user.id);
+          throw error;
+        }
+        return { id: user.id };
+      };
+      return identity.invited ? invitedCreation.run("invited", create) : create();
     },
 
     async findUserByEmail(email) {
