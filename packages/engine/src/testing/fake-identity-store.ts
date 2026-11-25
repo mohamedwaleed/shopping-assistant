@@ -47,5 +47,9 @@ export function createFakeIdentityStore(): AuthIdentityStore & {
       const identity = identities.find((known) => known.email === email);
       return identity ? { id: identity.id, email: identity.email } : undefined;
     },
+    async revokeSessions() {
+      // Nothing to revoke: this store never issues a session. Disabling still
+      // deletes the installation's own session rows, which the engine owns.
+    },
   };
 }

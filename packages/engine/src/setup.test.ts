@@ -137,27 +137,24 @@ describe("installation bootstrap", () => {
     ).rejects.toThrow(SetupClosedError);
 
     expect(await listAccounts(installation.database)).toEqual([
-      { email: "operator@example.com", role: "admin" },
+      { email: "operator@example.com", role: "admin", disabled: false },
     ]);
   });
 
-  it("does not reopen after every account is deleted", async () => {
+  it("refuses to leave the installation without an active admin", async () => {
     const fresh = await createInstallation();
     await fresh.engine.setup.complete({
       setupToken: SETUP_TOKEN,
       email: "operator@example.com",
       password: PASSWORD,
     });
-    await fresh.database("profiles").delete();
 
-    await expect(
-      fresh.engine.setup.complete({
-        setupToken: SETUP_TOKEN,
-        email: "later@example.com",
-        password: PASSWORD,
-      }),
-    ).rejects.toThrow(SetupClosedError);
-    expect(await listAccounts(fresh.database)).toEqual([]);
+    // Deleting every account would leave the installation unadministered, so
+    // the database refuses the delete itself rather than allowing a state that
+    // a later bootstrap would have to repair.
+    await expect(fresh.database("profiles").delete()).rejects.toThrow(/active admin/);
+    await expect(fresh.database("user").delete()).rejects.toThrow(/active admin/);
+    expect(await listAccounts(fresh.database)).toHaveLength(1);
     await discardInstallation(fresh);
   });
 
@@ -177,7 +174,7 @@ describe("installation bootstrap", () => {
 
     expect(JSON.parse(stdout)).toEqual({ outcome: "closed" });
     expect(await listAccounts(installation.database)).toEqual([
-      { email: "operator@example.com", role: "admin" },
+      { email: "operator@example.com", role: "admin", disabled: false },
     ]);
   });
 

@@ -1,15 +1,32 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { Database } from "@shopping-assistant/database";
-import { createAccounts, type Accounts, type AuthIdentityStore } from "./accounts.ts";
+import {
+  createAccounts,
+  type Accounts,
+  type AuthIdentityStore,
+  type PolicyCeilings,
+} from "./accounts.ts";
+import { offeredModels, type ModelOption } from "./policy.ts";
 
 export {
   AccountAlreadyExistsError,
+  AccountNotFoundError,
+  LastAdminProtectedError,
+  NotAnAdminError,
+  PolicyRefusedError,
   RegistrationClosedError,
   type Account,
+  type AccountRole,
   type Accounts,
+  type Actor,
   type AuthIdentity,
   type AuthIdentityStore,
+  type InstallationPolicy,
+  type PolicyCeilings,
+  type PolicyChange,
 } from "./accounts.ts";
+
+export { OFFERED_MODELS, offeredModels, type ModelOption } from "./policy.ts";
 
 export type MessageRole = "user" | "assistant";
 
@@ -145,6 +162,11 @@ export interface Engine {
     readiness(): Promise<InstallationReadiness>;
   };
   accounts: Accounts;
+  /** What an administrator may choose, narrowed by the deployment. */
+  administration: {
+    /** The offered models after the environment ceiling is applied. */
+    modelOptions(): ModelOption[];
+  };
   conversations: {
     create(userId: string, input: { title: string }): Promise<Conversation>;
     list(userId: string): Promise<Conversation[]>;
@@ -181,12 +203,18 @@ export function createEngine({
   setupToken,
   services = {},
   identity,
+  policyCeilings,
 }: {
   database: Database;
   setupToken: string;
   services?: ServiceConfiguration;
   /** How identities are created; the web layer supplies Better Auth. */
   identity: AuthIdentityStore;
+  /**
+   * What the operator's environment allows an administrator to change. It
+   * only ever restricts, so an installation without one offers the full set.
+   */
+  policyCeilings?: PolicyCeilings;
 }): Engine {
   /** `INSERT ... RETURNING` yields exactly one row or throws. */
   function inserted<Row>(rows: Row[]): Row {
@@ -283,7 +311,7 @@ export function createEngine({
     };
   }
 
-  const accounts = createAccounts({ database });
+  const accounts = createAccounts({ database, ...(policyCeilings ? { ceilings: policyCeilings } : {}) });
   const identityStore = identity;
 
   return {
@@ -333,6 +361,12 @@ export function createEngine({
     },
 
     accounts,
+
+    administration: {
+      modelOptions() {
+        return offeredModels(policyCeilings?.modelIds);
+      },
+    },
 
     conversations: {
       async create(userId, input) {

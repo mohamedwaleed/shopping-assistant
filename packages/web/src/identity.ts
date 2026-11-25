@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { fromNodeHeaders } from "better-auth/node";
 import { hashPassword } from "better-auth/crypto";
-import type { AuthIdentityStore } from "@shopping-assistant/engine";
+import type { AuthIdentityStore, Accounts } from "@shopping-assistant/engine";
 import type { Auth } from "./auth.ts";
 
 export interface AuthenticatedUser {
@@ -43,6 +43,14 @@ export function createIdentityStore(auth: Auth): AuthIdentityStore {
       const found = await context.internalAdapter.findUserByEmail(email);
       return found ? { id: found.user.id, email: found.user.email } : undefined;
     },
+
+    async revokeSessions(identityId) {
+      // Better Auth owns sessions, so withdrawing access goes through its own
+      // store rather than around it: a deleted row is what makes the next
+      // request carry no session at all.
+      const context = await auth.$context;
+      await context.internalAdapter.deleteUserSessions(identityId);
+    },
   };
 }
 
@@ -60,13 +68,20 @@ async function createCredentialAccount(
   if (!account) throw new Error("Credential account was not created");
 }
 
-/** The signed-in shopper, or `undefined` when the request carries no live session. */
+/**
+ * The signed-in shopper, or `undefined` when the request carries no live
+ * session. A session is not enough on its own: an account an admin has disabled
+ * resolves to nobody, so every caller of this function treats it as signed out.
+ */
 export async function currentUser(
   auth: Auth,
   request: IncomingMessage,
+  accounts: Accounts,
 ): Promise<AuthenticatedUser | undefined> {
   const session = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
   if (!session) return undefined;
+  const account = await accounts.findByIdentity(session.user.id);
+  if (!account || account.disabled) return undefined;
   return {
     id: session.user.id,
     email: session.user.email,

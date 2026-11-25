@@ -52,6 +52,7 @@ async function serveInstallation({
       ...args: Parameters<ReturnType<typeof createIdentityStore>["createUser"]>
     ) => createIdentityStore(auth).createUser(...args),
     findUserByEmail: (email: string) => createIdentityStore(auth).findUserByEmail(email),
+    revokeSessions: (identityId: string) => createIdentityStore(auth).revokeSessions(identityId),
   };
   auth = createAuth({
     database,
@@ -274,8 +275,13 @@ describe("registration and sign-in", () => {
     const user = await currentUser(
       installation.auth,
       Object.assign({ headers: { cookie: cookieFrom(signedIn) } }),
+      installation.engine.accounts,
     );
-    const anonymous = await currentUser(installation.auth, Object.assign({ headers: {} }));
+    const anonymous = await currentUser(
+      installation.auth,
+      Object.assign({ headers: {} }),
+      installation.engine.accounts,
+    );
 
     expect(user).toMatchObject({ email: "shopper@example.com", emailVerified: true });
     expect(anonymous).toBeUndefined();
@@ -327,6 +333,60 @@ describe("registration policy", () => {
     expect(await signUp.text()).toContain("FAILED_TO_CREATE_USER");
     expect(await installation.engine.accounts.findByEmail("late@example.com")).toBeUndefined();
     expect(signIn.status).toBe(200);
+    await installation.close();
+  });
+});
+
+describe("disabled accounts", () => {
+  it("denies authenticated access once an admin disables the account", async () => {
+    const installation = await serveInstallation();
+    const signUp = await post(installation.origin, "/sign-up/email", {
+      name: "Shopper",
+      email: "shopper@example.com",
+      password: PASSWORD,
+    });
+    expect(signUp.status).toBe(200);
+    // Verify the address so the account can sign in, as a real shopper would.
+    const verified = await fetch(verificationLink(installation.mailer), { redirect: "manual" });
+    expect(verified.status).toBe(302);
+
+    const signedIn = await post(installation.origin, "/sign-in/email", {
+      email: "shopper@example.com",
+      password: PASSWORD,
+    });
+    const cookie = cookieFrom(signedIn);
+    expect(cookie).not.toBe("");
+
+    const operator = await installation.engine.accounts.findByEmail("operator@example.com");
+    const shopper = await installation.engine.accounts.findByEmail("shopper@example.com");
+    if (!operator || !shopper) throw new Error("Fixture accounts are missing");
+
+    // Before disabling, the session resolves the shopper.
+    expect(
+      await currentUser(
+        installation.auth,
+        Object.assign({ headers: { cookie } }),
+        installation.engine.accounts,
+      ),
+    ).toMatchObject({ email: "shopper@example.com" });
+
+    await installation.engine.accounts.disable({ id: operator.id }, shopper.id);
+
+    // The live session is gone, so the same cookie resolves nobody...
+    const session = await fetch(`${installation.origin}/api/auth/get-session`, {
+      headers: { cookie, origin: installation.origin },
+    });
+    expect(await session.json()).toBeNull();
+    // ...and even a session that survived would be refused, because a disabled
+    // account is not a signed-in user.
+    expect(
+      await currentUser(
+        installation.auth,
+        Object.assign({ headers: { cookie } }),
+        installation.engine.accounts,
+      ),
+    ).toBeUndefined();
+
     await installation.close();
   });
 });
