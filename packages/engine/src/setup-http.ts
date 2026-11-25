@@ -29,11 +29,14 @@ async function readJson(request: IncomingMessage): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
-function bootstrapInput(body: unknown): { setupToken: string; email: string } | undefined {
+function bootstrapInput(
+  body: unknown,
+): { setupToken: string; email: string; password: string } | undefined {
   if (typeof body !== "object" || body === null) return undefined;
-  const { setupToken, email } = body as Record<string, unknown>;
+  const { setupToken, email, password } = body as Record<string, unknown>;
   if (typeof setupToken !== "string" || typeof email !== "string") return undefined;
-  return { setupToken, email };
+  if (typeof password !== "string") return undefined;
+  return { setupToken, email, password };
 }
 
 /**
@@ -59,7 +62,7 @@ export function createSetupServer({ engine }: { engine: Engine }): RequestListen
         }
         const input = bootstrapInput(body);
         if (!input) {
-          send(response, 400, { error: "Expected setupToken and email" });
+          send(response, 400, { error: "Expected setupToken, email and password" });
           return;
         }
         try {

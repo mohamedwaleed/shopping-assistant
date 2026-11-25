@@ -11,6 +11,7 @@ import {
   migrate,
 } from "@shopping-assistant/database/testing";
 import { createEngine, ConversationNotFoundError, type Engine } from "./index.ts";
+import { createFakeIdentityStore } from "./testing/fake-identity-store.ts";
 
 describe("shopping conversations", () => {
   let admin: Database;
@@ -26,7 +27,11 @@ describe("shopping conversations", () => {
     dropSchema = drop;
     database = connectDatabase(withSearchPath(connection, schema));
     await migrate(database);
-    engine = createEngine({ database, setupToken: "unused-in-these-tests" });
+    engine = createEngine({
+      database,
+      setupToken: "unused-in-these-tests",
+      identity: createFakeIdentityStore(),
+    });
     shopperId = await createAccount(database, "shopper@example.com");
   });
 

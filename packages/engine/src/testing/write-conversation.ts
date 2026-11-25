@@ -6,6 +6,7 @@
  */
 import { connectDatabase, withSearchPath } from "@shopping-assistant/database";
 import { createEngine } from "../index.ts";
+import { createFakeIdentityStore } from "./fake-identity-store.ts";
 
 const [userId, title, content] = process.argv.slice(2);
 const connection = process.env.DATABASE_URL;
@@ -16,7 +17,11 @@ if (!userId || !title || !content || !connection || !schema) {
 }
 
 const database = connectDatabase(withSearchPath(connection, schema));
-const engine = createEngine({ database, setupToken: "unused-in-this-writer" });
+const engine = createEngine({
+  database,
+  setupToken: "unused-in-this-writer",
+  identity: createFakeIdentityStore(),
+});
 
 const conversation = await engine.conversations.create(userId, { title });
 await engine.conversations.appendMessage(userId, conversation.id, { role: "user", content });

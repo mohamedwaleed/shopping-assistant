@@ -6,6 +6,7 @@
  */
 import { connectDatabase, withSearchPath } from "@shopping-assistant/database";
 import { createEngine, SetupClosedError } from "../index.ts";
+import { createFakeIdentityStore } from "./fake-identity-store.ts";
 
 const [email] = process.argv.slice(2);
 const connection = process.env.DATABASE_URL;
@@ -17,10 +18,10 @@ if (!email || !connection || !schema || !setupToken) {
 }
 
 const database = connectDatabase(withSearchPath(connection, schema));
-const engine = createEngine({ database, setupToken });
+const engine = createEngine({ database, setupToken, identity: createFakeIdentityStore() });
 
 const outcome = await engine.setup
-  .complete({ setupToken, email })
+  .complete({ setupToken, email, password: "correct-horse-battery-staple" })
   .then(() => "created")
   .catch((error: unknown) => (error instanceof SetupClosedError ? "closed" : "unexpected"));
 

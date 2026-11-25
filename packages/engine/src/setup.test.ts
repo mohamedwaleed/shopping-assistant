@@ -11,8 +11,10 @@ import {
 } from "@shopping-assistant/database";
 import { createTestSchema, listAccounts, migrate } from "@shopping-assistant/database/testing";
 import { createEngine, SetupClosedError, SetupTokenRejectedError, type Engine } from "./index.ts";
+import { createFakeIdentityStore } from "./testing/fake-identity-store.ts";
 
 const SETUP_TOKEN = "setup-token-0f9c1c1e4b6d4a51a2c3f0e5d7b8a9c6";
+const PASSWORD = "correct-horse-battery-staple";
 const run = promisify(execFile);
 const attemptSetupScript = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -23,6 +25,7 @@ const attemptSetupScript = path.join(
 interface Installation {
   database: Database;
   engine: Engine;
+  identity: ReturnType<typeof createFakeIdentityStore>;
   schema: string;
   drop: () => Promise<void>;
 }
@@ -35,7 +38,14 @@ async function createInstallation(): Promise<Installation> {
   const { schema, drop } = await createTestSchema(server);
   const database = connectDatabase(withSearchPath(connection, schema));
   await migrate(database);
-  return { database, engine: createEngine({ database, setupToken: SETUP_TOKEN }), schema, drop };
+  const identity = createFakeIdentityStore();
+  return {
+    database,
+    engine: createEngine({ database, setupToken: SETUP_TOKEN, identity }),
+    identity,
+    schema,
+    drop,
+  };
 }
 
 async function discardInstallation({ database, drop }: Installation): Promise<void> {
@@ -66,9 +76,11 @@ describe("installation bootstrap", () => {
     const adminUser = await installation.engine.setup.complete({
       setupToken: SETUP_TOKEN,
       email: "operator@example.com",
+      password: PASSWORD,
     });
 
     expect(adminUser).toEqual({ email: "operator@example.com", role: "admin" });
+    expect(installation.identity.passwordOf("operator@example.com")).toBe(PASSWORD);
   });
 
   it("creates no admin and echoes nothing when the setup token is invalid", async () => {
@@ -76,7 +88,7 @@ describe("installation bootstrap", () => {
     const submitted = "wrong-token-7c2d1b9a8f4e4d3c2b1a0f9e8d7c6b5a";
 
     const rejection = await fresh.engine.setup
-      .complete({ setupToken: submitted, email: "intruder@example.com" })
+      .complete({ setupToken: submitted, email: "intruder@example.com", password: PASSWORD })
       .catch((error: unknown) => error);
 
     expect(rejection).toBeInstanceOf(SetupTokenRejectedError);
@@ -87,11 +99,23 @@ describe("installation bootstrap", () => {
 
   it("creates exactly one admin when two valid requests arrive at once", async () => {
     const fresh = await createInstallation();
-    const otherEngine = createEngine({ database: fresh.database, setupToken: SETUP_TOKEN });
+    const otherEngine = createEngine({
+      database: fresh.database,
+      setupToken: SETUP_TOKEN,
+      identity: createFakeIdentityStore(),
+    });
 
     const attempts = await Promise.allSettled([
-      otherEngine.setup.complete({ setupToken: SETUP_TOKEN, email: "first@example.com" }),
-      fresh.engine.setup.complete({ setupToken: SETUP_TOKEN, email: "second@example.com" }),
+      otherEngine.setup.complete({
+        setupToken: SETUP_TOKEN,
+        email: "first@example.com",
+        password: PASSWORD,
+      }),
+      fresh.engine.setup.complete({
+        setupToken: SETUP_TOKEN,
+        email: "second@example.com",
+        password: PASSWORD,
+      }),
     ]);
 
     expect(attempts.filter((attempt) => attempt.status === "fulfilled")).toHaveLength(1);
@@ -108,6 +132,7 @@ describe("installation bootstrap", () => {
       installation.engine.setup.complete({
         setupToken: SETUP_TOKEN,
         email: "second-admin@example.com",
+        password: PASSWORD,
       }),
     ).rejects.toThrow(SetupClosedError);
 
@@ -118,11 +143,19 @@ describe("installation bootstrap", () => {
 
   it("does not reopen after every account is deleted", async () => {
     const fresh = await createInstallation();
-    await fresh.engine.setup.complete({ setupToken: SETUP_TOKEN, email: "operator@example.com" });
-    await fresh.database("users").delete();
+    await fresh.engine.setup.complete({
+      setupToken: SETUP_TOKEN,
+      email: "operator@example.com",
+      password: PASSWORD,
+    });
+    await fresh.database("profiles").delete();
 
     await expect(
-      fresh.engine.setup.complete({ setupToken: SETUP_TOKEN, email: "later@example.com" }),
+      fresh.engine.setup.complete({
+        setupToken: SETUP_TOKEN,
+        email: "later@example.com",
+        password: PASSWORD,
+      }),
     ).rejects.toThrow(SetupClosedError);
     expect(await listAccounts(fresh.database)).toEqual([]);
     await discardInstallation(fresh);
@@ -154,6 +187,7 @@ describe("installation bootstrap", () => {
     const configured = createEngine({
       database: unconfigured.database,
       setupToken: SETUP_TOKEN,
+      identity: createFakeIdentityStore(),
       services: {
         email: { smtpUrl: "smtps://operator:smtp-password-41f7@mail.example.com:465" },
         model: { apiKey: secret },
@@ -188,7 +222,11 @@ describe("installation bootstrap", () => {
       setup: "open",
     });
     await expect(
-      fresh.engine.setup.complete({ setupToken: SETUP_TOKEN, email: "operator@example.com" }),
+      fresh.engine.setup.complete({
+        setupToken: SETUP_TOKEN,
+        email: "operator@example.com",
+        password: PASSWORD,
+      }),
     ).resolves.toEqual({ email: "operator@example.com", role: "admin" });
     await discardInstallation(fresh);
   });
