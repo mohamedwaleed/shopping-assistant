@@ -1,5 +1,9 @@
 # Development database only. The full self-hosted stack (web, PostgreSQL,
 # SearXNG) arrives with the release ticket.
+#
+# The application reads its own settings from the environment it runs in:
+# SETUP_TOKEN, BETTER_AUTH_SECRET (both 32+ characters), PUBLIC_BASE_URL and
+# SMTP_URL. Generate secrets with `openssl rand -base64 48`.
 services:
   db:
     image: postgres:17-alpine

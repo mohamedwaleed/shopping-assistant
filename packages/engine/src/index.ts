@@ -1,5 +1,15 @@
-import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import type { Database } from "@shopping-assistant/database";
+import { createAccounts, type Accounts, type AuthIdentityStore } from "./accounts.ts";
+
+export {
+  AccountAlreadyExistsError,
+  RegistrationClosedError,
+  type Account,
+  type Accounts,
+  type AuthIdentity,
+  type AuthIdentityStore,
+} from "./accounts.ts";
 
 export type MessageRole = "user" | "assistant";
 
@@ -127,9 +137,14 @@ export class HardConstraintRelaxationRefusedError extends Error {
 
 export interface Engine {
   setup: {
-    complete(input: { setupToken: string; email: string }): Promise<AdminUser>;
+    /**
+     * Creates the installation's first admin, including the identity and
+     * credential it signs in with. The password never leaves the call.
+     */
+    complete(input: { setupToken: string; email: string; password: string }): Promise<AdminUser>;
     readiness(): Promise<InstallationReadiness>;
   };
+  accounts: Accounts;
   conversations: {
     create(userId: string, input: { title: string }): Promise<Conversation>;
     list(userId: string): Promise<Conversation[]>;
@@ -165,10 +180,13 @@ export function createEngine({
   database,
   setupToken,
   services = {},
+  identity,
 }: {
   database: Database;
   setupToken: string;
   services?: ServiceConfiguration;
+  /** How identities are created; the web layer supplies Better Auth. */
+  identity: AuthIdentityStore;
 }): Engine {
   /** `INSERT ... RETURNING` yields exactly one row or throws. */
   function inserted<Row>(rows: Row[]): Row {
@@ -265,6 +283,9 @@ export function createEngine({
     };
   }
 
+  const accounts = createAccounts({ database });
+  const identityStore = identity;
+
   return {
     setup: {
       async readiness() {
@@ -280,25 +301,38 @@ export function createEngine({
 
       async complete(input) {
         if (!setupTokenMatches(input.setupToken)) throw new SetupTokenRejectedError();
-        const adminId = randomUUID();
-        return database.transaction(async (transaction) => {
+        // The identity is created first, while setup is still open: claiming the
+        // installation is irreversible, so it must not happen until the admin
+        // it names actually exists. Claiming then races on the primary key, so
+        // a concurrent or replayed attempt still fails exactly once.
+        await database.transaction(async (transaction) => {
           await transaction.raw("SET CONSTRAINTS ALL DEFERRED");
-          // Claiming the single installation row is the bootstrap guard: a
-          // concurrent or replayed attempt blocks on the primary key and then
-          // fails, rather than checking and inserting separately.
+          // The claim is checked before any identity exists, so a replay or a
+          // concurrent attempt leaves no stray account behind.
           const claimed = await transaction("installation")
-            .insert({ initial_admin_id: adminId, initial_admin_created_at: transaction.fn.now() })
+            .insert({ initial_admin_created_at: transaction.fn.now() })
             .onConflict("id")
             .ignore()
             .returning<{ id: number }[]>(["id"]);
           if (!claimed[0]) throw new SetupClosedError();
-          const rows = await transaction("users")
-            .insert({ id: adminId, email: input.email, role: "admin" })
-            .returning<{ email: string; role: "admin" }[]>(["email", "role"]);
-          return inserted(rows);
+          const identity = await identityStore.createUser(
+            {
+              email: input.email,
+              name: input.email.split("@")[0] ?? input.email,
+              password: input.password,
+            },
+            transaction,
+          );
+          await transaction("installation")
+            .where({ id: 1 })
+            .update({ initial_admin_id: identity.id });
+          await accounts.recordAdmin({ identityId: identity.id, email: input.email }, transaction);
         });
+        return { email: input.email, role: "admin" };
       },
     },
+
+    accounts,
 
     conversations: {
       async create(userId, input) {

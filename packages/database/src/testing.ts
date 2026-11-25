@@ -23,18 +23,33 @@ export async function migrate(database: Database): Promise<void> {
   await database.migrate.latest();
 }
 
-/** Controlled test identity; account management arrives with ticket #52. */
-export async function createAccount(
-  database: Database,
-  email: string,
-): Promise<string> {
-  const [row] = await database("users").insert({ email }).returning("id");
-  return (row as { id: string }).id;
+/**
+ * A Better Auth identity with no profile yet, for tests that exercise account
+ * policy itself. The id is a uuid so it round-trips through the uuid columns
+ * the down migration restores.
+ */
+export async function createIdentity(database: Database, email: string): Promise<string> {
+  const [identity] = await database("user")
+    .insert({
+      name: email.split("@")[0] ?? email,
+      email,
+      createdAt: database.fn.now(),
+      updatedAt: database.fn.now(),
+    })
+    .returning("id");
+  return (identity as { id: string }).id;
+}
+
+/** A controlled test identity together with the profile it owns. */
+export async function createAccount(database: Database, email: string): Promise<string> {
+  const id = await createIdentity(database, email);
+  await database("profiles").insert({ id, email });
+  return id;
 }
 
 /** Every account an installation holds, so tests can count admins. */
 export async function listAccounts(
   database: Database,
 ): Promise<{ email: string; role: string }[]> {
-  return database("users").orderBy("email").select(["email", "role"]);
+  return database("profiles").orderBy("email").select(["email", "role"]);
 }

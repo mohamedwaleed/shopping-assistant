@@ -10,8 +10,10 @@ import {
 import { createTestSchema, listAccounts, migrate } from "@shopping-assistant/database/testing";
 import { createEngine } from "./index.ts";
 import { createSetupServer } from "./setup-http.ts";
+import { createFakeIdentityStore } from "./testing/fake-identity-store.ts";
 
 const SETUP_TOKEN = "setup-token-0f9c1c1e4b6d4a51a2c3f0e5d7b8a9c6";
+const PASSWORD = "correct-horse-battery-staple";
 
 interface ServedInstallation {
   database: Database;
@@ -28,7 +30,13 @@ async function serveInstallation(): Promise<ServedInstallation> {
   const database = connectDatabase(withSearchPath(connection, schema));
   await migrate(database);
   const httpServer = createServer(
-    createSetupServer({ engine: createEngine({ database, setupToken: SETUP_TOKEN }) }),
+    createSetupServer({
+      engine: createEngine({
+        database,
+        setupToken: SETUP_TOKEN,
+        identity: createFakeIdentityStore(),
+      }),
+    }),
   );
   await new Promise<void>((listening) => httpServer.listen(0, "127.0.0.1", listening));
   return {
@@ -85,7 +93,11 @@ describe("setup HTTP contract", () => {
     const response = await fetch(`${origin}/setup/complete`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ setupToken: submitted, email: "intruder@example.com" }),
+      body: JSON.stringify({
+        setupToken: submitted,
+        email: "intruder@example.com",
+        password: PASSWORD,
+      }),
     });
     const body = await response.text();
 
@@ -99,7 +111,11 @@ describe("setup HTTP contract", () => {
       fetch(`${origin}/setup/complete`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ setupToken: SETUP_TOKEN, email: "operator@example.com" }),
+        body: JSON.stringify({
+          setupToken: SETUP_TOKEN,
+          email: "operator@example.com",
+          password: PASSWORD,
+        }),
       });
 
     const created = await bootstrap();
@@ -119,7 +135,7 @@ describe("setup HTTP contract", () => {
       fetch(`${fresh.origin}/setup/complete`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ setupToken: SETUP_TOKEN, email }),
+        body: JSON.stringify({ setupToken: SETUP_TOKEN, email, password: PASSWORD }),
       }).then((response) => response.status);
 
     const statuses = await Promise.all([
