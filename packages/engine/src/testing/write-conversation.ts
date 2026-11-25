@@ -16,7 +16,7 @@ if (!userId || !title || !content || !connection || !schema) {
 }
 
 const database = connectDatabase(withSearchPath(connection, schema));
-const engine = createEngine({ database });
+const engine = createEngine({ database, setupToken: "unused-in-this-writer" });
 
 const conversation = await engine.conversations.create(userId, { title });
 await engine.conversations.appendMessage(userId, conversation.id, { role: "user", content });

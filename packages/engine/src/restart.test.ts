@@ -34,7 +34,7 @@ describe("conversation persistence across process restart", () => {
     dropSchema = created.drop;
     database = connectDatabase(withSearchPath(connection, schema));
     await migrate(database);
-    engine = createEngine({ database });
+    engine = createEngine({ database, setupToken: "unused-in-these-tests" });
   });
 
   afterAll(async () => {

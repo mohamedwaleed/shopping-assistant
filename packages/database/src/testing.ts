@@ -31,3 +31,10 @@ export async function createAccount(
   const [row] = await database("users").insert({ email }).returning("id");
   return (row as { id: string }).id;
 }
+
+/** Every account an installation holds, so tests can count admins. */
+export async function listAccounts(
+  database: Database,
+): Promise<{ email: string; role: string }[]> {
+  return database("users").orderBy("email").select(["email", "role"]);
+}

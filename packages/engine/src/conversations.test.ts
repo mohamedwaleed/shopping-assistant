@@ -26,7 +26,7 @@ describe("shopping conversations", () => {
     dropSchema = drop;
     database = connectDatabase(withSearchPath(connection, schema));
     await migrate(database);
-    engine = createEngine({ database });
+    engine = createEngine({ database, setupToken: "unused-in-these-tests" });
     shopperId = await createAccount(database, "shopper@example.com");
   });
 
