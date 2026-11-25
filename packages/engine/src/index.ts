@@ -20,6 +20,21 @@ export interface ConversationWithMessages extends Conversation {
   messages: Message[];
 }
 
+export type RequirementKind = "hard_constraint" | "preference";
+
+export interface Requirement {
+  id: string;
+  kind: RequirementKind;
+  statement: string;
+  createdAt: Date;
+}
+
+export interface Requirements {
+  hardConstraints: Requirement[];
+  preferences: Requirement[];
+  summary: string;
+}
+
 interface ConversationRow {
   id: string;
   title: string;
@@ -32,6 +47,16 @@ interface MessageRow {
   content: string;
   created_at: Date;
 }
+
+interface RequirementRow {
+  id: string;
+  kind: RequirementKind;
+  statement: string;
+  created_at: Date;
+}
+
+/** Anything that can build a query: the database itself or an open transaction. */
+type Queryable = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 /**
  * Raised for both unknown and other accounts' conversations so callers cannot
@@ -92,6 +117,14 @@ export interface ServiceConfiguration {
   discovery?: { searxngUrl?: string };
 }
 
+/** Raised when a hard constraint would be dropped without the shopper's agreement. */
+export class HardConstraintRelaxationRefusedError extends Error {
+  constructor() {
+    super("Relaxing a hard constraint requires the shopper's agreement");
+    this.name = "HardConstraintRelaxationRefusedError";
+  }
+}
+
 export interface Engine {
   setup: {
     complete(input: { setupToken: string; email: string }): Promise<AdminUser>;
@@ -106,6 +139,25 @@ export interface Engine {
       input: { role: MessageRole; content: string },
     ): Promise<Message>;
     get(userId: string, conversationId: string): Promise<ConversationWithMessages>;
+  };
+  requirements: {
+    set(
+      userId: string,
+      conversationId: string,
+      input: { hardConstraints: { statement: string }[]; preferences: { statement: string }[] },
+    ): Promise<Requirements>;
+    get(userId: string, conversationId: string): Promise<Requirements>;
+    revise(
+      userId: string,
+      conversationId: string,
+      input: {
+        hardConstraints?: { statement: string }[];
+        preferences?: { statement: string }[];
+        /** Existing hard constraints the shopper wants to stop honouring. */
+        retract?: { statement: string }[];
+        approvedByShopper?: true;
+      },
+    ): Promise<Requirements>;
   };
 }
 
@@ -151,6 +203,13 @@ export function createEngine({
     return !(await database("installation").first("id"));
   }
 
+  const toRequirement = (row: RequirementRow): Requirement => ({
+    id: row.id,
+    kind: row.kind,
+    statement: row.statement,
+    createdAt: row.created_at,
+  });
+
   async function requireOwnedConversation(
     userId: string,
     conversationId: string,
@@ -160,6 +219,50 @@ export function createEngine({
       .first<ConversationRow>(["id", "title", "created_at"]);
     if (!row) throw new ConversationNotFoundError();
     return row;
+  }
+
+  async function record(
+    conversationId: string,
+    input: { hardConstraints: { statement: string }[]; preferences: { statement: string }[] },
+    connection: Queryable = database,
+  ): Promise<void> {
+    const rows = [
+      ...input.hardConstraints.map(({ statement }) => ({
+        conversation_id: conversationId,
+        kind: "hard_constraint",
+        statement,
+      })),
+      ...input.preferences.map(({ statement }) => ({
+        conversation_id: conversationId,
+        kind: "preference",
+        statement,
+      })),
+    ];
+    if (rows.length === 0) return;
+    await connection("requirements")
+      .insert(rows)
+      .onConflict(["conversation_id", "kind", "statement"])
+      .ignore();
+  }
+
+  async function requirementsOf(conversationId: string): Promise<Requirements> {
+    const rows = await database("requirements")
+      .where({ conversation_id: conversationId })
+      .orderBy("seq")
+      .select<RequirementRow[]>(["id", "kind", "statement", "created_at"]);
+    const ofKind = (kind: RequirementKind) =>
+      rows.filter((row) => row.kind === kind).map(toRequirement);
+    const hardConstraints = ofKind("hard_constraint");
+    const preferences = ofKind("preference");
+    const statements = (requirements: Requirement[]) =>
+      requirements.length === 0
+        ? "none"
+        : requirements.map((requirement) => requirement.statement).join("; ");
+    return {
+      hardConstraints,
+      preferences,
+      summary: `Hard constraints: ${statements(hardConstraints)}. Preferences: ${statements(preferences)}.`,
+    };
   }
 
   return {
@@ -238,6 +341,47 @@ export function createEngine({
           ...toConversation(row),
           messages: messages.map(toMessage),
         };
+      },
+    },
+    requirements: {
+      async set(userId, conversationId, input) {
+        await requireOwnedConversation(userId, conversationId);
+        await record(conversationId, input);
+        return requirementsOf(conversationId);
+      },
+
+      async get(userId, conversationId) {
+        await requireOwnedConversation(userId, conversationId);
+        return requirementsOf(conversationId);
+      },
+
+      async revise(userId, conversationId, input) {
+        await requireOwnedConversation(userId, conversationId);
+        const retract = input.retract ?? [];
+        // Only dropping a constraint the shopper already set is a relaxation;
+        // adding one is not, so additions and preferences always apply. Without
+        // the shopper's agreement the retraction is refused and the stricter
+        // constraint stays in force.
+        if (retract.length > 0 && input.approvedByShopper !== true) {
+          throw new HardConstraintRelaxationRefusedError();
+        }
+        await database.transaction(async (transaction) => {
+          if (retract.length > 0) {
+            await transaction("requirements")
+              .where({ conversation_id: conversationId, kind: "hard_constraint" })
+              .whereIn(
+                "statement",
+                retract.map(({ statement }) => statement),
+              )
+              .del();
+          }
+          await record(
+            conversationId,
+            { hardConstraints: input.hardConstraints ?? [], preferences: input.preferences ?? [] },
+            transaction,
+          );
+        });
+        return requirementsOf(conversationId);
       },
     },
   };
