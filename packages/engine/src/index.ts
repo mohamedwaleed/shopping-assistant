@@ -24,6 +24,7 @@ import {
   type PasswordResets,
   type PasswordSetter,
 } from "./password-reset.ts";
+import { createResearch, type Research, type ResearchCeilings } from "./research.ts";
 
 export {
   AccountAlreadyExistsError,
@@ -60,6 +61,30 @@ export {
   type PasswordResets,
   type PasswordSetter,
 } from "./password-reset.ts";
+
+export {
+  createResearch,
+  DEFAULT_RESEARCH_LIMITS,
+  ResearchAllowanceExhaustedError,
+  ResearchRunNotFoundError,
+  ResearchRunStateError,
+  UsageReservationRefusedError,
+  type CallPricing,
+  type DailyAllowance,
+  type Research,
+  type ResearchCeilings,
+  type ResearchLimits,
+  type ResearchPauseReason,
+  type ResearchPolicy,
+  type ResearchRun,
+  type ResearchRunState,
+  type ResearchUsage,
+  type UsageCallKind,
+  type UsageOverview,
+  type UsageReservation,
+  type UsageReservationRecord,
+  type UsageSettlement,
+} from "./research.ts";
 
 export type MessageRole = "user" | "assistant";
 
@@ -223,6 +248,12 @@ export interface Engine {
   invitations: Invitations;
   /** Emailed password recovery. */
   passwordResets: PasswordResets;
+  /**
+   * Bounded research and its usage ledger. The adapters that spend money call
+   * `reserve` before each call and `settle` or `release` after it, so every
+   * limit is enforced by the engine rather than by each adapter's goodwill.
+   */
+  research: Research;
   conversations: {
     create(userId: string, input: { title: string }): Promise<Conversation>;
     list(userId: string): Promise<Conversation[]>;
@@ -260,6 +291,7 @@ export function createEngine({
   services = {},
   identity,
   policyCeilings,
+  researchCeilings,
   accounts: accountServices,
   now,
 }: {
@@ -273,6 +305,12 @@ export function createEngine({
    * only ever restricts, so an installation without one offers the full set.
    */
   policyCeilings?: PolicyCeilings;
+  /**
+   * The most a research run may be allowed to spend or take. It only ever
+   * narrows the application's own default, for the same reason policy ceilings
+   * do: an admin may choose within what the deployment pays for, not beyond it.
+   */
+  researchCeilings?: ResearchCeilings;
   /**
    * What invitations and reset links need. Omitted when the installation has
    * nowhere to send them, so readiness reports email as unconfigured and both
@@ -402,6 +440,11 @@ export function createEngine({
     baseUrl,
     now: clock,
   });
+  const research = createResearch({
+    database,
+    ...(researchCeilings ? { ceilings: researchCeilings } : {}),
+    now: clock,
+  });
 
   return {
     setup: {
@@ -467,6 +510,8 @@ export function createEngine({
     invitations,
 
     passwordResets,
+
+    research,
 
     conversations: {
       async create(userId, input) {
