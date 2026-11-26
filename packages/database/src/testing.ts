@@ -50,6 +50,6 @@ export async function createAccount(database: Database, email: string): Promise<
 /** Every account an installation holds, so tests can count admins. */
 export async function listAccounts(
   database: Database,
-): Promise<{ email: string; role: string }[]> {
-  return database("profiles").orderBy("email").select(["email", "role"]);
+): Promise<{ email: string; role: string; disabled: boolean }[]> {
+  return database("profiles").orderBy("email").select(["email", "role", "disabled"]);
 }
