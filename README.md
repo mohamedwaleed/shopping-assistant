@@ -144,6 +144,21 @@ pnpm db:migrate
 
 The database listens on `127.0.0.1:54329` only. `pnpm db:migrate` uses `DATABASE_URL` when set and otherwise the default development URL. To undo the latest migration, run `pnpm --filter @shopping-assistant/database migrate:rollback`.
 
+The stack also runs `searxng` on a private `internal` bridge network. It publishes only `127.0.0.1:8888`, so it answers this machine and is otherwise reachable only by name from another service on that network. Its health check calls the JSON API discovery uses, not its front page.
+
+## Discovery
+
+`SEARXNG_URL` (or `services.discovery.searxngUrl` when building the engine) points discovery at a SearXNG instance. With the development Compose stack that is `http://127.0.0.1:8888` from the host and `http://searxng:8080` from another container on the stack's internal network. SearXNG needs no API key: it is the installation's own metasearch instance. Without it, readiness reports discovery as `unconfigured` and `engine.discovery` answers `unconfigured` rather than an empty result set.
+
+`engine.discovery.candidates(userId, runId, conversationId)` finds candidate product pages through the configured SearXNG instance. It needs a running research run, because every search is charged to the research ledger as a `retrieval` call before it is sent and settled after it, so the run's call, time, and spending limits bound discovery too.
+
+- **Queries** are built from the shopper's requirements only: each statement is reduced to its product phrase and sent in Dutch and in English, at most `maxQueries` (6) in all. Account details, addresses, emails, and delivery or person words are removed, and nothing from the conversation's messages or the shopper's profile is ever read.
+- **Candidates** carry the page's URL and domain, the provider's title and snippet, and provenance (provider, query text, query language, rank). Titles and snippets are `unverified_claim` in the type: they are what a search engine says, and neither a price nor a suitability nor a delivery promise follows from them. Only fetching the page can establish a fact.
+- **Outcomes** are explicit: `ok`, `no_results`, `inadequate` (the provider answered, nothing usable), `malformed` (an answer this application cannot read), `unavailable` (the instance did not answer), and `unconfigured` (no instance is set). A provider that is down is never reported as `no_results`.
+- **Bounds**: at most `maxQueries` searches per discovery, `maxResultsPerQuery` (8) results per search, and `requestTimeoutMs` (5s) per call. A limit that stops discovery is reported in `stopped`, and what was already found is kept, because it was paid for.
+
+An optional live check against a running instance is skipped unless `DISCOVERY_LIVE_SEARXNG_URL` is set; the rest of the suite uses recorded provider responses and never reaches the internet.
+
 ## Checks
 
 ```sh

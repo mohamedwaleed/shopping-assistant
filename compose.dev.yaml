@@ -1,9 +1,12 @@
-# Development database only. The full self-hosted stack (web, PostgreSQL,
-# SearXNG) arrives with the release ticket.
+# Development stack: PostgreSQL and SearXNG, the default discovery provider.
 #
 # The application reads its own settings from the environment it runs in:
 # SETUP_TOKEN, BETTER_AUTH_SECRET (both 32+ characters), PUBLIC_BASE_URL and
 # SMTP_URL. Generate secrets with `openssl rand -base64 48`.
+#
+# SEARXNG_URL is how the application reaches discovery. From the host it is the
+# loopback port published below; from another container on this network it is
+# the service name, `http://searxng:8080`.
 services:
   db:
     image: postgres:17-alpine
@@ -21,6 +24,60 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # SearXNG is the search engine discovery uses. It needs no API key: it is the
+  # installation's own metasearch instance, and it is the reason discovery works
+  # on a machine with no paid credentials.
+  searxng:
+    image: searxng/searxng:2026.11.26-b5605b8f2
+    environment:
+      # Bind on every interface inside the container so the network can reach
+      # it; the network and the port mapping below decide who actually can.
+      SEARXNG_BIND_ADDRESS: 0.0.0.0
+      SEARXNG_PORT: 8080
+      # A fixed, non-secret key: SearXNG requires one to start, and this instance
+      # is never published beyond the loopback port below.
+      SEARXNG_SECRET: development-only-not-a-production-secret
+      # The limiter throttles by client address. Behind Docker every request
+      # arrives from the bridge gateway, so it would throttle the whole
+      # installation at once; the instance is not reachable from outside, which
+      # is what protects it instead.
+      SEARXNG_LIMITER: "false"
+      # The JSON API is off by default in some releases. Discovery asks for it
+      # explicitly, so an instance that refuses it would look unavailable.
+      SEARXNG_SETTINGS_YAML: |
+        use_default_settings: true
+        server:
+          limiter: false
+        search:
+          formats:
+            - html
+            - json
+    ports:
+      # Loopback only, like the database: the instance answers this machine and
+      # nothing else. Remove this mapping to keep it on the internal network
+      # alone; a container on this network still reaches it as searxng:8080.
+      - "127.0.0.1:8888:8080"
+    networks:
+      - internal
+    healthcheck:
+      # The JSON API is what discovery calls, so that is what readiness checks:
+      # an instance answering its front page but not its API is not ready.
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null 'http://127.0.0.1:8080/search?q=test&format=json' || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+networks:
+  # A private bridge network: services on it talk to each other by name, and
+  # nothing on it is reachable from another host except through a loopback
+  # port published above.
+  internal:
+    driver: bridge
 
 volumes:
   postgres-data:
