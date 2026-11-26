@@ -310,6 +310,23 @@ describe("registration and sign-in", () => {
   });
 });
 
+describe("bootstrap admin", () => {
+  it("can sign in with the password the setup token created it with", async () => {
+    const installation = await serveInstallation();
+
+    // No verification link is ever sent for the bootstrap admin, so the setup
+    // token is what authorises it and the address must count as verified.
+    const response = await post(installation.origin, "/sign-in/email", {
+      email: "operator@example.com",
+      password: PASSWORD,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.getSetCookie().join("; ")).toMatch(/HttpOnly/i);
+    await installation.close();
+  });
+});
+
 describe("registration policy", () => {
   it("blocks sign-up while registration is closed and keeps login available", async () => {
     const installation = await serveInstallation({ registrationOpen: false });

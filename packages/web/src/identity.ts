@@ -43,7 +43,10 @@ export function createIdentityStore(auth: Auth): AuthIdentityStore {
           {
             email: identity.email,
             name: identity.name,
-            emailVerified: false,
+            // An identity created by the engine is authorised by something other
+            // than a public sign-up — the setup token or an invitation — and an
+            // unverified address cannot sign in, so it would be a dead account.
+            emailVerified: true,
           },
           { method: "email-password" },
         );
