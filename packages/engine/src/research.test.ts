@@ -823,19 +823,35 @@ describe("continuation", () => {
 
 describe("administrator policy", () => {
   it("lets an admin change the limits within the environment ceiling", async () => {
-    // The operator allows a wider day than the application's own default, so an
-    // admin may choose it; nothing beyond the operator's ceiling is reachable.
+    // The operator allows a tighter day than the application's own default, so
+    // an admin may choose anything up to it; nothing beyond it is reachable.
     const installation = await createInstallation({
-      researchCeilings: { dailyCeilingCents: 600 },
+      researchCeilings: { dailyCeilingCents: 400 },
     });
     const { research, adminId } = installation;
 
-    const changed = await research.updatePolicy({ id: adminId }, { dailyCeilingCents: 600 });
+    const changed = await research.updatePolicy({ id: adminId }, { dailyCeilingCents: 400 });
 
-    expect(changed.limits).toMatchObject({ dailyCeilingCents: 600 });
-    expect(changed.ceilings).toMatchObject({ dailyCeilingCents: 600 });
+    expect(changed.limits).toMatchObject({ dailyCeilingCents: 400 });
+    expect(changed.ceilings).toMatchObject({ dailyCeilingCents: 400 });
     expect(changed.updatedAt).toBeInstanceOf(Date);
-    expect((await research.limits()).dailyCeilingCents).toBe(600);
+    expect((await research.limits()).dailyCeilingCents).toBe(400);
+    await discard(installation);
+  });
+
+  it("keeps the default when the operator allows more, so a ceiling never raises a budget", async () => {
+    // A ceiling above the default says the deployment could spend more; it does
+    // not ask every shopper to, so runs still start at the application default.
+    const installation = await createInstallation({
+      researchCeilings: { dailyCeilingCents: 800 },
+    });
+    const { research, adminId } = installation;
+
+    expect((await research.limits()).dailyCeilingCents).toBe(500);
+
+    // An admin may grant the extra headroom the operator allowed, but only then.
+    const raised = await research.updatePolicy({ id: adminId }, { dailyCeilingCents: 800 });
+    expect(raised.limits.dailyCeilingCents).toBe(800);
     await discard(installation);
   });
 

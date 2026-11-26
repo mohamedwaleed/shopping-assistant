@@ -360,28 +360,37 @@ function estimateOf(pricing: CallPricing): number {
  * lower a value; with none configured the application's default stands, exactly
  * as the model list does.
  */
-function withinCeilings(limits: ResearchLimits, ceilings: ResearchCeilings): ResearchLimits {
+function withinCeilings(
+  limits: ResearchLimits,
+  ceilings: ResearchCeilings,
+  reach: "tighten" | "ceiling" = "tighten",
+): ResearchLimits {
+  const pick =
+    reach === "ceiling"
+      ? (limit: number, ceiling: number | undefined) => ceiling ?? limit
+      : lowest;
   // A ceiling is written out per limit rather than looped over: a generic
   // lookup would read each key off a `Partial`, and a missing one has to mean
   // "no restriction" explicitly rather than by accident.
   return {
-    runTargetCents: lowest(limits.runTargetCents, ceilings.runTargetCents),
-    conversationCeilingCents: lowest(
+    runTargetCents: pick(limits.runTargetCents, ceilings.runTargetCents),
+    conversationCeilingCents: pick(
       limits.conversationCeilingCents,
       ceilings.conversationCeilingCents,
     ),
-    dailyCeilingCents: lowest(limits.dailyCeilingCents, ceilings.dailyCeilingCents),
-    callLimit: lowest(limits.callLimit, ceilings.callLimit),
-    timeLimitMs: lowest(limits.timeLimitMs, ceilings.timeLimitMs),
+    dailyCeilingCents: pick(limits.dailyCeilingCents, ceilings.dailyCeilingCents),
+    callLimit: pick(limits.callLimit, ceilings.callLimit),
+    timeLimitMs: pick(limits.timeLimitMs, ceilings.timeLimitMs),
   };
 }
 
-/** The tighter of a limit and its ceiling; an absent ceiling restricts nothing. */
+/**
+ * The tighter of a limit and its ceiling. A ceiling is what the operator is
+ * prepared to pay, so it can only tighten the application's default; an absent
+ * ceiling restricts nothing.
+ */
 function lowest(limit: number, ceiling: number | undefined): number {
-  // The ceiling is what the operator pays for, so an admin may reach it but not
-  // pass it: a ceiling below the application's default narrows it, and one
-  // above it is the most the deployment is prepared to spend.
-  return ceiling === undefined ? limit : ceiling;
+  return ceiling === undefined ? limit : Math.min(limit, ceiling);
 }
 
 /** The start of the calendar day `now` falls in, in UTC, so days have no gaps. */
@@ -393,18 +402,21 @@ export function createResearch({
   database,
   ceilings = {},
   now = () => new Date(),
-  startedAt = now(),
 }: {
   database: Database;
   /** What the deployment allows an admin to raise the limits to. */
   ceilings?: ResearchCeilings;
   /** The clock, so the daily and time ceilings are tested without waiting. */
   now?: () => Date;
-  /** When a run records that it started; the engine's own start by default. */
-  startedAt?: Date;
 }): Research {
   /** The most an admin may set, which is also what new runs start with. */
-  const operatorLimits = withinCeilings(DEFAULT_RESEARCH_LIMITS, ceilings);
+  // Two different numbers. What a run starts with is the application's default
+  // tightened by the ceiling, so an operator who allows more never raises every
+  // shopper's budget. What an admin may grant is the ceiling where the operator
+  // set one and the default otherwise, so deliberate headroom stays reachable.
+  // Collapsing the two would do one of those two wrong things.
+  const defaultLimits = withinCeilings(DEFAULT_RESEARCH_LIMITS, ceilings);
+  const grantableLimits = withinCeilings(DEFAULT_RESEARCH_LIMITS, ceilings, "ceiling");
 
   async function isAdmin(actor: Actor): Promise<boolean> {
     const admin = await database("profiles")
@@ -441,20 +453,20 @@ export function createResearch({
       runTargetCents:
         installation?.research_run_target_cents === null ||
         installation?.research_run_target_cents === undefined
-          ? operatorLimits.runTargetCents
+          ? defaultLimits.runTargetCents
           : cents(installation.research_run_target_cents),
       conversationCeilingCents:
         installation?.research_conversation_ceiling_cents === null ||
         installation?.research_conversation_ceiling_cents === undefined
-          ? operatorLimits.conversationCeilingCents
+          ? defaultLimits.conversationCeilingCents
           : cents(installation.research_conversation_ceiling_cents),
       dailyCeilingCents:
         installation?.research_daily_ceiling_cents === null ||
         installation?.research_daily_ceiling_cents === undefined
-          ? operatorLimits.dailyCeilingCents
+          ? defaultLimits.dailyCeilingCents
           : cents(installation.research_daily_ceiling_cents),
-      callLimit: installation?.research_call_limit ?? operatorLimits.callLimit,
-      timeLimitMs: installation?.research_time_limit_ms ?? operatorLimits.timeLimitMs,
+      callLimit: installation?.research_call_limit ?? defaultLimits.callLimit,
+      timeLimitMs: installation?.research_time_limit_ms ?? defaultLimits.timeLimitMs,
     };
     return withinCeilings(chosen, ceilings);
   }
@@ -764,7 +776,7 @@ export function createResearch({
       }>(["research_updated_at"]);
       return {
         limits: await currentLimits(),
-        ceilings: operatorLimits,
+        ceilings: grantableLimits,
         updatedAt: installation?.research_updated_at ?? undefined,
       };
     },
@@ -778,8 +790,8 @@ export function createResearch({
         if (!Number.isFinite(value) || value < 0) {
           throw new PolicyRefusedError("research limits must be positive numbers");
         }
-        if (value > operatorLimits[limit]) {
-          throw new PolicyRefusedError(`the deployment allows at most ${operatorLimits[limit]}`);
+        if (value > grantableLimits[limit]) {
+          throw new PolicyRefusedError(`the deployment allows at most ${grantableLimits[limit]}`);
         }
       }
       // The admin predicate is part of the write, so an admin demoted while this
@@ -810,7 +822,7 @@ export function createResearch({
       if (!rows[0]) throw new NotAnAdminError();
       return {
         limits: await currentLimits(),
-        ceilings: operatorLimits,
+        ceilings: grantableLimits,
         updatedAt: rows[0].research_updated_at ?? undefined,
       };
     },
@@ -841,7 +853,9 @@ export function createResearch({
             conversation_id: conversationId,
             user_id: userId,
             state: "running",
-            started_at: startedAt,
+            // Each run records its own start; a value captured once when the
+            // engine was built would date every run to the process's start.
+            started_at: now(),
             resumed_at: now(),
             updated_at: now(),
             run_target_cents: limits.runTargetCents,
