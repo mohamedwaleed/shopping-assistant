@@ -355,6 +355,16 @@ describe("classifying pages", () => {
     ).toEqual({ classification: "blocked", reason: "interstitial" });
   });
 
+  it("does not treat a titled but productless page as a product", () => {
+    // Every readable page has a title, so a soft 404 or a CMS error page with
+    // one must not pass as extracted merely because it says what it is.
+    expect(
+      classify(
+        "<html><head><title>Shop home</title></head><body><p>Browse our range.</p></body></html>",
+      ),
+    ).toEqual({ classification: "unusable", reason: "no_product_data" });
+  });
+
   it("treats a page with no product data as unusable", () => {
     expect(classify("<html><body><p>Hello and welcome.</p></body></html>")).toEqual({
       classification: "unusable",

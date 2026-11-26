@@ -559,9 +559,10 @@ export function readFacts(
     builder.sources.title = "html";
   }
 
-  // A name is the one fact every product page has; if nothing else stated it,
-  // the document's own title is the shop's words for what it is selling.
-  setProduct(builder, "name", builder.title, "html");
+  // The document's title is kept as the title, never promoted to the product's
+  // name: every readable page has one, so promoting it would make a soft 404, a
+  // CMS error page, or an unrecognised challenge pass as an extracted product.
+  // A name has to be stated by markup that calls itself product data.
   // The offer's own URL defaults to the page fetched, which is where the price
   // was read: a caller must never have to guess where a fact came from.
   setOffer(builder, "url", resolvedPageUrl, "html");
