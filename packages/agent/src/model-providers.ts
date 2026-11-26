@@ -272,28 +272,44 @@ export function createModelProviders({
       diagnoses.set(modelId, [...(diagnoses.get(modelId) ?? []), now()]);
 
       const started = Date.now();
+      // Whether any bytes went over the wire. Until the first call is made the
+      // reservation can still be given back; after that it cannot, because the
+      // provider was asked and may have charged for the answer.
+      let reachedWire = false;
       try {
         const report = await diagnoseModel({
           configuration,
           modelId,
           bounds,
+          onAttempt: () => {
+            reachedWire = true;
+          },
           ...(fetch ? { fetch } : {}),
         });
         verdicts.set(modelId, { report, at: now() });
         await engine.research.settle(actor.id, {
           reservationId: reservation.id,
           ...(model?.pricePerMillionTokens
-            ? { actualCents: actualCentsOf(model.pricePerMillionTokens, report) }
+            ? { actualCents: actualCentsOf(model.pricePerMillionTokens, report, reservation.reservedCents) }
             : {}),
           durationMs: report.durationMs,
         });
         return report;
       } catch (error) {
-        // A diagnostic that could not run at all gives its reservation back; a
-        // provider failure that reached the wire settles, because it was paid
-        // for. `diagnoseModel` reports those rather than throwing, so reaching
-        // here means nothing was sent.
-        await engine.research.release(actor.id, reservation.id);
+        // Only a diagnostic that never reached the wire gives its reservation
+        // back. A call that did is settled at what was reserved: releasing it
+        // would charge nothing for work the provider may have billed, and a
+        // provider whose reported usage exceeds the estimate must not be able
+        // to turn its own calls free.
+        if (reachedWire) {
+          await engine.research.settle(actor.id, {
+            reservationId: reservation.id,
+            actualCents: reservation.reservedCents,
+            durationMs: Date.now() - started,
+          });
+        } else {
+          await engine.research.release(actor.id, reservation.id);
+        }
         const problem =
           error instanceof UnknownModelError
             ? "no model is configured under that id"
@@ -348,10 +364,17 @@ function pricingOf(
 function actualCentsOf(
   price: { inputCents: number; outputCents: number },
   report: DiagnosticReport,
+  reservedCents: number,
 ): number {
   const perToken = (cents: number, tokens: number) => (cents * tokens) / 1_000_000;
-  return Math.ceil(
-    perToken(price.inputCents, report.usage.inputTokens) +
-      perToken(price.outputCents, report.usage.outputTokens),
+  // Provider-reported usage is data the provider controls, so it is not
+  // trusted to stay inside the estimate: settling above the reservation is
+  // refused by the ledger, which would leave the call unpaid.
+  return Math.min(
+    reservedCents,
+    Math.ceil(
+      perToken(price.inputCents, report.usage.inputTokens) +
+        perToken(price.outputCents, report.usage.outputTokens),
+    ),
   );
 }

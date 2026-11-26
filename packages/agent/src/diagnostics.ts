@@ -180,6 +180,7 @@ export async function diagnoseModel({
   bounds = DEFAULT_DIAGNOSTIC_BOUNDS,
   fetch,
   now = () => Date.now(),
+  onAttempt = () => {},
 }: {
   configuration: ModelConfiguration;
   modelId: string;
@@ -187,6 +188,11 @@ export async function diagnoseModel({
   /** A transport, so a test can answer from recorded bodies instead of a network. */
   fetch?: typeof globalThis.fetch;
   now?: () => number;
+  /**
+   * Called just before each call leaves, so the caller knows the provider was
+   * asked and can no longer give its reservation back for free.
+   */
+  onAttempt?: () => void;
 }): Promise<DiagnosticReport> {
   const model = configuration.models.find((candidate) => candidate.id === modelId);
   if (!model) throw new UnknownModelError(modelId);
@@ -230,6 +236,7 @@ export async function diagnoseModel({
   // Streaming first: it needs no tool support, so a provider that cannot stream
   // is reported as such rather than as a tool failure.
   try {
+    onAttempt();
     const streamed = streamText({
       model: languageModel,
       prompt: "Reply with the single word: ready.",
@@ -281,6 +288,7 @@ export async function diagnoseModel({
   }
 
   try {
+    onAttempt();
     const answered = await generateText({
       model: languageModel,
       tools: diagnosticTools,

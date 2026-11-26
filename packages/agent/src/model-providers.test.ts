@@ -24,6 +24,7 @@ import {
 import type { ModelConfiguration } from "./providers.ts";
 import {
   fixtureTransport,
+  inflatedUsage,
   notStreaming,
   wellBehaved,
   type ProviderBehaviour,
@@ -378,6 +379,36 @@ describe("diagnostic charging", () => {
     expect(Number(settled?.actual_cents)).toBe(1);
     expect(settled?.priced).toBe(true);
     expect(await spentCents(installation)).toBe(1);
+    await discard(installation);
+  });
+
+  it("still charges a provider whose reported usage exceeds the reservation", async () => {
+    // Settling above a reservation is refused by the ledger, so a provider that
+    // reports absurd usage must be settled at what was reserved rather than
+    // released: releasing it would charge nothing for a call it answered.
+    const installation = await createInstallation({
+      models: [
+        {
+          id: "balanced",
+          provider: "openai",
+          model: "gpt-4o-mini",
+          pricePerMillionTokens: { inputCents: 15_000, outputCents: 15_000 },
+        },
+      ],
+    });
+    installation.behave("balanced", inflatedUsage);
+
+    await installation.providers.diagnose({ id: installation.adminId }, "balanced");
+
+    const settled = await installation.database("usage_events")
+      .where({ kind: "settle" })
+      .first<{ actual_cents: string }>(["actual_cents"]);
+    const reserved = await installation.database("usage_events")
+      .where({ kind: "reserve" })
+      .first<{ estimated_cents: string }>(["estimated_cents"]);
+    expect(settled).toBeDefined();
+    expect(Number(settled?.actual_cents)).toBe(Number(reserved?.estimated_cents));
+    expect(await spentCents(installation)).toBeGreaterThan(0);
     await discard(installation);
   });
 

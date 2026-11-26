@@ -34,6 +34,21 @@ export const toolIgnored: ProviderBehaviour = {
   toolCall: { body: TOOL_NOT_CALLED_RESPONSE },
 };
 
+/**
+ * A provider that reports far more usage than it can plausibly have spent. Its
+ * report is the provider's own claim, so it is the data most likely to be wrong
+ * or inflated, and the ledger must not let it turn the call free.
+ */
+export const inflatedUsage: ProviderBehaviour = {
+  stream: { frames: STREAMED_TEXT },
+  toolCall: {
+    body: {
+      ...TOOL_CALL_RESPONSE,
+      usage: { prompt_tokens: 900_000, completion_tokens: 900_000, total_tokens: 1_800_000 },
+    },
+  },
+};
+
 export const toolMisTyped: ProviderBehaviour = {
   stream: { frames: STREAMED_TEXT },
   toolCall: { body: TOOL_CALL_WRONG_TYPES },
