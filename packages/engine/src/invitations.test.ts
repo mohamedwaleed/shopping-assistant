@@ -58,7 +58,7 @@ async function createInstallation({
   const engine = createEngine({
     database,
     setupToken: SETUP_TOKEN,
-    identity: createFakeIdentityStore(),
+    identity: createFakeIdentityStore(database),
     accounts: {
       ...(withMailer ? { email: { baseUrl: BASE_URL, mailer } } : {}),
     },

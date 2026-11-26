@@ -33,7 +33,7 @@ async function serveInstallation(): Promise<ServedInstallation> {
   const { schema, drop } = await createTestSchema(server);
   const database = connectDatabase(withSearchPath(connection, schema));
   await migrate(database);
-  const identity = createFakeIdentityStore();
+  const identity = createFakeIdentityStore(database);
   const engine = createEngine({ database, setupToken: "unused-here", identity });
   await engine.setup.complete({
     setupToken: "unused-here",
@@ -72,7 +72,7 @@ async function signUpShopper(
   installation: ServedInstallation,
   email: string,
 ): Promise<{ id: string; cookie: string }> {
-  const identity = createFakeIdentityStore();
+  const identity = createFakeIdentityStore(installation.database);
   // The engine's own identity store is not exposed, so the account is recorded
   // directly, which is what sign-up would have done.
   const user = await identity.findUserByEmail(email);

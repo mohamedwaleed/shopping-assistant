@@ -35,7 +35,7 @@ describe("shopper requirements", () => {
     engine = createEngine({
       database,
       setupToken: "unused-in-these-tests",
-      identity: createFakeIdentityStore(),
+      identity: createFakeIdentityStore(database),
     });
     shopperId = await createAccount(database, "shopper@example.com");
   });

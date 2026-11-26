@@ -20,7 +20,7 @@ const database = connectDatabase(withSearchPath(connection, schema));
 const engine = createEngine({
   database,
   setupToken: "unused-in-this-writer",
-  identity: createFakeIdentityStore(),
+  identity: createFakeIdentityStore(database),
 });
 
 const conversation = await engine.conversations.create(userId, { title });

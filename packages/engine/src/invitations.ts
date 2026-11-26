@@ -216,6 +216,9 @@ export function createInvitations({
             .update({ accepted_by: identity.id });
           return { account, email: row.email };
         } catch (error) {
+          // The identity was written on its own connection, so it is undone
+          // here. It has no profile, which leaves it unadministrable, so it is
+          // removed outright rather than disabled.
           await database("user").where({ id: identity.id }).del();
           throw error;
         }

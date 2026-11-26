@@ -18,7 +18,7 @@ if (!email || !connection || !schema || !setupToken) {
 }
 
 const database = connectDatabase(withSearchPath(connection, schema));
-const engine = createEngine({ database, setupToken, identity: createFakeIdentityStore() });
+const engine = createEngine({ database, setupToken, identity: createFakeIdentityStore(database) });
 
 const outcome = await engine.setup
   .complete({ setupToken, email, password: "correct-horse-battery-staple" })

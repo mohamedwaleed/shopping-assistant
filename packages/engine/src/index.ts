@@ -443,7 +443,15 @@ export function createEngine({
           await transaction("installation")
             .where({ id: 1 })
             .update({ initial_admin_id: identity.id });
-          await accounts.recordAdmin({ identityId: identity.id, email: input.email }, transaction);
+          try {
+            await accounts.recordAdmin({ identityId: identity.id, email: input.email }, transaction);
+          } catch (error) {
+            // The identity was written on its own connection. Without this it
+            // would survive as a `user` row with no profile, holding the email
+            // that a retry needs, so it is removed before the claim rolls back.
+            await database("user").where({ id: identity.id }).del();
+            throw error;
+          }
         });
         return { email: input.email, role: "admin" };
       },
