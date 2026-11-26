@@ -34,7 +34,7 @@ async function serveInstallation(): Promise<ServedInstallation> {
       engine: createEngine({
         database,
         setupToken: SETUP_TOKEN,
-        identity: createFakeIdentityStore(),
+        identity: createFakeIdentityStore(database),
       }),
     }),
   );

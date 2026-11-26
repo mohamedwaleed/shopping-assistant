@@ -38,7 +38,7 @@ describe("conversation persistence across process restart", () => {
     engine = createEngine({
       database,
       setupToken: "unused-in-these-tests",
-      identity: createFakeIdentityStore(),
+      identity: createFakeIdentityStore(database),
     });
   });
 

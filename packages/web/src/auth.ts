@@ -1,6 +1,7 @@
 import type { Database } from "@shopping-assistant/database";
 import { betterAuth } from "better-auth";
 import { createKnexAdapter } from "./adapter.ts";
+import { creatingInvitedIdentity } from "./identity.ts";
 import type { Mailer } from "./mailer.ts";
 
 /** Verification links are valid for a day: long enough for a real inbox, short enough to leak little. */
@@ -58,7 +59,13 @@ export function createAuth({ database, secret, baseUrl, mailer, installation }: 
           // `false` refuses the write; the sign-up endpoint then answers
           // `FAILED_TO_CREATE_USER` and no row is written. The bootstrap admin
           // is the one identity created while the installation is still open.
+          //
+          // An invited identity is the other exception, and it says so on its
+          // own call: the invitation the engine already validated is the
+          // authorisation, so the policy has nothing to add. The store's flag is
+          // per-call, so a public sign-up racing an acceptance is still refused.
           async before() {
+            if (creatingInvitedIdentity()) return true;
             const { bootstrapped, registrationOpen } = await installation();
             return !bootstrapped || registrationOpen;
           },

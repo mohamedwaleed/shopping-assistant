@@ -38,7 +38,7 @@ async function createInstallation(): Promise<Installation> {
   const { schema, drop } = await createTestSchema(server);
   const database = connectDatabase(withSearchPath(connection, schema));
   await migrate(database);
-  const identity = createFakeIdentityStore();
+  const identity = createFakeIdentityStore(database);
   return {
     database,
     engine: createEngine({ database, setupToken: SETUP_TOKEN, identity }),
@@ -83,6 +83,45 @@ describe("installation bootstrap", () => {
     expect(installation.identity.passwordOf("operator@example.com")).toBe(PASSWORD);
   });
 
+  it("leaves no identity behind when the admin record fails, so a retry can succeed", async () => {
+    const fresh = await createInstallation();
+    // A trigger that refuses the profile write stands in for any failure after
+    // the identity exists: the identity is created on its own connection, so
+    // only an explicit removal keeps the address free for a retry.
+    await fresh.database.raw(`
+      CREATE FUNCTION refuse_admin_profile() RETURNS trigger AS $$
+      BEGIN
+        IF NEW.role = 'admin' THEN
+          RAISE EXCEPTION 'refused for the test';
+        END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+      CREATE TRIGGER refuse_admin_profile BEFORE INSERT ON profiles
+        FOR EACH ROW EXECUTE FUNCTION refuse_admin_profile();
+    `);
+
+    await expect(
+      fresh.engine.setup.complete({
+        setupToken: SETUP_TOKEN,
+        email: "operator@example.com",
+        password: PASSWORD,
+      }),
+    ).rejects.toThrow();
+
+    expect(await fresh.database("user").where({ email: "operator@example.com" })).toHaveLength(0);
+
+    await fresh.database.raw("DROP TRIGGER refuse_admin_profile ON profiles");
+    await expect(
+      fresh.engine.setup.complete({
+        setupToken: SETUP_TOKEN,
+        email: "operator@example.com",
+        password: PASSWORD,
+      }),
+    ).resolves.toEqual({ email: "operator@example.com", role: "admin" });
+    await discardInstallation(fresh);
+  });
+
   it("creates no admin and echoes nothing when the setup token is invalid", async () => {
     const fresh = await createInstallation();
     const submitted = "wrong-token-7c2d1b9a8f4e4d3c2b1a0f9e8d7c6b5a";
@@ -102,7 +141,7 @@ describe("installation bootstrap", () => {
     const otherEngine = createEngine({
       database: fresh.database,
       setupToken: SETUP_TOKEN,
-      identity: createFakeIdentityStore(),
+      identity: createFakeIdentityStore(fresh.database),
     });
 
     const attempts = await Promise.allSettled([
@@ -184,7 +223,7 @@ describe("installation bootstrap", () => {
     const configured = createEngine({
       database: unconfigured.database,
       setupToken: SETUP_TOKEN,
-      identity: createFakeIdentityStore(),
+      identity: createFakeIdentityStore(unconfigured.database),
       services: {
         email: { smtpUrl: "smtps://operator:smtp-password-41f7@mail.example.com:465" },
         model: { apiKey: secret },

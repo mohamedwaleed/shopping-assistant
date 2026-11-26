@@ -28,7 +28,7 @@ describe("conversation privacy against administrators", () => {
     engine = createEngine({
       database,
       setupToken: "unused-in-these-tests",
-      identity: createFakeIdentityStore(),
+      identity: createFakeIdentityStore(database),
     });
     adminId = await createAccount(database, "operator@example.com");
     shopperId = await createAccount(database, "shopper@example.com");
