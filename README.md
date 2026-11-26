@@ -40,6 +40,34 @@ openssl rand -base64 48
 
 The setup token travels in request bodies only: never in URLs, responses, or logs.
 
+`RETRIEVAL_COST_CENTS` prices one page retrieval, in whole cents. It is optional: without it the research ledger records each retrieval's cost as unknown rather than free, and the run's call and time limits still apply. With it, a retrieval is bounded by the run's money as well as by its call count.
+
+## Page extraction
+
+The engine fetches and parses accessible product pages itself; no search index and no model is involved. `engine.extraction.fetchPage(userId, runId, url)` reads one page for a research run the caller owns, and `engine.extraction.parse({ url, html })` parses HTML the caller already holds without charging anything.
+
+Every retrieval is charged to the run's ledger as a `retrieval` call, and a second attempt is charged as a `retry`: a run's allowance bounds how many pages it may read, and a blocked page costs what a page that was read costs. A destination the installation refuses outright costs nothing, because no request is made.
+
+The bounds are hard stops, and an operator may only narrow them (`extractionCeilings`):
+
+- the scheme must be `http` or `https`, the port a web port (80 or 443), and the URL must carry no credentials;
+- the host must resolve to a public address: loopback, private, link-local, carrier-grade NAT, multicast, and every IPv6 spelling of those are refused, and each answer is checked, so one private answer refuses the fetch;
+- redirects are followed one hop at a time and each hop is re-validated the same way, up to four hops;
+- a response is capped at 2 MiB, enforced as the bytes arrive, and a retrieval has 10 seconds in total.
+
+A page that is not `extracted` carries no facts at all, so a challenge, login wall, or paywall can never be read as evidence:
+
+| Classification | Meaning |
+| --- | --- |
+| `extracted` | A product page was read; facts and explicit unknowns are returned. |
+| `unavailable` | 404, 410, or a server error. |
+| `blocked` | 401, 403, 429, a login or paywall interstitial, or a robots refusal. |
+| `challenge` | A CAPTCHA or bot-check page, including one served with `200`. |
+| `unsupported` | A body that is not HTML, such as a PDF. |
+| `unusable` | HTML with no product data, or a document that could not be read. |
+
+The installation never signs in, never satisfies a challenge, and never gets past a paywall. Page text is returned as `facts.pageText`, bounded to 20 000 characters and attributed to the page it came from: it is data, and nothing in it influences what the extraction does next.
+
 ## Installation bootstrap
 
 `createSetupServer` (from `@shopping-assistant/engine/setup-http`) serves the thin setup contract:

@@ -76,4 +76,50 @@ describe("installation settings", () => {
     expect(failure).toBeInstanceOf(InvalidConfigurationError);
     expect(failure?.message).not.toContain(weak);
   });
+
+  it("carries the price of a page retrieval when the operator sets one", () => {
+    const settings = loadSettings({
+      SETUP_TOKEN,
+      BETTER_AUTH_SECRET: AUTH_SECRET,
+      RETRIEVAL_COST_CENTS: "2",
+    });
+
+    expect(settings.retrievalCostCents).toBe(2);
+  });
+
+  it("reports no retrieval price when the operator has not set one", () => {
+    // An unpriced retrieval is not a free one: the ledger records the cost as
+    // unknown, so an absent setting must stay absent rather than become zero.
+    const settings = loadSettings({ SETUP_TOKEN, BETTER_AUTH_SECRET: AUTH_SECRET });
+
+    expect(settings.retrievalCostCents).toBeUndefined();
+  });
+
+  it("refuses a retrieval price that is not a whole number of cents", () => {
+    for (const value of ["-1", "1.5", "one", ""]) {
+      expect(
+        () =>
+          loadSettings({
+            SETUP_TOKEN,
+            BETTER_AUTH_SECRET: AUTH_SECRET,
+            RETRIEVAL_COST_CENTS: value,
+          }),
+        value,
+      ).toThrow(InvalidConfigurationError);
+    }
+  });
+
+  it("names the setting it rejected without repeating its value", () => {
+    const failure = (() => {
+      try {
+        loadSettings({ SETUP_TOKEN, BETTER_AUTH_SECRET: AUTH_SECRET, RETRIEVAL_COST_CENTS: "1.5" });
+        return undefined;
+      } catch (error) {
+        return error as Error;
+      }
+    })();
+
+    expect(failure?.message).toContain("RETRIEVAL_COST_CENTS");
+    expect(failure?.message).not.toContain("1.5");
+  });
 });
