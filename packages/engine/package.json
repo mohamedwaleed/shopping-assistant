@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./setup-http": "./src/setup-http.ts",
-    "./administration-http": "./src/administration-http.ts"
+    "./administration-http": "./src/administration-http.ts",
+    "./testing": "./src/testing/fake-identity-store.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

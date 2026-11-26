@@ -11,6 +11,22 @@ export interface ModelOption {
 }
 
 /**
+ * What the engine reports about a model's provider without knowing the
+ * provider. The engine decides which ids an admin may choose, but how an id is
+ * reached is the agent integration boundary's business: these are the route
+ * names it uses, repeated here so an admin response can name one without the
+ * engine importing an inference SDK.
+ */
+export type ModelProviderRoute = "openai" | "openai-compatible" | "openrouter";
+
+/** How a model is reached, as far as the engine needs to say so. */
+export interface ModelProviderIdentity {
+  provider: string;
+  model: string;
+  route: ModelProviderRoute;
+}
+
+/**
  * Everything the application knows how to talk to. The operator's ceiling may
  * narrow this list, never widen it: an id absent here has no adapter behind it.
  */

@@ -3,10 +3,15 @@ import type { Database } from "@shopping-assistant/database";
 import {
   createAccounts,
   type Accounts,
+  type Actor,
   type AuthIdentityStore,
   type PolicyCeilings,
 } from "./accounts.ts";
-import { offeredModels, type ModelOption } from "./policy.ts";
+import {
+  offeredModels,
+  type ModelOption,
+  type ModelProviderIdentity,
+} from "./policy.ts";
 import {
   createInvitations,
   InvitationInvalidError,
@@ -44,7 +49,13 @@ export {
   type PolicyChange,
 } from "./accounts.ts";
 
-export { OFFERED_MODELS, offeredModels, type ModelOption } from "./policy.ts";
+export {
+  OFFERED_MODELS,
+  offeredModels,
+  type ModelOption,
+  type ModelProviderIdentity,
+  type ModelProviderRoute,
+} from "./policy.ts";
 export {
   InvitationInvalidError,
   InvitationRefusedError,
@@ -193,12 +204,33 @@ export interface InstallationReadiness {
 }
 
 /**
+ * One offered model as an admin sees it. `provider` is absent when the
+ * deployment has no adapter behind the id, which is a fact the admin is told
+ * rather than shielded from: choosing it would leave conversations with no
+ * model to call.
+ */
+export interface ModelCatalogEntry extends ModelOption {
+  provider?: ModelProviderIdentity;
+}
+
+/**
  * Presence-only configuration. Values are secrets or operator endpoints, so
  * they are held here and never copied into readiness results.
+ *
+ * `model` carries what the engine needs to know about the conversation model,
+ * which is how each offered id is reached, never how to call it: the transport
+ * lives in the agent package, so no inference SDK reaches the engine. An id the
+ * operator has not wired to a provider is reported as unconfigured instead of
+ * being offered as if it worked.
  */
 export interface ServiceConfiguration {
   email?: { smtpUrl?: string };
-  model?: { apiKey?: string; baseUrl?: string };
+  model?: {
+    apiKey?: string;
+    baseUrl?: string;
+    /** How each offered model id is reached; absent ids have no provider. */
+    providers?: Partial<Record<string, ModelProviderIdentity>>;
+  };
   discovery?: { searxngUrl?: string };
 }
 
@@ -243,6 +275,13 @@ export interface Engine {
   administration: {
     /** The offered models after the environment ceiling is applied. */
     modelOptions(): ModelOption[];
+    /**
+     * Admins only: the offered models with the provider each one is reached
+     * through, so a dashboard can say what an admin is choosing between. An id
+     * with no provider behind it is reported as such rather than hidden: an
+     * admin must be able to see that a choice would not work.
+     */
+    modelCatalog(actor: Actor): Promise<ModelCatalogEntry[]>;
   };
   /** Admin invitations: the one way to join an installation that has closed public sign-up. */
   invitations: Invitations;
@@ -505,6 +544,17 @@ export function createEngine({
     administration: {
       modelOptions() {
         return offeredModels(policyCeilings?.modelIds);
+      },
+
+      async modelCatalog(actor) {
+        // The admin check is the accounts operation's own, so an ordinary
+        // account is refused before it learns anything about the deployment.
+        await accounts.list(actor);
+        const providers = services.model?.providers ?? {};
+        return offeredModels(policyCeilings?.modelIds).map((option) => {
+          const provider = providers[option.id];
+          return provider ? { ...option, provider } : { ...option };
+        });
       },
     },
     invitations,

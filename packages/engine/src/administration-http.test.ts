@@ -7,7 +7,7 @@ import {
   withSearchPath,
   type Database,
 } from "@shopping-assistant/database";
-import { createTestSchema, migrate } from "@shopping-assistant/database/testing";
+import { createAccount, createTestSchema, migrate } from "@shopping-assistant/database/testing";
 import { createEngine, type Engine } from "./index.ts";
 import { createAdministrationServer } from "./administration-http.ts";
 import { createFakeIdentityStore } from "./testing/fake-identity-store.ts";
@@ -263,5 +263,123 @@ describe("administration HTTP contract", () => {
 
     expect(response.status).toBe(400);
     expect((await installation.engine.accounts.policy()).revision).toBe(before.revision);
+  });
+
+  it("reports each offered model with the provider it is reached through", async () => {
+    const response = await request(installation, "/administration/models", {
+      cookie: operatorCookie,
+    });
+    const body = (await response.json()) as {
+      activeModelId: string;
+      chosenByAdmin: boolean;
+      models: { id: string; provider: unknown; readiness: string }[];
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.models.map((model) => model.id)).toEqual(["balanced", "thorough", "economy"]);
+    // This installation wires no providers, so every option is reported as
+    // unconfigured rather than offered as if it worked.
+    for (const model of body.models) {
+      expect(model.provider).toBeNull();
+      expect(model.readiness).toBe("unconfigured");
+    }
+    expect(body.activeModelId).toBe("balanced");
+    expect(body.chosenByAdmin).toBe(false);
+  });
+
+  it("names the model an admin chose as the active one", async () => {
+    const chosen = await request(installation, "/administration/policy", {
+      method: "PATCH",
+      cookie: operatorCookie,
+      body: { modelId: "economy" },
+    });
+    expect(chosen.status).toBe(200);
+
+    const response = await request(installation, "/administration/models", {
+      cookie: operatorCookie,
+    });
+    const body = (await response.json()) as { activeModelId: string; chosenByAdmin: boolean };
+    expect(body.activeModelId).toBe("economy");
+    expect(body.chosenByAdmin).toBe(true);
+  });
+
+  it("refuses the model catalog to an ordinary account", async () => {
+    // Recorded directly rather than signed up: an earlier test in this file
+    // closes registration, and this one needs an ordinary account in good
+    // standing, not a sign-up policy.
+    const id = await createAccount(installation.database, "catalog-shopper@example.com");
+    installation.sessions.set("token-catalog-shopper", id);
+    const response = await request(installation, "/administration/models", {
+      cookie: "session=token-catalog-shopper",
+    });
+    expect(response.status).toBe(403);
+  });
+});
+
+describe("administration model catalog", () => {
+  it("reports a configured provider for each id the operator wired", async () => {
+    const { schema, drop } = await createTestSchema(server);
+    const database = connectDatabase(withSearchPath(databaseUrlFromEnvironment(), schema));
+    await migrate(database);
+    const engine = createEngine({
+      database,
+      setupToken: "unused-here",
+      identity: createFakeIdentityStore(database),
+      services: {
+        model: {
+          providers: {
+            balanced: { provider: "openai", model: "gpt-4o-mini", route: "openai" },
+            economy: { provider: "openrouter", model: "openai/gpt-4o-mini", route: "openrouter" },
+          },
+        },
+      },
+    });
+    const adminId = await createAccount(database, "operator@example.com");
+    await database.transaction(async (transaction) => {
+      await transaction("installation").insert({ initial_admin_created_at: transaction.fn.now() });
+      await transaction("profiles").where({ id: adminId }).update({ role: "admin" });
+    });
+
+    const catalog = await engine.administration.modelCatalog({ id: adminId });
+    expect(catalog.find((entry) => entry.id === "balanced")?.provider).toEqual({
+      provider: "openai",
+      model: "gpt-4o-mini",
+      route: "openai",
+    });
+    // An offered id with no adapter behind it is reported, not hidden.
+    expect(catalog.find((entry) => entry.id === "thorough")?.provider).toBeUndefined();
+
+    await database.destroy();
+    await drop();
+  });
+
+  it("narrows the catalog with the operator's ceiling", async () => {
+    const { schema, drop } = await createTestSchema(server);
+    const database = connectDatabase(withSearchPath(databaseUrlFromEnvironment(), schema));
+    await migrate(database);
+    const engine = createEngine({
+      database,
+      setupToken: "unused-here",
+      identity: createFakeIdentityStore(database),
+      policyCeilings: { modelIds: ["economy"] },
+      services: {
+        model: {
+          providers: {
+            economy: { provider: "openai", model: "gpt-4o-mini", route: "openai" },
+          },
+        },
+      },
+    });
+    const adminId = await createAccount(database, "operator@example.com");
+    await database.transaction(async (transaction) => {
+      await transaction("installation").insert({ initial_admin_created_at: transaction.fn.now() });
+      await transaction("profiles").where({ id: adminId }).update({ role: "admin" });
+    });
+
+    const catalog = await engine.administration.modelCatalog({ id: adminId });
+    expect(catalog.map((entry) => entry.id)).toEqual(["economy"]);
+
+    await database.destroy();
+    await drop();
   });
 });

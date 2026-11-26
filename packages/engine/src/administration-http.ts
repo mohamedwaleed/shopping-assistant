@@ -56,6 +56,32 @@ function policyView(policy: InstallationPolicy, engine: Engine): unknown {
 }
 
 /**
+ * The models an admin may choose between, with how each is reached and whether
+ * the deployment has a provider for it. `activeModelId` is what a conversation
+ * would use now: the admin's choice where there is one, and the deployment's
+ * own choice otherwise, so the screen never has to guess.
+ */
+function modelsView(
+  policy: InstallationPolicy,
+  catalog: Awaited<ReturnType<Engine["administration"]["modelCatalog"]>>,
+  engine: Engine,
+): unknown {
+  const offered = engine.administration.modelOptions().map((option) => option.id);
+  const active = policy.modelId ?? offered[0] ?? null;
+  return {
+    activeModelId: active,
+    chosenByAdmin: policy.modelId !== undefined,
+    models: catalog.map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      description: entry.description,
+      provider: entry.provider ?? null,
+      readiness: entry.provider ? "configured" : "unconfigured",
+    })),
+  };
+}
+
+/**
  * The thin administration contract for the dashboard. Who the caller is comes
  * from the verified session, which the web layer resolves and passes in as the
  * actor; this listener never trusts a body or a header to name the actor.
@@ -111,6 +137,19 @@ export function createAdministrationServer({
 
         if (pathname === "/administration/policy" && method === "GET") {
           send(response, 200, policyView(await engine.accounts.policy(), engine));
+          return;
+        }
+
+        if (pathname === "/administration/models" && method === "GET") {
+          send(
+            response,
+            200,
+            modelsView(
+              await engine.accounts.policy(),
+              await engine.administration.modelCatalog(actor),
+              engine,
+            ),
+          );
           return;
         }
 
