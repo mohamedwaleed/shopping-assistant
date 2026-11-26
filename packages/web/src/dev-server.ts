@@ -48,6 +48,7 @@ const engine = createEngine({
   ...(settings.retrievalCostCents === undefined
     ? {}
     : { retrievalCostCents: settings.retrievalCostCents }),
+  ...(settings.discovery ? { services: { discovery: settings.discovery } } : {}),
 });
 
 /** The caller of an administration request, resolved from its verified session. */

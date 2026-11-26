@@ -520,6 +520,22 @@ export function createEngine({
   const configured = (value: string | undefined): Readiness =>
     value ? "ready" : "unconfigured";
 
+  /**
+   * A search URL only counts when it is one an http request can use. A typo
+   * such as a bare `searxng:8080` would otherwise throw while the engine is
+   * being built, which looks like a crash rather than the misconfiguration it
+   * is; discovery then reports `unconfigured`, the same as a missing setting.
+   */
+  function validatedSearchUrl(value: string | undefined): string | undefined {
+    if (!value) return undefined;
+    try {
+      const url = new URL(value);
+      return url.protocol === "http:" || url.protocol === "https:" ? value : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   async function isSetupOpen(): Promise<boolean> {
     return !(await database("installation").first("id"));
   }
@@ -633,7 +649,9 @@ export function createEngine({
   // the same value readiness reports: an installation whose SearXNG URL is
   // absent has no provider, so discovery says `unconfigured` rather than
   // answering an empty result set that would read as "no such product".
-  const searxngUrl = discoveryOptions?.provider ? undefined : services.discovery?.searxngUrl;
+  const searxngUrl = discoveryOptions?.provider
+    ? undefined
+    : validatedSearchUrl(services.discovery?.searxngUrl);
   const searchProvider =
     discoveryOptions?.provider ??
     (searxngUrl
@@ -668,7 +686,7 @@ export function createEngine({
           database: "ready",
           email: configured(services.email?.smtpUrl),
           model: configured(services.model?.apiKey ?? services.model?.baseUrl),
-          discovery: configured(services.discovery?.searxngUrl),
+          discovery: configured(validatedSearchUrl(services.discovery?.searxngUrl)),
           setup: (await isSetupOpen()) ? "open" : "closed",
         };
       },

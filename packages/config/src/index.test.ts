@@ -38,6 +38,22 @@ describe("installation settings", () => {
     );
   });
 
+  it("reports no search instance when SEARXNG_URL is not configured", () => {
+    const settings = loadSettings({ SETUP_TOKEN, BETTER_AUTH_SECRET: AUTH_SECRET });
+
+    expect(settings.discovery).toBeUndefined();
+  });
+
+  it("carries the operator's search instance when SEARXNG_URL is configured", () => {
+    const settings = loadSettings({
+      SETUP_TOKEN,
+      BETTER_AUTH_SECRET: AUTH_SECRET,
+      SEARXNG_URL: "http://searxng:8080",
+    });
+
+    expect(settings.discovery).toEqual({ searxngUrl: "http://searxng:8080" });
+  });
+
   it("reports no email service when SMTP is not configured", () => {
     const settings = loadSettings({ SETUP_TOKEN, BETTER_AUTH_SECRET: AUTH_SECRET });
 

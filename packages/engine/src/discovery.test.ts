@@ -486,6 +486,24 @@ describe("discovery through the engine", () => {
     await discard(installation);
   });
 
+  it("treats a malformed search URL as unconfigured instead of failing to start", async () => {
+    const { schema, drop } = await createTestSchema(server);
+    const database = connectDatabase(withSearchPath(databaseUrlFromEnvironment(), schema));
+    await migrate(database);
+    // A bare host:port is the typo an operator is most likely to write; it must
+    // read as "not configured", not crash the engine the way `new URL` would.
+    const engine = createEngine({
+      database,
+      setupToken: "unused-in-these-tests",
+      identity: createFakeIdentityStore(database),
+      services: { discovery: { searxngUrl: "searxng:8080" } },
+    });
+
+    expect((await engine.setup.readiness()).discovery).toBe("unconfigured");
+    await database.destroy();
+    await drop();
+  });
+
   it("says unconfigured rather than finding nothing when no instance is set", async () => {
     const { schema, drop } = await createTestSchema(server);
     const database = connectDatabase(withSearchPath(databaseUrlFromEnvironment(), schema));
