@@ -45,6 +45,9 @@ const engine = createEngine({
   setupToken: settings.setupToken,
   identity: createIdentityStore(auth),
   accounts: { email: { baseUrl: origin, mailer }, passwords: createPasswordSetter(auth) },
+  ...(settings.retrievalCostCents === undefined
+    ? {}
+    : { retrievalCostCents: settings.retrievalCostCents }),
 });
 
 /** The caller of an administration request, resolved from its verified session. */

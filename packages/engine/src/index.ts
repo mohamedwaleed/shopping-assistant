@@ -25,6 +25,12 @@ import {
   type PasswordSetter,
 } from "./password-reset.ts";
 import { createResearch, type Research, type ResearchCeilings } from "./research.ts";
+import {
+  createExtraction,
+  type AddressResolver,
+  type Extraction,
+  type ExtractionCeilings,
+} from "./extraction.ts";
 
 export {
   AccountAlreadyExistsError,
@@ -85,6 +91,28 @@ export {
   type UsageReservationRecord,
   type UsageSettlement,
 } from "./research.ts";
+
+export {
+  createExtraction,
+  DEFAULT_FETCH_BOUNDS,
+  ExtractionRefusedError,
+  type Availability,
+  type Extraction,
+  type ExtractionCeilings,
+  type FetchBounds,
+  type FetchFailure,
+  type Money,
+  type OfferFacts,
+  type PageClassification,
+  type PageExtraction,
+  type PageExtractionFailure,
+  type PageExtractionSuccess,
+  type PageFacts,
+  type PageReason,
+  type PriceRange,
+  type ProductFacts,
+  type UnknownFact,
+} from "./extraction.ts";
 
 export type MessageRole = "user" | "assistant";
 
@@ -254,6 +282,13 @@ export interface Engine {
    * limit is enforced by the engine rather than by each adapter's goodwill.
    */
   research: Research;
+  /**
+   * Our own fetching and parsing of accessible product pages. Each retrieval
+   * is charged to a research run's ledger, so a page is only read within the
+   * allowance the shopper started; a login wall, a paywall, or a CAPTCHA is an
+   * outcome, never something to work around.
+   */
+  extraction: Extraction;
   conversations: {
     create(userId: string, input: { title: string }): Promise<Conversation>;
     list(userId: string): Promise<Conversation[]>;
@@ -292,6 +327,9 @@ export function createEngine({
   identity,
   policyCeilings,
   researchCeilings,
+  extractionCeilings,
+  retrievalCostCents,
+  retrieval,
   accounts: accountServices,
   now,
 }: {
@@ -311,6 +349,32 @@ export function createEngine({
    * do: an admin may choose within what the deployment pays for, not beyond it.
    */
   researchCeilings?: ResearchCeilings;
+  /**
+   * The most page extraction may take or read. Like the other ceilings it only
+   * ever narrows: a deployment can make retrieval cheaper or stricter, never
+   * wider than the application's own bounds.
+   */
+  extractionCeilings?: ExtractionCeilings;
+  /**
+   * What one retrieval is estimated to cost, in cents, so page extraction is
+   * bounded by the run's money as well as by its call count. Absent means the
+   * deployment has no price, which the ledger records as unknown rather than
+   * free.
+   */
+  retrievalCostCents?: number;
+  /**
+   * How retrieval resolves names and which addresses it may reach. A
+   * deployment supplies nothing here and gets the system resolver with the
+   * destination rules as they stand; the test suite supplies a resolver that
+   * answers for its own fixtures, so no test reaches the internet.
+   */
+  retrieval?: {
+    resolve?: AddressResolver;
+    /** Addresses judged safe despite being private. Empty in a deployment. */
+    permittedAddresses?: readonly string[];
+    /** Ports a URL may name. A deployment leaves this out and 80 and 443 stand. */
+    permittedPorts?: readonly number[];
+  };
   /**
    * What invitations and reset links need. Omitted when the installation has
    * nowhere to send them, so readiness reports email as unconfigured and both
@@ -445,6 +509,17 @@ export function createEngine({
     ...(researchCeilings ? { ceilings: researchCeilings } : {}),
     now: clock,
   });
+  const extraction = createExtraction({
+    research,
+    ...(extractionCeilings ? { ceilings: extractionCeilings } : {}),
+    ...(retrievalCostCents === undefined ? {} : { costPerFetchCents: retrievalCostCents }),
+    ...(retrieval?.resolve === undefined ? {} : { resolve: retrieval.resolve }),
+    ...(retrieval?.permittedAddresses === undefined
+      ? {}
+      : { permittedAddresses: retrieval.permittedAddresses }),
+    ...(retrieval?.permittedPorts === undefined ? {} : { permittedPorts: retrieval.permittedPorts }),
+    now: clock,
+  });
 
   return {
     setup: {
@@ -512,6 +587,8 @@ export function createEngine({
     passwordResets,
 
     research,
+
+    extraction,
 
     conversations: {
       async create(userId, input) {

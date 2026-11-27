@@ -29,6 +29,12 @@ export interface InstallationSettings {
   publicBaseUrl: string;
   /** Absent when no SMTP relay is configured; readiness then reports it. */
   email: { smtpUrl: string } | undefined;
+  /**
+   * What one page retrieval is estimated to cost, in cents. Absent when the
+   * operator has not priced retrieval, which the research ledger records as an
+   * unknown cost rather than a free call.
+   */
+  retrievalCostCents: number | undefined;
 }
 
 /**
@@ -51,11 +57,18 @@ export function loadSettings(environment: NodeJS.ProcessEnv = process.env): Inst
     );
   }
   const smtpUrl = environment.SMTP_URL;
+  const retrievalCost = environment.RETRIEVAL_COST_CENTS;
+  // A price is a whole, non-negative number of cents. The value is never
+  // repeated in the error, only its name, in keeping with every other setting.
+  if (retrievalCost !== undefined && !/^\d+$/.test(retrievalCost.trim())) {
+    throw new InvalidConfigurationError("RETRIEVAL_COST_CENTS must be a whole number of cents");
+  }
   return {
     setupToken,
     authSecret,
     databaseUrl: environment.DATABASE_URL ?? DEFAULT_DATABASE_URL,
     publicBaseUrl: environment.PUBLIC_BASE_URL ?? DEFAULT_PUBLIC_BASE_URL,
     email: smtpUrl ? { smtpUrl } : undefined,
+    retrievalCostCents: retrievalCost === undefined ? undefined : Number(retrievalCost.trim()),
   };
 }
