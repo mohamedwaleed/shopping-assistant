@@ -65,6 +65,10 @@ export async function up(knex) {
     table.text("availability");
     table.text("condition");
     table.timestamp("checked_at", { useTz: true }).notNullable().defaultTo(knex.fn.now());
+    // One offer per variant per purchase URL. The constraint, not the read in
+    // the upsert, is what stops two concurrent ingests of one page stacking
+    // duplicate offers.
+    table.unique(["variant_id", "purchase_url"]);
     table.index(["variant_id", "checked_at"], "offers_variant");
   });
 

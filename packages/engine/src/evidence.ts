@@ -269,29 +269,25 @@ export function createEvidence({ database }: { database: Database }): Evidence {
       "condition",
       "checked_at",
     ] as const;
-    const existing = await transaction("offers")
-      .where({ variant_id: variantId, purchase_url: purchaseUrl })
-      .first<OfferRow>([...columns]);
-    if (existing !== undefined) {
-      // Re-reading the same page refreshes the offer's checked values: what
-      // this check found stands, and what it did not find is missing again.
-      const rows = await transaction("offers")
-        .where({ id: existing.id })
-        .update({
-          price_cents: checked.priceCents,
-          currency: checked.currency,
-          availability: checked.availability,
-          condition: checked.condition,
-          checked_at: checked.checkedAt,
-        })
-        .returning<OfferRow[]>([...columns]);
-      return inserted(rows);
-    }
+    // One statement for create and refresh: the unique constraint on
+    // (variant_id, purchase_url) decides, so two concurrent ingests of one
+    // page cannot stack a second offer, and a re-read updates the same row.
+    // The retailer is part of the refresh: it is the seller of record at the
+    // time of the check, not a value fixed by the first read.
     const rows = await transaction("offers")
       .insert({
         variant_id: variantId,
         retailer: checked.retailer,
         purchase_url: purchaseUrl,
+        price_cents: checked.priceCents,
+        currency: checked.currency,
+        availability: checked.availability,
+        condition: checked.condition,
+        checked_at: checked.checkedAt,
+      })
+      .onConflict(["variant_id", "purchase_url"])
+      .merge({
+        retailer: checked.retailer,
         price_cents: checked.priceCents,
         currency: checked.currency,
         availability: checked.availability,
@@ -394,8 +390,13 @@ export function createEvidence({ database }: { database: Database }): Evidence {
       const sourceUrl = extraction.sourceUrl;
       const checkedAt = extraction.checkedAt;
 
+      // A nameless page is not a product anyone can compare: the fallback
+      // name would fold unrelated pages into one line, and every page has a
+      // title, so refusing here costs nothing real.
+      const name = facts.product.name ?? facts.title;
+      if (name === undefined) return { stored: false, reason: "no_facts" };
+
       return database.transaction(async (transaction) => {
-        const name = facts.product.name ?? facts.title ?? "Unnamed product";
         const product = await findOrCreateProduct(transaction, name, facts.product.brand, {
           brand: facts.product.brand,
           category: facts.product.category,

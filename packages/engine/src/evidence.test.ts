@@ -313,6 +313,23 @@ describe("matching identities conservatively", () => {
     await discard(installation);
   });
 
+  it("keeps a nameless page out instead of folding it into a shared product", async () => {
+    const installation = await createInstallation();
+    // A page with neither a product name nor a title is nothing to compare; a
+    // shared fallback name would have merged unrelated pages into one line.
+    const extraction = await installation.engine.extraction.parse({
+      url: "https://shop-a.example/thing",
+      html: "<html><head></head><body></body></html>",
+    });
+    const outcome = await installation.engine.evidence.ingest(extraction);
+
+    if (outcome.stored) throw new Error("A nameless page must not be stored");
+    expect(["failed", "no_facts"]).toContain(outcome.reason);
+    const rows = await installation.database("products").count<{ count: string }[]>("*");
+    expect(Number(rows[0]?.count ?? 0)).toBe(0);
+    await discard(installation);
+  });
+
   it("never merges two pages that share no identifier", async () => {
     const installation = await createInstallation();
     await installation.engine.evidence.ingest(
