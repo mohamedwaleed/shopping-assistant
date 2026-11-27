@@ -192,19 +192,10 @@ export function createConversationAgent({
       const model = configuration.models.find((candidate) => candidate.id === modelId);
       const run = await researchRunOf(userId, conversationId);
 
-      // From here the turn streams. Engine refusals after this point are
-      // events, not exceptions, so a caller reading events sees them.
-      const userMessage = await engine.conversations.appendMessage(userId, conversationId, {
-        role: "user",
-        content: message,
-      });
-      yield { type: "user-message-persisted", messageId: userMessage.id };
-
-      const languageModel = languageModelOf(configuration, modelId, fetch ? { fetch } : {});
-      // The reservation is what the ledger charges the turn against, mirroring
-      // how a diagnostic reserves before its call: the call is counted when
-      // the reservation is granted, so a provider that hangs still consumes
-      // the allowance.
+      // The reservation happens before anything is yielded, so an exhausted
+      // allowance is an exception a caller can still answer with a clean
+      // status. A turn that streams but cannot pay for its model call must not
+      // look as though it ran.
       const reservation: UsageReservationRecord = await engine.research.reserve(
         userId,
         run.id,
@@ -215,6 +206,16 @@ export function createConversationAgent({
           estimatedDurationMs: callCost.estimatedDurationMs,
         },
       );
+
+      // From here the turn streams. Engine refusals after this point are
+      // events, not exceptions, so a caller reading events sees them.
+      const userMessage = await engine.conversations.appendMessage(userId, conversationId, {
+        role: "user",
+        content: message,
+      });
+      yield { type: "user-message-persisted", messageId: userMessage.id };
+
+      const languageModel = languageModelOf(configuration, modelId, fetch ? { fetch } : {});
 
       const started = Date.now();
       // Whether the provider was asked. The SDK calls back just before each

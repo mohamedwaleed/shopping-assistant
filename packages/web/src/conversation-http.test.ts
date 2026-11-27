@@ -319,6 +319,40 @@ describe("the streamed conversation contract", () => {
     await installation.close();
   });
 
+  it("refuses a body that is not JSON instead of persisting it as a message", async () => {
+    const installation = await serveInstallation();
+    const account = (await installation.engine.accounts.findByEmail("operator@example.com"))!;
+    const conversation = await installation.engine.conversations.create(account.id, {
+      title: "Geen JSON",
+    });
+    const signedIn = await post(installation.origin, "/api/auth/sign-in/email", {
+      email: "operator@example.com",
+      password: PASSWORD,
+    });
+    expect(signedIn.status).toBe(200);
+    const cookie = cookieFrom(signedIn);
+
+    const response = await fetch(
+      `${installation.origin}/conversations/${conversation.id}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie,
+          origin: installation.origin,
+        },
+        body: "this is not json",
+      },
+    );
+
+    expect(response.status).toBe(400);
+    // Nothing was persisted and the model was never asked.
+    const reopened = await installation.engine.conversations.get(account.id, conversation.id);
+    expect(reopened.messages).toHaveLength(0);
+    expect(installation.captured).toEqual([]);
+    await installation.close();
+  });
+
   it("requires a session before a conversation can be read or written", async () => {
     const installation = await serveInstallation();
     const account = (await installation.engine.accounts.findByEmail("operator@example.com"))!;

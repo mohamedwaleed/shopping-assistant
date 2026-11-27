@@ -102,6 +102,12 @@ export function createConversationServer({
       send(response, 413, { error: "Request body too large" });
       return;
     }
+    if (body instanceof SyntaxError) {
+      // A body that is not JSON is not a shopper's message; persisting it
+      // would burn a whole turn on garbage.
+      send(response, 400, { error: "Expected a JSON body" });
+      return;
+    }
     const message = (body as Record<string, unknown> | undefined)?.message;
     if (typeof message !== "string" || message.trim().length === 0) {
       send(response, 400, { error: "Expected a message" });
@@ -133,6 +139,10 @@ export function createConversationServer({
  */
 function refuse(response: ServerResponse, error: unknown): void {
   if (response.headersSent) {
+    // Streaming has begun: a terminal event, not a bare EOF, so a client
+    // reading events is never left wondering whether the turn ended.
+    response.write(`${JSON.stringify({ type: "error", problem: "the turn could not be completed" })}
+`);
     response.end();
     return;
   }
