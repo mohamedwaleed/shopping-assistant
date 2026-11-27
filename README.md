@@ -13,9 +13,42 @@ This program is free software: you can redistribute it and/or modify it under th
 - `packages/config` — environment configuration: validated settings, secrets kept server-side.
 - `packages/database` — PostgreSQL persistence: connection, migrations, test helpers.
 - `packages/engine` — shopping logic and authorization behind public engine operations.
+- `packages/agent` — the conversation model boundary: provider transports, capability diagnostics, and the model catalogue an admin chooses from. The Vercel AI SDK lives here and only here.
 - `packages/web` — the HTTP and authentication boundary: Better Auth over the same knex connection, plus the email seam.
 
-The agent package arrives with its own ticket.
+## Conversation models
+
+An installation reaches its conversation model through one of three routes: OpenAI's own API, any OpenAI-compatible Chat Completions endpoint, or OpenRouter. The operator configures the routes and the models, and an administrator then chooses among the offered ids (`balanced`, `thorough`, `economy`).
+
+```sh
+MODEL_OPENAI_API_KEY=...                       # direct OpenAI
+MODEL_OPENAI_BASE_URL=...                      # optional proxy or regional endpoint
+MODEL_COMPATIBLE_BASE_URL=https://llm.internal/v1   # an OpenAI-compatible server
+MODEL_COMPATIBLE_API_KEY=...                   # optional for a self-hosted server
+MODEL_OPENROUTER_API_KEY=...                   # OpenRouter
+MODEL_SITE_URL=https://shop.example.com        # what OpenRouter attributes traffic to
+MODEL_APP_NAME=shopping-assistant
+MODEL_BALANCED=openai:gpt-5-mini               # <provider>:<model>
+MODEL_THOROUGH=compatible:local-large
+MODEL_ECONOMY=openrouter:openai/gpt-5-mini
+```
+
+Credentials stay server-side: they are read from the environment, passed only to the provider, and never appear in a response, a usage record, or a diagnostic.
+
+`GET /administration/models` lists the offered ids with the provider behind each and whether it is configured, plus the model a conversation would use now. An admin may set a default only to an offered id the deployment has a provider for; an id outside the operator's ceiling, or with no provider, is refused.
+
+A model is reported as `unverified` until a diagnostic proves otherwise. `createModelProviders({ engine, configuration }).diagnose(actor, modelId)` exercises streaming and a typed tool call against the provider, and reports `ready`, `incompatible`, `unconfigured`, or `failed` with a reason. Endpoint compatibility alone never counts as support: the verdict comes from a streamed answer arriving in parts and a tool call whose arguments satisfy the declared schema. A failing provider is reported, never swapped for another one.
+
+Each diagnostic is charged to the research ledger like any other model call, from a per-model run under the operator's account, so it is bounded by the same run, conversation, and daily ceilings. Repeated diagnostics are additionally limited per model per window.
+
+The provider's behaviour is verified with protocol fixtures (`packages/agent/src/fixtures`) that replay recorded request bodies and recorded wire responses, so the default test run contacts no network. A live check against real providers is available and skipped unless asked for:
+
+```sh
+MODEL_LIVE_CHECK=1 node --experimental-strip-types packages/agent/scripts/live-check.ts
+```
+
+`packages/agent/scripts/record-requests.mjs` re-records the request fixtures from the SDK itself when it is upgraded.
+
 
 ## Requirements
 

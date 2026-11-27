@@ -1,0 +1,231 @@
+{
+  "openai": [
+    {
+      "method": "POST",
+      "url": "/v1/chat/completions",
+      "headers": {
+        "authorization": "Bearer recorded",
+        "content-type": "application/json"
+      },
+      "body": {
+        "model": "gpt-4o-mini",
+        "max_tokens": 64,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Record the shopper's interest in bike helmets, in stock only."
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "record_product_interest",
+              "description": "Record that the shopper is interested in a product category. Call this exactly once.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "description": "The product category to record."
+                  },
+                  "mustBeInStock": {
+                    "type": "boolean",
+                    "description": "Whether only in-stock offers qualify."
+                  }
+                },
+                "required": [
+                  "category",
+                  "mustBeInStock"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "function",
+          "function": {
+            "name": "record_product_interest"
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/v1/chat/completions",
+      "headers": {
+        "authorization": "Bearer recorded",
+        "content-type": "application/json"
+      },
+      "body": {
+        "model": "gpt-4o-mini",
+        "max_tokens": 64,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Reply with the single word: ready."
+          }
+        ],
+        "stream": true,
+        "stream_options": {
+          "include_usage": true
+        }
+      }
+    }
+  ],
+  "openai-compatible": [
+    {
+      "method": "POST",
+      "url": "/v1/chat/completions",
+      "headers": {
+        "authorization": "Bearer recorded",
+        "content-type": "application/json"
+      },
+      "body": {
+        "model": "local-model",
+        "max_tokens": 64,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Record the shopper's interest in bike helmets, in stock only."
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "record_product_interest",
+              "description": "Record that the shopper is interested in a product category. Call this exactly once.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "description": "The product category to record."
+                  },
+                  "mustBeInStock": {
+                    "type": "boolean",
+                    "description": "Whether only in-stock offers qualify."
+                  }
+                },
+                "required": [
+                  "category",
+                  "mustBeInStock"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "function",
+          "function": {
+            "name": "record_product_interest"
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/v1/chat/completions",
+      "headers": {
+        "authorization": "Bearer recorded",
+        "content-type": "application/json"
+      },
+      "body": {
+        "model": "local-model",
+        "max_tokens": 64,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Reply with the single word: ready."
+          }
+        ],
+        "stream": true,
+        "stream_options": {
+          "include_usage": true
+        }
+      }
+    }
+  ],
+  "openrouter": [
+    {
+      "method": "POST",
+      "url": "/api/v1/chat/completions",
+      "headers": {
+        "authorization": "Bearer recorded",
+        "content-type": "application/json",
+        "http-referer": "http://localhost:3000",
+        "x-title": "shopping-assistant"
+      },
+      "body": {
+        "model": "openai/gpt-4o-mini",
+        "max_tokens": 64,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Record the shopper's interest in bike helmets, in stock only."
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "function": {
+              "name": "record_product_interest",
+              "description": "Record that the shopper is interested in a product category. Call this exactly once.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "description": "The product category to record."
+                  },
+                  "mustBeInStock": {
+                    "type": "boolean",
+                    "description": "Whether only in-stock offers qualify."
+                  }
+                },
+                "required": [
+                  "category",
+                  "mustBeInStock"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "function",
+          "function": {
+            "name": "record_product_interest"
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/api/v1/chat/completions",
+      "headers": {
+        "authorization": "Bearer recorded",
+        "content-type": "application/json",
+        "http-referer": "http://localhost:3000",
+        "x-title": "shopping-assistant"
+      },
+      "body": {
+        "model": "openai/gpt-4o-mini",
+        "max_tokens": 64,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Reply with the single word: ready."
+          }
+        ],
+        "stream": true,
+        "stream_options": {
+          "include_usage": true
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@shopping-assistant/agent",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^4.0.125",
+    "@ai-sdk/openai-compatible": "^3.0.96",
+    "@shopping-assistant/engine": "workspace:*",
+    "ai": "^7.0.183"
+  },
+  "devDependencies": {
+    "@shopping-assistant/database": "workspace:*",
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  }
+}
