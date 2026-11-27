@@ -82,6 +82,9 @@ importers:
 
   packages/web:
     dependencies:
+      '@shopping-assistant/agent':
+        specifier: workspace:*
+        version: link:../agent
       '@shopping-assistant/config':
         specifier: workspace:*
         version: link:../config

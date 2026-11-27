@@ -33,3 +33,16 @@ export {
 } from "./model-providers.ts";
 export { loadModelConfiguration, modelConfigurationFromEnvironment } from "./environment.ts";
 export { liveCheck, type LiveCheckResult } from "./live-check.ts";
+export {
+  CONVERSATION_TOOLS,
+  createConversationAgent,
+  DEFAULT_CONVERSATION_BOUNDS,
+  DEFAULT_CONVERSATION_CALL_COST,
+  pageExtractionAsData,
+  type ConversationAgent,
+  type ConversationAgentOptions,
+  type ConversationBounds,
+  type ConversationCallCost,
+  type ConversationEvent,
+  type ConversationTurnInput,
+} from "./conversation.ts";

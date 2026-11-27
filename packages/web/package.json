@@ -14,6 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@shopping-assistant/agent": "workspace:*",
     "@shopping-assistant/config": "workspace:*",
     "@shopping-assistant/database": "workspace:*",
     "@shopping-assistant/engine": "workspace:*",
