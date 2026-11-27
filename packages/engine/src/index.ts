@@ -37,6 +37,15 @@ import {
   type ExtractionCeilings,
 } from "./extraction.ts";
 import {
+  createEvidence,
+  type Evidence,
+  type EvidenceFact,
+  type EvidenceOffer,
+  type EvidenceProduct,
+  type EvidenceVariant,
+  type IngestOutcome,
+} from "./evidence.ts";
+import {
   buildDiscoveryQueries,
   createDiscovery,
   createSearxngProvider,
@@ -145,6 +154,15 @@ export {
   type ProductFacts,
   type UnknownFact,
 } from "./extraction.ts";
+export {
+  createEvidence,
+  type Evidence,
+  type EvidenceFact,
+  type EvidenceOffer,
+  type EvidenceProduct,
+  type EvidenceVariant,
+  type IngestOutcome,
+} from "./evidence.ts";
 export {
   buildDiscoveryQueries,
   createDiscovery,
@@ -372,6 +390,14 @@ export interface Engine {
    * outcome, never something to work around.
    */
   extraction: Extraction;
+  /**
+   * Persisted evidence from retrieved pages: products, exact variants,
+   * retailer offers, and the stated facts behind each one. Fetching and
+   * parsing hand over a `PageExtraction`; `ingest` stores it, matching
+   * identity conservatively, and `product` reads one back with its variants,
+   * offers, evidence, and check times for cards and comparisons.
+   */
+  evidence: Evidence;
   /**
    * Candidate pages found through the configured search engine. It finds
    * candidates and nothing more: a result's title and snippet are unverified
@@ -644,6 +670,7 @@ export function createEngine({
     ...(retrieval?.permittedPorts === undefined ? {} : { permittedPorts: retrieval.permittedPorts }),
     now: clock,
   });
+  const evidence = createEvidence({ database });
 
   // One place decides whether discovery has a search engine at all, and it is
   // the same value readiness reports: an installation whose SearXNG URL is
@@ -757,6 +784,7 @@ export function createEngine({
     research,
 
     extraction,
+    evidence,
     discovery,
 
     conversations: {
