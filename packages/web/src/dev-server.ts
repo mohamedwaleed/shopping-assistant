@@ -10,6 +10,7 @@
  */
 import { createServer, type IncomingMessage } from "node:http";
 import type { AddressInfo } from "node:net";
+import { createConversationAgent, loadModelConfiguration } from "@shopping-assistant/agent";
 import { loadSettings } from "@shopping-assistant/config";
 import { connectDatabase } from "@shopping-assistant/database";
 import { createEngine } from "@shopping-assistant/engine";
@@ -17,6 +18,7 @@ import { createAdministrationServer } from "@shopping-assistant/engine/administr
 import { createSetupServer } from "@shopping-assistant/engine/setup-http";
 import { createAuth } from "./auth.ts";
 import { createAuthServer } from "./auth-http.ts";
+import { createConversationServer } from "./conversation-http.ts";
 import { createPasswordSetter } from "./account-links.ts";
 import { createIdentityStore, currentUser } from "./identity.ts";
 import { createRecordingMailer, type OutgoingEmail } from "./mailer.ts";
@@ -61,10 +63,19 @@ const authServer = createAuthServer({ auth, engine });
 const administrationServer = createAdministrationServer({ engine, actorOf });
 const setupServer = createSetupServer({ engine });
 
+// The conversation model comes from the same variables the admin screens
+// diagnose; with none configured, a turn answers 503 rather than guessing.
+const conversationAgent = createConversationAgent({
+  engine,
+  configuration: loadModelConfiguration(),
+});
+const conversationServer = createConversationServer({ auth, engine, agent: conversationAgent });
+
 const server = createServer((request, response) => {
   const { pathname } = new URL(request.url ?? "/", "http://localhost");
   if (pathname.startsWith("/administration")) return administrationServer(request, response);
   if (pathname.startsWith("/setup")) return setupServer(request, response);
+  if (pathname.startsWith("/conversations")) return conversationServer(request, response);
   return authServer(request, response);
 });
 
