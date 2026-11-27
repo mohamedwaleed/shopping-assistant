@@ -20,6 +20,8 @@ export class InvalidConfigurationError extends Error {
 }
 
 export interface InstallationSettings {
+  /** The operator's own search instance; absent means discovery is unconfigured. */
+  discovery: { searxngUrl: string } | undefined;
   /** Secret: authorizes creating the first admin, so it must never be exposed. */
   setupToken: string;
   /** Secret: signs sessions and verification links, so it must never be exposed. */
@@ -63,6 +65,7 @@ export function loadSettings(environment: NodeJS.ProcessEnv = process.env): Inst
   if (retrievalCost !== undefined && !/^\d+$/.test(retrievalCost.trim())) {
     throw new InvalidConfigurationError("RETRIEVAL_COST_CENTS must be a whole number of cents");
   }
+  const searxngUrl = environment.SEARXNG_URL;
   return {
     setupToken,
     authSecret,
@@ -70,5 +73,6 @@ export function loadSettings(environment: NodeJS.ProcessEnv = process.env): Inst
     publicBaseUrl: environment.PUBLIC_BASE_URL ?? DEFAULT_PUBLIC_BASE_URL,
     email: smtpUrl ? { smtpUrl } : undefined,
     retrievalCostCents: retrievalCost === undefined ? undefined : Number(retrievalCost.trim()),
+    discovery: searxngUrl ? { searxngUrl } : undefined,
   };
 }

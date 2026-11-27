@@ -36,6 +36,27 @@ import {
   type Extraction,
   type ExtractionCeilings,
 } from "./extraction.ts";
+import {
+  buildDiscoveryQueries,
+  createDiscovery,
+  createSearxngProvider,
+  DiscoveryResponseError,
+  DiscoveryUnavailableError,
+  readSearxngResponse,
+  unverifiedClaim,
+  type DiscoveredCandidate,
+  type Discovery,
+  type DiscoveryAttempt,
+  type DiscoveryBounds,
+  type DiscoveryLanguage,
+  type DiscoveryOutcome,
+  type DiscoveryProvenance,
+  type DiscoveryQuery,
+  type DiscoveryResult,
+  type DiscoveryStop,
+  type SearchProvider,
+  type UnverifiedClaim,
+} from "./discovery.ts";
 
 export {
   AccountAlreadyExistsError,
@@ -124,6 +145,29 @@ export {
   type ProductFacts,
   type UnknownFact,
 } from "./extraction.ts";
+export {
+  buildDiscoveryQueries,
+  createDiscovery,
+  createSearxngProvider,
+  DEFAULT_DISCOVERY_BOUNDS,
+  DEFAULT_DISCOVERY_PRICING,
+  DiscoveryResponseError,
+  DiscoveryUnavailableError,
+  readSearxngResponse,
+  unverifiedClaim,
+  type DiscoveredCandidate,
+  type Discovery,
+  type DiscoveryAttempt,
+  type DiscoveryBounds,
+  type DiscoveryLanguage,
+  type DiscoveryOutcome,
+  type DiscoveryProvenance,
+  type DiscoveryQuery,
+  type DiscoveryResult,
+  type DiscoveryStop,
+  type SearchProvider,
+  type UnverifiedClaim,
+} from "./discovery.ts";
 
 export type MessageRole = "user" | "assistant";
 
@@ -328,6 +372,12 @@ export interface Engine {
    * outcome, never something to work around.
    */
   extraction: Extraction;
+  /**
+   * Candidate pages found through the configured search engine. It finds
+   * candidates and nothing more: a result's title and snippet are unverified
+   * claims, and only fetching the page can establish what it sells.
+   */
+  discovery: Discovery;
   conversations: {
     create(userId: string, input: { title: string }): Promise<Conversation>;
     list(userId: string): Promise<Conversation[]>;
@@ -370,6 +420,7 @@ export function createEngine({
   retrievalCostCents,
   retrieval,
   accounts: accountServices,
+  discovery: discoveryOptions,
   now,
 }: {
   database: Database;
@@ -424,6 +475,19 @@ export function createEngine({
     /** How a reset writes the new credential; the engine never sees a hash. */
     passwords?: PasswordSetter;
   };
+  /**
+   * How discovery reaches a search engine. Omitted, the configured
+   * `services.discovery.searxngUrl` is used, and with neither discovery reports
+   * `unconfigured` instead of quietly finding nothing.
+   */
+  discovery?: {
+    provider?: SearchProvider;
+    bounds?: DiscoveryBounds;
+    /** What one search costs; free by default, because SearXNG is the operator's own. */
+    pricing?: { unitCents: number; units?: number };
+    /** Injected so a test answers deterministically and a live check is explicit. */
+    fetch?: typeof globalThis.fetch;
+  };
   /** The clock, so expiry can be tested without waiting. */
   now?: () => Date;
 }): Engine {
@@ -455,6 +519,22 @@ export function createEngine({
 
   const configured = (value: string | undefined): Readiness =>
     value ? "ready" : "unconfigured";
+
+  /**
+   * A search URL only counts when it is one an http request can use. A typo
+   * such as a bare `searxng:8080` would otherwise throw while the engine is
+   * being built, which looks like a crash rather than the misconfiguration it
+   * is; discovery then reports `unconfigured`, the same as a missing setting.
+   */
+  function validatedSearchUrl(value: string | undefined): string | undefined {
+    if (!value) return undefined;
+    try {
+      const url = new URL(value);
+      return url.protocol === "http:" || url.protocol === "https:" ? value : undefined;
+    } catch {
+      return undefined;
+    }
+  }
 
   async function isSetupOpen(): Promise<boolean> {
     return !(await database("installation").first("id"));
@@ -507,6 +587,11 @@ export function createEngine({
       .where({ conversation_id: conversationId })
       .orderBy("seq")
       .select<RequirementRow[]>(["id", "kind", "statement", "created_at"]);
+    return summariseRequirements(rows);
+  }
+
+  /** One shape for requirements, whichever route read them. */
+  function summariseRequirements(rows: RequirementRow[]): Requirements {
     const ofKind = (kind: RequirementKind) =>
       rows.filter((row) => row.kind === kind).map(toRequirement);
     const hardConstraints = ofKind("hard_constraint");
@@ -560,6 +645,39 @@ export function createEngine({
     now: clock,
   });
 
+  // One place decides whether discovery has a search engine at all, and it is
+  // the same value readiness reports: an installation whose SearXNG URL is
+  // absent has no provider, so discovery says `unconfigured` rather than
+  // answering an empty result set that would read as "no such product".
+  const searxngUrl = discoveryOptions?.provider
+    ? undefined
+    : validatedSearchUrl(services.discovery?.searxngUrl);
+  const searchProvider =
+    discoveryOptions?.provider ??
+    (searxngUrl
+      ? createSearxngProvider({
+          baseUrl: searxngUrl,
+          ...(discoveryOptions?.bounds ? { bounds: discoveryOptions.bounds } : {}),
+          ...(discoveryOptions?.fetch ? { fetch: discoveryOptions.fetch } : {}),
+        })
+      : undefined);
+  const discovery = createDiscovery({
+    research,
+    // The engine's own requirements read, handed over as a function so
+    // discovery cannot reach the database or a conversation's messages. The
+    // conversation is checked against the shopper first: discovery is a paid
+    // step, and a conversation that is not theirs is not one to spend on.
+    requirements: {
+      async get(userId, conversationId) {
+        await requireOwnedConversation(userId, conversationId);
+        return requirementsOf(conversationId);
+      },
+    },
+    ...(searchProvider ? { provider: searchProvider } : {}),
+    ...(discoveryOptions?.bounds ? { bounds: discoveryOptions.bounds } : {}),
+    ...(discoveryOptions?.pricing ? { pricing: discoveryOptions.pricing } : {}),
+  });
+
   return {
     setup: {
       async readiness() {
@@ -568,7 +686,7 @@ export function createEngine({
           database: "ready",
           email: configured(services.email?.smtpUrl),
           model: configured(services.model?.apiKey ?? services.model?.baseUrl),
-          discovery: configured(services.discovery?.searxngUrl),
+          discovery: configured(validatedSearchUrl(services.discovery?.searxngUrl)),
           setup: (await isSetupOpen()) ? "open" : "closed",
         };
       },
@@ -639,6 +757,7 @@ export function createEngine({
     research,
 
     extraction,
+    discovery,
 
     conversations: {
       async create(userId, input) {
